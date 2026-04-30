@@ -4,6 +4,7 @@ import {
   Copy,
   ExternalLink,
   FilePlus,
+  FilePlus2,
   FolderPlus,
   PenLine,
   Pin,
@@ -12,7 +13,12 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
-import type { FolderRecord, SnippetRecord, ClipboardEntry } from "@/lib/types";
+import type {
+  ClipboardEntry,
+  FolderRecord,
+  NoteRecord,
+  SnippetRecord,
+} from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import type { MenuTarget } from "./types";
 
@@ -21,18 +27,22 @@ interface UseContextMenuGroupsArgs {
   clipboard: ClipboardEntry | null;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
+  notes: NoteRecord[];
   onGoHome: () => void;
   onNewSnippetAt: (folderId: string | null) => void;
   onPaste: (targetFolderId: string | null) => Promise<void>;
   onPinFolder: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   onPinSnippet: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
+  onPinNote: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;
   onDeleteSnippet: (id: string) => Promise<void>;
+  onDeleteNote: (id: string) => Promise<void>;
   onCut: (entry: ClipboardEntry) => void;
   onCopy: (entry: ClipboardEntry) => void;
   setRenamingId: (id: string | null) => void;
   setCreatingFolderParentId: (id: string | null | undefined) => void;
   setCreatingSnippetFolderId: (id: string | null | undefined) => void;
+  setCreatingNoteFolderId: (id: string | null | undefined) => void;
 }
 
 export function useContextMenuGroups({
@@ -40,18 +50,22 @@ export function useContextMenuGroups({
   clipboard,
   folders,
   snippets,
+  notes,
   onGoHome,
   onNewSnippetAt,
   onPaste,
   onPinFolder,
   onPinSnippet,
+  onPinNote,
   onDeleteFolder,
   onDeleteSnippet,
+  onDeleteNote,
   onCut,
   onCopy,
   setRenamingId,
   setCreatingFolderParentId,
   setCreatingSnippetFolderId,
+  setCreatingNoteFolderId,
 }: UseContextMenuGroupsArgs) {
   return useCallback(
     (target: MenuTarget): ContextMenuGroup[] => {
@@ -73,6 +87,12 @@ export function useContextMenuGroups({
                 label: cm.newSnippet,
                 Icon: FilePlus,
                 onClick: () => setCreatingSnippetFolderId(null),
+              },
+              {
+                id: "new-note",
+                label: cm.newNote,
+                Icon: FilePlus2,
+                onClick: () => setCreatingNoteFolderId(null),
               },
             ],
           },
@@ -116,6 +136,12 @@ export function useContextMenuGroups({
                 label: cm.newSnippet,
                 Icon: FilePlus,
                 onClick: () => setCreatingSnippetFolderId(id),
+              },
+              {
+                id: "new-note",
+                label: cm.newNote,
+                Icon: FilePlus2,
+                onClick: () => setCreatingNoteFolderId(id),
               },
             ],
           },
@@ -208,8 +234,78 @@ export function useContextMenuGroups({
         ];
       }
 
+      if (type === "note" && id) {
+        const note = notes.find((n) => n.id === id);
+        if (!note) return [];
+        return [
+          {
+            items: [
+              {
+                id: "open-in-new-tab",
+                label: cm.openInNewTab,
+                Icon: ExternalLink,
+                onClick: () => window.open(`/?note=${id}`, "_blank", "noopener,noreferrer"),
+              },
+            ],
+          },
+          {
+            items: [
+              note.isPinnedAside
+                ? { id: "unpin-aside", label: cm.unpinAside, Icon: PinOff, onClick: () => void onPinNote(id, "aside", false) }
+                : { id: "pin-aside",   label: cm.pinAside,   Icon: Pin,    onClick: () => void onPinNote(id, "aside", true)  },
+              note.isPinnedHome
+                ? { id: "unpin-home", label: cm.unpinHome, Icon: PinOff, onClick: () => void onPinNote(id, "home", false) }
+                : { id: "pin-home",   label: cm.pinHome,   Icon: Pin,    onClick: () => void onPinNote(id, "home", true)  },
+              {
+                id: "rename",
+                label: cm.rename,
+                Icon: PenLine,
+                onClick: () => setRenamingId(id),
+              },
+            ],
+          },
+          {
+            items: [
+              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  itemType: "note", id }) },
+              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", itemType: "note", id }) },
+              ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(note.folderId) }] : []),
+            ],
+          },
+          {
+            items: [{
+              id: "delete",
+              label: cm.delete,
+              Icon: Trash2,
+              variant: "destructive" as const,
+              onClick: () => void onDeleteNote(id),
+            }],
+          },
+        ];
+      }
+
       return [];
     },
-    [clipboard, copy.contextMenu, folders, snippets, onGoHome, onNewSnippetAt, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onCut, onCopy, setRenamingId, setCreatingFolderParentId, setCreatingSnippetFolderId],
+    [
+      clipboard,
+      copy.contextMenu,
+      folders,
+      snippets,
+      notes,
+      onGoHome,
+      onNewSnippetAt,
+      onPaste,
+      onPinFolder,
+      onPinSnippet,
+      onPinNote,
+      onDeleteFolder,
+      onDeleteSnippet,
+      onDeleteNote,
+      onCut,
+      onCopy,
+      setRenamingId,
+      setCreatingFolderParentId,
+      setCreatingSnippetFolderId,
+      setCreatingNoteFolderId,
+    ],
   );
 }

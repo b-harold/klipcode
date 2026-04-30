@@ -2,7 +2,7 @@
 // so that Dexie picks it up when the module is first imported.
 import { describe, it, expect, beforeEach } from "vitest";
 import { db, readWorkspace, getDirtyWorkspace } from "@/lib/db";
-import type { FolderRecord, SnippetRecord } from "@/lib/types";
+import type { FolderRecord, NoteRecord, SnippetRecord } from "@/lib/types";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +35,24 @@ function makeSnippet(overrides: Partial<SnippetRecord> = {}): SnippetRecord {
     title: "Test Snippet",
     code: 'console.log("test")',
     language: "javascript",
+    sourceUrl: null,
+    isPinnedAside: false,
+    isPinnedHome: false,
+    createdAt: "2024-01-01T00:00:00.000Z",
+    updatedAt: "2024-01-01T00:00:00.000Z",
+    dirty: false,
+    lastSyncedAt: null,
+    ...overrides,
+  };
+}
+
+function makeNote(overrides: Partial<NoteRecord> = {}): NoteRecord {
+  return {
+    id: uid(),
+    ownerId: null,
+    folderId: null,
+    title: "Test Note",
+    markdown: "Hello world",
     isPinnedAside: false,
     isPinnedHome: false,
     createdAt: "2024-01-01T00:00:00.000Z",
@@ -48,6 +66,7 @@ function makeSnippet(overrides: Partial<SnippetRecord> = {}): SnippetRecord {
 beforeEach(async () => {
   await db.folders.clear();
   await db.snippets.clear();
+  await db.notes.clear();
 });
 
 // ── readWorkspace() ───────────────────────────────────────────────────────────
@@ -57,6 +76,7 @@ describe("readWorkspace()", () => {
     const ws = await readWorkspace(null);
     expect(ws.folders).toHaveLength(0);
     expect(ws.snippets).toHaveLength(0);
+    expect(ws.notes).toHaveLength(0);
   });
 
   it("returns only null-owner records when no user is logged in", async () => {
@@ -113,6 +133,19 @@ describe("readWorkspace()", () => {
     const ws = await readWorkspace(null);
     expect(ws.snippets[0].title).toBe("Pinned");
   });
+
+  it("returns notes filtered by ownership and sorted with pinned first", async () => {
+    await db.notes.bulkAdd([
+      makeNote({ ownerId: null, title: "Guest" }),
+      makeNote({ ownerId: "user-1", title: "User Newer", updatedAt: "2024-06-01T00:00:00.000Z" }),
+      makeNote({ ownerId: "user-1", title: "User Pinned", isPinnedAside: true, updatedAt: "2024-01-01T00:00:00.000Z" }),
+      makeNote({ ownerId: "user-2", title: "Other user" }),
+    ]);
+
+    const ws = await readWorkspace("user-1");
+    const titles = ws.notes.map((n) => n.title);
+    expect(titles).toEqual(["User Pinned", "User Newer", "Guest"]);
+  });
 });
 
 // ── getDirtyWorkspace() ───────────────────────────────────────────────────────
@@ -129,12 +162,18 @@ describe("getDirtyWorkspace()", () => {
       makeSnippet({ ownerId: userId, dirty: true }),
       makeSnippet({ ownerId: userId, dirty: false }),
     ]);
+    await db.notes.bulkAdd([
+      makeNote({ ownerId: userId, dirty: true }),
+      makeNote({ ownerId: userId, dirty: false }),
+    ]);
 
     const dirty = await getDirtyWorkspace(userId);
     expect(dirty.folders).toHaveLength(1);
     expect(dirty.folders[0].dirty).toBe(true);
     expect(dirty.snippets).toHaveLength(1);
     expect(dirty.snippets[0].dirty).toBe(true);
+    expect(dirty.notes).toHaveLength(1);
+    expect(dirty.notes[0].dirty).toBe(true);
   });
 
   it("returns empty when there are no dirty records", async () => {
@@ -143,6 +182,7 @@ describe("getDirtyWorkspace()", () => {
     const dirty = await getDirtyWorkspace(userId);
     expect(dirty.folders).toHaveLength(0);
     expect(dirty.snippets).toHaveLength(0);
+    expect(dirty.notes).toHaveLength(0);
   });
 
   it("does not return dirty records belonging to a different user", async () => {

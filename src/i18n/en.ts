@@ -38,6 +38,21 @@ const Greet = ({ name }) => {
    You can delete all the example snippets and folders if you want — just right-click on
    them in the sidebar and select "Delete".`;
 
+const WELCOME_NOTE_CONTENT = (snippetId: string) => `# Notes that link to your code
+
+Notes are markdown documents that live alongside your snippets. You can attach
+any snippet inline by typing \`[[snippet:<id>]]\` — it renders as a clickable
+card. Click the card to open the snippet in the right pane while you keep
+reading the note.
+
+For example, here is the welcome snippet attached:
+
+[[snippet:${snippetId}]]
+
+Try writing your own note from the sidebar (the **note** button next to the
+snippet and folder buttons), or press **Cmd/Ctrl + K** to search across
+everything you have stored.`;
+
 export const en = {
   app: {
     title: "KlipCode",
@@ -63,6 +78,7 @@ export const en = {
     folderTitle: "New folder",
     folderName: "Folder name",
     snippetNamePlaceholder: "Snippet name",
+    noteNamePlaceholder: "Note name",
     folderParent: "Parent folder",
     folderPinned: "Pinned",
     snippetTitle: "New snippet",
@@ -95,6 +111,10 @@ export const en = {
     status: "Status",
     untitled: "Untitled",
   },
+  noteCard: {
+    untitled: "Untitled note",
+    empty: "Empty note",
+  },
   sync: {
     editing: "Editing...",
     saving: "Saving...",
@@ -107,10 +127,13 @@ export const en = {
     collapse: "Collapse panel",
     open: "Open panel",
     home: "Home",
+    search: "Search",
+    searchShortcut: "⌘K",
     mySpace: "My Space",
     expandFolder: "Expand folder",
     collapseFolder: "Collapse folder",
     addSnippet: "New snippet",
+    addNote: "New note",
     addFolder: "New folder",
     emptySpace: "No files yet.",
     root: "Root",
@@ -118,8 +141,9 @@ export const en = {
     unpin: "Unpin",
   },
   contextMenu: {
-    newFolder: "New folder\u2026",
-    newSnippet: "New snippet\u2026",
+    newFolder: "New folder…",
+    newSnippet: "New snippet…",
+    newNote: "New note…",
     pin: "Pin",
     unpin: "Unpin",
     pinHome: "Pin to Home",
@@ -149,7 +173,9 @@ export const en = {
     breadcrumbLabel: "Folder navigation",
     subFolders: "Folders",
     snippets: "Snippets",
+    notes: "Notes",
     snippetLabel: "snippets",
+    noteLabel: "notes",
     subFolderLabel: "folders",
     emptyFolder: "Empty",
     empty: "This folder is empty.",
@@ -168,6 +194,32 @@ export const en = {
     codeCopied: "Copied!",
     formatCode: "Format code",
     formatNotSupported: "Formatting not available for this language",
+    sourceUrl: "Source URL",
+    sourceUrlPlaceholder: "Add source URL (https://…)",
+  },
+  noteEditor: {
+    titlePlaceholder: "Untitled note",
+    bodyPlaceholder: "Write in markdown… use [[snippet:id]] to attach a snippet.",
+    attachSnippet: "Attach snippet",
+    attachSearchPlaceholder: "Search snippets…",
+    attachNoResults: "No snippets found",
+    deletedReference: "Snippet not found",
+    previewEmpty: "Switch to edit to start writing — your rendered note will appear here.",
+    editMarkdown: "Edit markdown",
+    viewMarkdown: "View rendered",
+    closeSnippetPane: "Close snippet pane",
+    attachments: "Attached snippets",
+    noAttachments: "No snippets attached yet. Use the paperclip to attach one — or type [[snippet:id]] in the markdown.",
+    backToAttachments: "Back",
+    openInEditor: "Open in editor",
+  },
+  search: {
+    title: "Search",
+    placeholder: "Search snippets and notes…",
+    noResults: "No results",
+    snippets: "Snippets",
+    notes: "Notes",
+    folders: "Folders",
   },
   confirmDeleteFolder: {
     title: "Delete folder",
@@ -176,6 +228,8 @@ export const en = {
       n === 1 ? "1 inner folder" : `${n} inner folders`,
     containsSnippets: (n: number) =>
       n === 1 ? "1 snippet" : `${n} snippets`,
+    containsNotes: (n: number) =>
+      n === 1 ? "1 note" : `${n} notes`,
     cancel: "Cancel",
     confirm: "Delete permanently",
   },
@@ -261,5 +315,7 @@ export const en = {
     folderName: "welcome",
     snippetName: "klipcode",
     snippetContent: WELCOME_SNIPPET_CONTENT,
+    noteName: "Notes",
+    noteContent: WELCOME_NOTE_CONTENT,
   },
 } as const;

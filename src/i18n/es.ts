@@ -37,6 +37,22 @@ const Greet = ({ name }) => {
 4. **¡Listo!:** Ya puedes empezar a explorar KlipCode para potenciar tu productividad.
    Puedes borrar todos los snippets y carpetas de ejemplo si quieres, simplemente haz clic derecho sobre
    ellos en la barra lateral y selecciona "Eliminar".`;
+
+const WELCOME_NOTE_CONTENT = (snippetId: string) => `# Notas que enlazan tu código
+
+Las notas son documentos en markdown que conviven con tus snippets. Puedes
+adjuntar cualquier snippet escribiendo \`[[snippet:<id>]]\` — se renderiza como
+una tarjeta en la que puedes hacer clic. Al pulsarla, el snippet se abre en el
+panel de la derecha mientras sigues leyendo la nota.
+
+Por ejemplo, aquí está adjunto el snippet de bienvenida:
+
+[[snippet:${snippetId}]]
+
+Crea tu propia nota desde la barra lateral (el botón de **nota** junto a los de
+snippet y carpeta), o pulsa **Cmd/Ctrl + K** para buscar en todo lo que tienes
+guardado.`;
+
 export const es = {
   app: {
     title: "KlipCode",
@@ -62,6 +78,7 @@ export const es = {
     folderTitle: "Nueva carpeta",
     folderName: "Nombre de la carpeta",
     snippetNamePlaceholder: "Nombre del snippet",
+    noteNamePlaceholder: "Nombre de la nota",
     folderParent: "Carpeta padre",
     folderPinned: "Fijada",
     snippetTitle: "Nuevo snippet",
@@ -94,6 +111,10 @@ export const es = {
     status: "Estado",
     untitled: "Sin titulo",
   },
+  noteCard: {
+    untitled: "Nota sin título",
+    empty: "Nota vacía",
+  },
   sync: {
     editing: "Cambiando...",
     saving: "Guardando...",
@@ -106,10 +127,13 @@ export const es = {
     collapse: "Colapsar panel",
     open: "Abrir panel",
     home: "Inicio",
+    search: "Buscar",
+    searchShortcut: "⌘K",
     mySpace: "Mi Espacio",
     expandFolder: "Expandir carpeta",
     collapseFolder: "Contraer carpeta",
     addSnippet: "Nuevo snippet",
+    addNote: "Nueva nota",
     addFolder: "Nueva carpeta",
     emptySpace: "No hay archivos todavia.",
     root: "Raiz",
@@ -117,8 +141,9 @@ export const es = {
     unpin: "Desfijar",
   },
   contextMenu: {
-    newFolder: "Nueva carpeta\u2026",
-    newSnippet: "Nuevo snippet\u2026",
+    newFolder: "Nueva carpeta…",
+    newSnippet: "Nuevo snippet…",
+    newNote: "Nueva nota…",
     pin: "Fijar",
     unpin: "Desfijar",
     pinHome: "Fijar en Inicio",
@@ -148,7 +173,9 @@ export const es = {
     breadcrumbLabel: "Navegación de carpetas",
     subFolders: "Carpetas",
     snippets: "Snippets",
+    notes: "Notas",
     snippetLabel: "snippets",
+    noteLabel: "notas",
     subFolderLabel: "carpetas",
     emptyFolder: "Vacío",
     empty: "Esta carpeta está vacía.",
@@ -167,6 +194,32 @@ export const es = {
     codeCopied: "¡Copiado!",
     formatCode: "Formatear código",
     formatNotSupported: "Formateo no disponible para este lenguaje",
+    sourceUrl: "URL de origen",
+    sourceUrlPlaceholder: "Añade la URL de origen (https://…)",
+  },
+  noteEditor: {
+    titlePlaceholder: "Nota sin título",
+    bodyPlaceholder: "Escribe en markdown… usa [[snippet:id]] para adjuntar un snippet.",
+    attachSnippet: "Adjuntar snippet",
+    attachSearchPlaceholder: "Buscar snippets…",
+    attachNoResults: "No se encontraron snippets",
+    deletedReference: "Snippet no encontrado",
+    previewEmpty: "Pulsa Editar para empezar a escribir — la nota renderizada aparecerá aquí.",
+    editMarkdown: "Editar markdown",
+    viewMarkdown: "Ver renderizado",
+    closeSnippetPane: "Cerrar panel de snippet",
+    attachments: "Snippets adjuntos",
+    noAttachments: "Aún no hay snippets adjuntos. Usa el clip para adjuntar uno — o escribe [[snippet:id]] en el markdown.",
+    backToAttachments: "Volver",
+    openInEditor: "Abrir en el editor",
+  },
+  search: {
+    title: "Buscar",
+    placeholder: "Busca en snippets y notas…",
+    noResults: "Sin resultados",
+    snippets: "Snippets",
+    notes: "Notas",
+    folders: "Carpetas",
   },
   confirmDeleteFolder: {
     title: "Eliminar carpeta",
@@ -175,6 +228,8 @@ export const es = {
       n === 1 ? "1 carpeta interna" : `${n} carpetas internas`,
     containsSnippets: (n: number) =>
       n === 1 ? "1 snippet" : `${n} snippets`,
+    containsNotes: (n: number) =>
+      n === 1 ? "1 nota" : `${n} notas`,
     cancel: "Cancelar",
     confirm: "Eliminar permanentemente",
   },
@@ -260,5 +315,7 @@ export const es = {
     folderName: "bienvenido",
     snippetName: "klipcode",
     snippetContent: WELCOME_SNIPPET_CONTENT,
+    noteName: "Notas",
+    noteContent: WELCOME_NOTE_CONTENT,
   },
 } as const;

@@ -6,6 +6,7 @@ import {
   Check,
   Cloud,
   CloudOff,
+  Globe,
   Loader2,
   CircleCheck,
   Pencil,
@@ -97,7 +98,7 @@ export interface SnippetEditorProps {
   onClose: () => void;
   onNavigateFolder?: (folderId: string) => void;
   onNavigateHome?: () => void;
-  onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId }) => void;
+  onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId; sourceUrl?: string | null }) => void;
   menuButton?: React.ReactNode;
 }
 
@@ -121,12 +122,15 @@ export function SnippetEditor({
   // Local state — initialised from snippet once (key={snippet.id} resets on swap)
   const [title, setTitle] = useState(snippet.title);
   const [code, setCode] = useState(snippet.code);
+  const [sourceUrl, setSourceUrl] = useState(snippet.sourceUrl ?? "");
+  const [editingSourceUrl, setEditingSourceUrl] = useState(false);
   const [copied, setCopied] = useState(false);
   const [formatting, setFormatting] = useState(false);
 
   // Per-field debounce timers
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sourceUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const langConfig = LANGUAGES.find((l) => l.id === snippet.language);
 
@@ -150,6 +154,21 @@ export function SnippetEditor({
       onUpdate(snippet.id, { code: next });
     }, DEBOUNCE_MS);
   }
+
+  function handleSourceUrlChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const next = e.target.value;
+    setSourceUrl(next);
+
+    if (sourceUrlTimerRef.current) clearTimeout(sourceUrlTimerRef.current);
+    sourceUrlTimerRef.current = setTimeout(() => {
+      onUpdate(snippet.id, { sourceUrl: next.trim() ? next.trim() : null });
+    }, DEBOUNCE_MS);
+  }
+
+  const trimmedSourceUrl = sourceUrl.trim();
+  const isValidSourceUrl =
+    trimmedSourceUrl.length > 0 &&
+    (trimmedSourceUrl.startsWith("http://") || trimmedSourceUrl.startsWith("https://"));
 
   function handleCopy() {
     navigator.clipboard.writeText(code);
@@ -282,6 +301,52 @@ export function SnippetEditor({
         actions={breadcrumbActions}
         defaultStuck
       />
+
+      {/* ── Source URL row ────────────────────────────────────────────────── */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.04] px-6 py-1.5 text-[12px]">
+        <Globe size={12} className="shrink-0 text-white/30" aria-hidden="true" />
+        {editingSourceUrl || !trimmedSourceUrl ? (
+          <input
+            type="url"
+            value={sourceUrl}
+            onChange={handleSourceUrlChange}
+            onFocus={() => setEditingSourceUrl(true)}
+            onBlur={() => setEditingSourceUrl(false)}
+            placeholder={editorCopy.sourceUrlPlaceholder}
+            spellCheck={false}
+            className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-white/55 placeholder:text-white/20 focus:outline-none"
+          />
+        ) : isValidSourceUrl ? (
+          <>
+            <a
+              href={trimmedSourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-w-0 flex-1 truncate font-mono text-[12px] text-white/55 underline decoration-white/15 underline-offset-2 hover:text-white/80"
+              title={trimmedSourceUrl}
+            >
+              {trimmedSourceUrl}
+            </a>
+            <button
+              type="button"
+              onClick={() => setEditingSourceUrl(true)}
+              aria-label={editorCopy.sourceUrl}
+              className="shrink-0 rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-white/60"
+            >
+              <Pencil size={11} />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingSourceUrl(true)}
+            className="min-w-0 flex-1 truncate text-left font-mono text-[12px] text-white/55"
+            title={trimmedSourceUrl}
+          >
+            {trimmedSourceUrl}
+          </button>
+        )}
+      </div>
 
       {/* ── Editor ─────────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">

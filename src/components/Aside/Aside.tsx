@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FilePlus, FolderPlus, Home, Layers } from "lucide-react";
+import { FilePlus, FilePlus2, FolderPlus, Home, Layers, Search } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
@@ -13,8 +13,10 @@ import { AsideCtx } from "./AsideContext";
 import { AsideHeader } from "./AsideHeader";
 import { FolderNode } from "./FolderNode";
 import { SnippetNode } from "./SnippetNode";
+import { NoteNode } from "./NoteNode";
 import { NewFolderInput } from "./NewFolderInput";
 import { NewSnippetInput } from "./NewSnippetInput";
+import { NewNoteInput } from "./NewNoteInput";
 import { useContextMenuGroups } from "./useContextMenuGroups";
 import { GitHubIcon } from "./GitHubIcon";
 
@@ -24,25 +26,30 @@ export function Aside({
   user,
   folders,
   snippets,
+  notes,
   copy,
   clipboard,
   onSelectSnippet,
+  onSelectNote,
   onGoHome,
   onGoSpace,
+  onOpenSearch,
   onNewSnippetAt,
   onCreateSnippetInline,
+  onCreateNoteInline,
   onCreateFolder,
   onDeleteFolder,
   onDeleteSnippet,
+  onDeleteNote,
   onRenameFolder,
   onRenameSnippet,
+  onRenameNote,
   onPinFolder,
   onPinSnippet,
+  onPinNote,
   onCut,
   onCopy,
   onPaste,
-  onMoveFolder,
-  onMoveSnippet,
   onSelectFolder,
   onSignIn,
   onSignOut,
@@ -59,6 +66,9 @@ export function Aside({
   const [creatingSnippetFolderId, setCreatingSnippetFolderId] = useState<
     string | null | undefined
   >(undefined);
+  const [creatingNoteFolderId, setCreatingNoteFolderId] = useState<
+    string | null | undefined
+  >(undefined);
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
   const drag = useDragCtx();
 
@@ -69,18 +79,22 @@ export function Aside({
     clipboard,
     folders,
     snippets,
+    notes,
     onGoHome,
     onNewSnippetAt,
     onPaste,
     onPinFolder,
     onPinSnippet,
+    onPinNote,
     onDeleteFolder,
     onDeleteSnippet,
+    onDeleteNote,
     onCut,
     onCopy,
     setRenamingId,
     setCreatingFolderParentId,
     setCreatingSnippetFolderId,
+    setCreatingNoteFolderId,
   });
 
   /* ── Context value ──────────────────────────────────────────────────────── */
@@ -90,6 +104,7 @@ export function Aside({
     renamingId,
     creatingFolderParentId,
     creatingSnippetFolderId,
+    creatingNoteFolderId,
     openMenu: (target) => setMenuTarget(target),
     beginRename: (id) => setRenamingId(id),
     submitFolderRename: (id, value) => {
@@ -100,6 +115,11 @@ export function Aside({
     submitSnippetRename: (id, value) => {
       const title = value.trim();
       if (title) void onRenameSnippet(id, title);
+      setRenamingId(null);
+    },
+    submitNoteRename: (id, value) => {
+      const title = value.trim();
+      if (title) void onRenameNote(id, title);
       setRenamingId(null);
     },
     cancelRename: () => setRenamingId(null),
@@ -115,10 +135,18 @@ export function Aside({
       void onCreateSnippetInline(folderId, title);
       setCreatingSnippetFolderId(undefined);
     },
+    beginCreateNote: (folderId) => setCreatingNoteFolderId(folderId),
+    cancelCreateNote: () => setCreatingNoteFolderId(undefined),
+    submitCreateNote: (folderId, title) => {
+      void onCreateNoteInline(folderId, title);
+      setCreatingNoteFolderId(undefined);
+    },
     selectSnippet: onSelectSnippet,
+    selectNote: onSelectNote,
     selectFolder: (id: string) => onSelectFolder?.(id),
     pinFolder: onPinFolder,
     pinSnippet: onPinSnippet,
+    pinNote: onPinNote,
     dragging: drag.dragging,
     dragOverId: drag.dragOverId,
     startDrag: drag.startDrag,
@@ -131,13 +159,17 @@ export function Aside({
 
   /* ── Tree data ─────────────────────────────────────────────────────────── */
 
-  const rootFolders    = folders.filter((f) => f.parentId === null);
-  const rootSnippets   = snippets.filter((s) => s.folderId === null);
-  const pinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) =>  f.isPinnedAside), (f) => f.name);
-  const pinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) =>  s.isPinnedAside), (s) => s.title ?? "");
-  const unpinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinnedAside), (f) => f.name);
+  const rootFolders = folders.filter((f) => f.parentId === null);
+  const rootSnippets = snippets.filter((s) => s.folderId === null);
+  const rootNotes = notes.filter((n) => n.folderId === null);
+  const pinnedFolders = sortByPinThenAlpha(rootFolders.filter((f) => f.isPinnedAside), (f) => f.name);
+  const pinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => s.isPinnedAside), (s) => s.title ?? "");
+  const pinnedNotes = sortByPinThenAlpha(rootNotes.filter((n) => n.isPinnedAside), (n) => n.title ?? "");
+  const unpinnedFolders = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinnedAside), (f) => f.name);
   const unpinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => !s.isPinnedAside), (s) => s.title ?? "");
-  const isEmpty = rootFolders.length === 0 && rootSnippets.length === 0;
+  const unpinnedNotes = sortByPinThenAlpha(rootNotes.filter((n) => !n.isPinnedAside), (n) => n.title ?? "");
+  const isEmpty =
+    rootFolders.length === 0 && rootSnippets.length === 0 && rootNotes.length === 0;
 
   /* ── Render ────────────────────────────────────────────────────────────── */
 
@@ -161,7 +193,6 @@ export function Aside({
         }`}
       />
 
-      {/* Desktop: width-animating wrapper | Mobile: display:contents passthrough */}
       <div
         className={
           isMobile
@@ -193,7 +224,7 @@ export function Aside({
 
           <div className="mx-4 mb-2 border-t border-white/5" />
 
-          {/* Home */}
+          {/* Home + Search */}
           <div className="px-2">
             <button
               type="button"
@@ -202,6 +233,17 @@ export function Aside({
             >
               <Home size={14} className="shrink-0" />
               <span>{copy.aside.home}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
+            >
+              <Search size={14} className="shrink-0" />
+              <span className="flex-1 text-left">{copy.aside.search}</span>
+              <span className="hidden shrink-0 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] text-white/40 sm:inline">
+                {copy.aside.searchShortcut}
+              </span>
             </button>
           </div>
 
@@ -231,6 +273,16 @@ export function Aside({
                     <FilePlus size={13} />
                   </button>
                 </Tooltip>
+                <Tooltip content={copy.aside.addNote} placement="bottom">
+                  <button
+                    type="button"
+                    aria-label={copy.aside.addNote}
+                    onClick={() => setCreatingNoteFolderId(null)}
+                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/6 hover:text-muted"
+                  >
+                    <FilePlus2 size={13} />
+                  </button>
+                </Tooltip>
                 <Tooltip content={copy.aside.addFolder} placement="bottom">
                   <button
                     type="button"
@@ -252,7 +304,10 @@ export function Aside({
                 setMenuTarget({ type: "root", x: e.clientX, y: e.clientY });
               }}
             >
-              {isEmpty && creatingFolderParentId === undefined && creatingSnippetFolderId === undefined ? (
+              {isEmpty &&
+              creatingFolderParentId === undefined &&
+              creatingSnippetFolderId === undefined &&
+              creatingNoteFolderId === undefined ? (
                 <p className="px-3 pt-1 text-xs text-white/20">{copy.aside.emptySpace}</p>
               ) : (
                 <div>
@@ -262,17 +317,26 @@ export function Aside({
                   {creatingSnippetFolderId === null && (
                     <NewSnippetInput depth={0} folderId={null} />
                   )}
+                  {creatingNoteFolderId === null && (
+                    <NewNoteInput depth={0} folderId={null} />
+                  )}
                   {pinnedFolders.map((folder) => (
-                    <FolderNode key={folder.id} folder={folder} folders={folders} snippets={snippets} depth={0} />
+                    <FolderNode key={folder.id} folder={folder} folders={folders} snippets={snippets} notes={notes} depth={0} />
                   ))}
                   {pinnedSnippets.map((snippet) => (
                     <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
                   ))}
+                  {pinnedNotes.map((note) => (
+                    <NoteNode key={note.id} note={note} depth={0} />
+                  ))}
                   {unpinnedFolders.map((folder) => (
-                    <FolderNode key={folder.id} folder={folder} folders={folders} snippets={snippets} depth={0} />
+                    <FolderNode key={folder.id} folder={folder} folders={folders} snippets={snippets} notes={notes} depth={0} />
                   ))}
                   {unpinnedSnippets.map((snippet) => (
                     <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
+                  ))}
+                  {unpinnedNotes.map((note) => (
+                    <NoteNode key={note.id} note={note} depth={0} />
                   ))}
                 </div>
               )}

@@ -5,7 +5,7 @@ import { FileCode2, Folder, FolderOpen, Layers } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
 import type { ClipboardEntry, FolderRecord, NoteRecord, SnippetRecord } from "@/lib/types";
-import { SPACE_ROOT_ID } from "@/lib/navigation";
+import { SPACE_ROOT_ID, buildAppHref } from "@/lib/navigation";
 import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
 import { NoteCard } from "@/components/SnippetCards/NoteCard";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
@@ -256,7 +256,9 @@ export function FolderView({
                   subFolderCount={subFolderCountMap.get(folder.id) ?? 0}
                   copy={copy}
                   onClick={() => onNavigateFolder(folder.id)}
-                  onOpenInNewTab={() => window.open(`/?folder=${folder.id}`, "_blank", "noopener,noreferrer")}
+                  onOpenInNewTab={() =>
+                    window.open(buildAppHref(`folder=${folder.id}`), "_blank", "noopener,noreferrer")
+                  }
                   onPinAside={onPinFolder ? (pinned) => void onPinFolder(folder.id, "aside", pinned) : undefined}
                   onRename={onRenameFolder ? (name) => void onRenameFolder(folder.id, name) : undefined}
                   onDelete={onDeleteFolder ? () => void onDeleteFolder(folder.id) : undefined}
@@ -284,7 +286,9 @@ export function FolderView({
                   copy={copy}
                   enableDrag
                   onSelect={() => onSelectNote(note.id)}
-                  onOpenInNewTab={() => window.open(`/?note=${note.id}`, "_blank", "noopener,noreferrer")}
+                  onOpenInNewTab={() =>
+                    window.open(buildAppHref(`note=${note.id}`), "_blank", "noopener,noreferrer")
+                  }
                   onUnpinAside={onPinNote ? () => void onPinNote(note.id, "aside", false) : undefined}
                   onPinAside={onPinNote ? (pinned) => void onPinNote(note.id, "aside", pinned) : undefined}
                   onPinHome={onPinNote ? (pinned) => void onPinNote(note.id, "home", pinned) : undefined}
@@ -316,7 +320,9 @@ export function FolderView({
                   copy={copy}
                   enableDrag
                   onSelect={() => onSelectSnippet(snippet.id)}
-                  onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
+                  onOpenInNewTab={() =>
+                    window.open(buildAppHref(`snippet=${snippet.id}`), "_blank", "noopener,noreferrer")
+                  }
                   onUnpinAside={onPinSnippet ? () => void onPinSnippet(snippet.id, "aside", false) : undefined}
                   onPinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}
                   onPinHome={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "home", pinned) : undefined}

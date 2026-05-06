@@ -20,6 +20,7 @@ import type {
   SnippetRecord,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
+import { buildAppHref } from "@/lib/navigation";
 import type { MenuTarget } from "./types";
 
 interface UseContextMenuGroupsArgs {
@@ -119,7 +120,8 @@ export function useContextMenuGroups({
                 id: "open-in-new-tab",
                 label: cm.openInNewTab,
                 Icon: ExternalLink,
-                onClick: () => window.open(`/?folder=${id}`, "_blank", "noopener,noreferrer"),
+                onClick: () =>
+                  window.open(buildAppHref(`folder=${id}`), "_blank", "noopener,noreferrer"),
               },
             ],
           },
@@ -187,7 +189,8 @@ export function useContextMenuGroups({
                 id: "open-in-new-tab",
                 label: cm.openInNewTab,
                 Icon: ExternalLink,
-                onClick: () => window.open(`/?snippet=${id}`, "_blank", "noopener,noreferrer"),
+                onClick: () =>
+                  window.open(buildAppHref(`snippet=${id}`), "_blank", "noopener,noreferrer"),
               },
             ],
           },
@@ -244,7 +247,8 @@ export function useContextMenuGroups({
                 id: "open-in-new-tab",
                 label: cm.openInNewTab,
                 Icon: ExternalLink,
-                onClick: () => window.open(`/?note=${id}`, "_blank", "noopener,noreferrer"),
+                onClick: () =>
+                  window.open(buildAppHref(`note=${id}`), "_blank", "noopener,noreferrer"),
               },
             ],
           },

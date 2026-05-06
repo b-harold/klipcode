@@ -39,7 +39,7 @@ KlipCode is a **local-first** snippet manager. Dexie/IndexedDB is the source of 
 
 ### Data model & local DB (`src/lib/db.ts`)
 
-- Dexie schema is versioned (currently v4) with explicit `upgrade` callbacks that migrate old `isPinned` / `pinType` fields into `isPinnedAside` + `isPinnedHome`. **When adding/changing indexed fields, bump the version and write a migration** — do not edit existing version blocks.
+- Dexie schema is versioned (currently v5) with explicit `upgrade` callbacks that migrate old `isPinned` / `pinType` fields into `isPinnedAside` + `isPinnedHome` and add the `notes` store. **When adding/changing indexed fields, bump the version and write a migration** — do not edit existing version blocks.
 - Records carry `ownerId` (null = guest), `dirty` (needs cloud upsert), and `lastSyncedAt`. `readWorkspace(currentUserId)` returns records where `ownerId === currentUserId || ownerId === null` — guest-created records remain visible to a signed-in user, which is what enables the post-login migration described in `AGENTS.md`.
 
 ### Sync engine (`src/lib/sync.ts` + `src/hooks/useCloudSync.ts`)

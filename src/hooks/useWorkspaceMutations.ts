@@ -141,11 +141,18 @@ export function useWorkspaceMutations({
     const existing = updateTimersRef.current.get(snippetId);
     if (existing) clearTimeout(existing);
 
+    // Supabase enforces btrim(title) <> '' on snippets — normalize before persisting
+    // so cloud upserts don't fail with a check-constraint violation.
+    const normalized: typeof changes = { ...changes };
+    if (changes.title !== undefined) {
+      normalized.title = changes.title.trim() || copy.snippetCard.untitled;
+    }
+
     const timer = setTimeout(async () => {
       updateTimersRef.current.delete(snippetId);
 
       await db.snippets.update(snippetId, {
-        ...changes,
+        ...normalized,
         updatedAt: new Date().toISOString(),
         dirty: true,
       });
@@ -238,11 +245,17 @@ export function useWorkspaceMutations({
     const existing = updateTimersRef.current.get(noteId);
     if (existing) clearTimeout(existing);
 
+    // Supabase enforces btrim(title) <> '' on notes — normalize before persisting.
+    const normalized: typeof changes = { ...changes };
+    if (changes.title !== undefined) {
+      normalized.title = changes.title.trim() || copy.noteCard.untitled;
+    }
+
     const timer = setTimeout(async () => {
       updateTimersRef.current.delete(noteId);
 
       await db.notes.update(noteId, {
-        ...changes,
+        ...normalized,
         updatedAt: new Date().toISOString(),
         dirty: true,
       });

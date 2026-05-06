@@ -53,16 +53,10 @@ export function ConfirmDialog({
       {/* Dialog panel */}
       <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="klipcode-dialog-animate pointer-events-auto w-full max-w-[360px] rounded-xl p-5"
+          className="klipcode-dialog-animate pointer-events-auto w-full max-w-[360px] rounded-xl border border-border bg-surface p-5 shadow-2xl"
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="confirm-dialog-title"
-          style={{
-            background: "linear-gradient(180deg, #181818 0%, #111111 100%)",
-            border: "1px solid rgba(255,255,255,0.09)",
-            boxShadow:
-              "0 0 0 1px rgba(255,255,255,0.03) inset, 0 32px 80px rgba(0,0,0,0.95), 0 4px 20px rgba(0,0,0,0.7)",
-          }}
           onMouseDown={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -76,13 +70,12 @@ export function ConfirmDialog({
             <div className="min-w-0">
               <h2
                 id="confirm-dialog-title"
-                className="text-[13px] font-medium leading-snug text-white/90"
+                className="text-[13px] font-medium leading-snug text-foreground/90"
               >
                 {copy.title}
               </h2>
               <p
-                className="mt-0.5 text-[12px] leading-snug truncate max-w-[260px]"
-                style={{ color: "rgba(255,255,255,0.4)" }}
+                className="mt-0.5 max-w-[260px] truncate text-[12px] leading-snug text-muted"
                 title={folderName}
               >
                 {folderName}
@@ -91,30 +84,27 @@ export function ConfirmDialog({
           </div>
 
           {/* Content counts */}
-          <div
-            className="mb-4 rounded-lg px-3 py-2.5 space-y-1.5"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
-          >
+          <div className="mb-4 space-y-1.5 rounded-lg border border-border bg-overlay-soft px-3 py-2.5">
             {nestedFolderCount > 0 && (
               <div className="flex items-center gap-2">
-                <FolderOpen size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
-                <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                <FolderOpen size={12} className="text-muted" />
+                <span className="text-[12px] text-foreground/70">
                   {copy.containsFolders(nestedFolderCount)}
                 </span>
               </div>
             )}
             {snippetCount > 0 && (
               <div className="flex items-center gap-2">
-                <FileCode2 size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
-                <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                <FileCode2 size={12} className="text-muted" />
+                <span className="text-[12px] text-foreground/70">
                   {copy.containsSnippets(snippetCount)}
                 </span>
               </div>
             )}
             {noteCount > 0 && (
               <div className="flex items-center gap-2">
-                <FileText size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
-                <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                <FileText size={12} className="text-muted" />
+                <span className="text-[12px] text-foreground/70">
                   {copy.containsNotes(noteCount)}
                 </span>
               </div>
@@ -122,7 +112,7 @@ export function ConfirmDialog({
           </div>
 
           {/* Warning */}
-          <p className="mb-4 text-[12px] leading-relaxed" style={{ color: "rgba(255,255,255,0.38)" }}>
+          <p className="mb-4 text-[12px] leading-relaxed text-muted">
             {copy.permanentWarning}
           </p>
 
@@ -132,20 +122,7 @@ export function ConfirmDialog({
               ref={cancelRef}
               type="button"
               onClick={onCancel}
-              className="rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75"
-              style={{
-                color: "rgba(255,255,255,0.55)",
-                background: "transparent",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)";
-                (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.8)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)";
-              }}
+              className="rounded-lg border border-border bg-transparent px-3 py-1.5 text-[13px] font-medium text-muted transition-colors duration-75 hover:bg-overlay hover:text-foreground"
             >
               {copy.cancel}
             </button>

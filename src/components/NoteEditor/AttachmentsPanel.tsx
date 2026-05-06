@@ -44,7 +44,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
         type="button"
         aria-label={label}
         onClick={handleCopy}
-        className="shrink-0 rounded p-1 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+        className="shrink-0 rounded p-1 text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/70"
       >
         {copied ? <Check size={12} /> : <Copy size={12} />}
       </button>
@@ -98,7 +98,7 @@ export function AttachmentsPanel({
   if (attachedIds.length === 0) {
     return (
       <div className="flex h-full items-center justify-center px-6 text-center">
-        <p className="max-w-xs text-xs leading-relaxed text-white/30">
+        <p className="max-w-xs text-xs leading-relaxed text-foreground/30">
           {copy.noteEditor.noAttachments}
         </p>
       </div>
@@ -107,7 +107,7 @@ export function AttachmentsPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-white/[0.06] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+      <div className="shrink-0 border-b border-foreground/[0.06] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
         {copy.noteEditor.attachments} · {attachedIds.length}
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto py-1">
@@ -117,7 +117,7 @@ export function AttachmentsPanel({
             return (
               <div
                 key={id}
-                className="flex items-center gap-2 px-3 py-2 text-[12px] text-white/30"
+                className="flex items-center gap-2 px-3 py-2 text-[12px] text-foreground/30"
               >
                 <FileX2 size={13} className="shrink-0" aria-hidden="true" />
                 <span className="truncate font-mono text-[11px]">{id.slice(0, 8)}…</span>
@@ -146,13 +146,13 @@ export function AttachmentsPanel({
                   onSelect(id);
                 }
               }}
-              className="group flex w-full cursor-pointer items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-white/[0.04]"
+              className="group flex w-full cursor-pointer items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-foreground/[0.04]"
             >
-              <FileCode2 size={13} className="mt-0.5 shrink-0 text-white/40" aria-hidden="true" />
+              <FileCode2 size={13} className="mt-0.5 shrink-0 text-foreground/40" aria-hidden="true" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-medium text-foreground">{name}</span>
                 {firstLine && (
-                  <span className="block truncate font-mono text-[11px] text-white/35">
+                  <span className="block truncate font-mono text-[11px] text-foreground/35">
                     {firstLine}
                   </span>
                 )}
@@ -161,7 +161,7 @@ export function AttachmentsPanel({
                 <CopyButton value={snippet.code} label={copy.snippetEditor.copyCode} />
               </span>
               {lang?.label && (
-                <span className="mt-0.5 shrink-0 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-white/40">
+                <span className="mt-0.5 shrink-0 rounded bg-foreground/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-foreground/40">
                   {lang.label}
                 </span>
               )}
@@ -223,21 +223,21 @@ function SelectedSnippetView({ snippet, copy, onBack, onUpdateSnippet }: Selecte
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.06] px-3 py-2">
+      <div className="flex shrink-0 items-center gap-2 border-b border-foreground/[0.06] px-3 py-2">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-white/55 transition-colors hover:bg-white/[0.04] hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-foreground/55 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
         >
           <ArrowLeft size={12} />
           {copy.noteEditor.backToAttachments}
         </button>
-        <FileCode2 size={12} className="ml-1 shrink-0 text-white/35" aria-hidden="true" />
+        <FileCode2 size={12} className="ml-1 shrink-0 text-foreground/35" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
           {name}
         </span>
         {lang?.label && (
-          <span className="shrink-0 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-white/40">
+          <span className="shrink-0 rounded bg-foreground/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-foreground/40">
             {lang.label}
           </span>
         )}
@@ -253,8 +253,8 @@ function SelectedSnippetView({ snippet, copy, onBack, onUpdateSnippet }: Selecte
               onClick={() => setEditMode((v) => !v)}
               className={`shrink-0 rounded p-1 transition-colors ${
                 editMode
-                  ? "bg-white/[0.08] text-white/80 hover:bg-white/[0.12]"
-                  : "text-white/35 hover:bg-white/[0.06] hover:text-white/70"
+                  ? "bg-foreground/[0.08] text-foreground/80 hover:bg-foreground/[0.12]"
+                  : "text-foreground/35 hover:bg-foreground/[0.06] hover:text-foreground/70"
               }`}
             >
               {editMode ? <Eye size={12} /> : <Pencil size={12} />}
@@ -263,8 +263,8 @@ function SelectedSnippetView({ snippet, copy, onBack, onUpdateSnippet }: Selecte
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.04] px-3 py-1.5 text-[12px]">
-        <Globe size={12} className="shrink-0 text-white/30" aria-hidden="true" />
+      <div className="flex shrink-0 items-center gap-2 border-b border-foreground/[0.04] px-3 py-1.5 text-[12px]">
+        <Globe size={12} className="shrink-0 text-foreground/30" aria-hidden="true" />
         {canEdit && (editingSourceUrl || !trimmedSourceUrl) ? (
           <input
             type="url"
@@ -274,7 +274,7 @@ function SelectedSnippetView({ snippet, copy, onBack, onUpdateSnippet }: Selecte
             onBlur={() => setEditingSourceUrl(false)}
             placeholder={editorCopy.sourceUrlPlaceholder}
             spellCheck={false}
-            className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-white/55 placeholder:text-white/20 focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-foreground/55 placeholder:text-foreground/20 focus:outline-none"
           />
         ) : isValidSourceUrl ? (
           <>
@@ -282,7 +282,7 @@ function SelectedSnippetView({ snippet, copy, onBack, onUpdateSnippet }: Selecte
               href={trimmedSourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate font-mono text-[12px] text-white/55 underline decoration-white/15 underline-offset-2 hover:text-white/80"
+              className="min-w-0 flex-1 truncate font-mono text-[12px] text-foreground/55 underline decoration-foreground/15 underline-offset-2 hover:text-foreground/80"
               title={trimmedSourceUrl}
             >
               {trimmedSourceUrl}
@@ -293,7 +293,7 @@ function SelectedSnippetView({ snippet, copy, onBack, onUpdateSnippet }: Selecte
                 type="button"
                 onClick={() => setEditingSourceUrl(true)}
                 aria-label={editorCopy.sourceUrl}
-                className="shrink-0 rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-white/60"
+                className="shrink-0 rounded p-1 text-foreground/30 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/60"
               >
                 <Pencil size={11} />
               </button>
@@ -301,13 +301,13 @@ function SelectedSnippetView({ snippet, copy, onBack, onUpdateSnippet }: Selecte
           </>
         ) : trimmedSourceUrl ? (
           <>
-            <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-white/55" title={trimmedSourceUrl}>
+            <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-foreground/55" title={trimmedSourceUrl}>
               {trimmedSourceUrl}
             </span>
             <CopyButton value={trimmedSourceUrl} label={copy.noteEditor.copySourceUrl} />
           </>
         ) : (
-          <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-white/20">
+          <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-foreground/20">
             {editorCopy.sourceUrlPlaceholder}
           </span>
         )}

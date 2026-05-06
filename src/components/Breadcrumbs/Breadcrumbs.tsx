@@ -92,7 +92,7 @@ export function Breadcrumbs({
         "sticky top-0 z-10 flex w-full items-center gap-2 px-6 py-2.5 min-h-[44px] border-b border-transparent",
         "transition-[background-color,border-color] duration-200",
         isStuck
-          ? "border-white/[0.06] bg-[#0a0a0a]/90 backdrop-blur-md"
+          ? "border-foreground/[0.06] bg-background/90 backdrop-blur-md"
           : "bg-transparent",
         className
       )}
@@ -108,7 +108,7 @@ export function Breadcrumbs({
               {index > 0 && (
                 <ChevronRight
                   size={11}
-                  className="mx-1 shrink-0 text-white/[0.18]"
+                  className="mx-1 shrink-0 text-foreground/[0.18]"
                   aria-hidden="true"
                 />
               )}
@@ -122,7 +122,7 @@ export function Breadcrumbs({
                 <button
                   type="button"
                   onClick={item.onClick}
-                  className="flex items-center gap-1.5 rounded px-1 py-0.5 text-[13px] text-white/40 min-w-0 transition-colors hover:text-white/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
+                  className="flex items-center gap-1.5 rounded px-1 py-0.5 text-[13px] text-foreground/40 min-w-0 transition-colors hover:text-foreground/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20"
                 >
                   {item.icon}
                   <span className="min-w-0 truncate">{item.label}</span>

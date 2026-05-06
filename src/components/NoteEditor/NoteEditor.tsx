@@ -36,21 +36,21 @@ function SyncIndicator({
   switch (status) {
     case "editing":
       return (
-        <span className={`${shared} text-white/40`}>
+        <span className={`${shared} text-foreground/40`}>
           <Pencil size={11} />
           {copy.syncEditing}
         </span>
       );
     case "saving":
       return (
-        <span className={`${shared} text-white/40`}>
+        <span className={`${shared} text-foreground/40`}>
           <Loader2 size={11} className="animate-spin" />
           {copy.syncSaving}
         </span>
       );
     case "saved-local":
       return (
-        <span className={`${shared} text-white/40`}>
+        <span className={`${shared} text-foreground/40`}>
           <CloudOff size={11} />
           {copy.syncSavedLocal}
         </span>
@@ -71,7 +71,7 @@ function SyncIndicator({
       );
     default:
       return (
-        <span className={`${shared} text-white/20`}>
+        <span className={`${shared} text-foreground/20`}>
           <Cloud size={11} />
           {copy.syncIdle}
         </span>
@@ -204,14 +204,14 @@ export function NoteEditor({
     })),
     {
       id: note.id,
-      icon: <FileText size={12} className="shrink-0 text-white/40" aria-hidden="true" />,
+      icon: <FileText size={12} className="shrink-0 text-foreground/40" aria-hidden="true" />,
       label: (
         <input
           type="text"
           value={title}
           onChange={handleTitleChange}
           placeholder={editorCopy.titlePlaceholder}
-          className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-white/25 focus:outline-none"
+          className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-foreground/25 focus:outline-none"
           spellCheck={false}
         />
       ),
@@ -229,7 +229,7 @@ export function NoteEditor({
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div
           className={`relative flex min-h-0 ${
-            splitPaneOpen ? "w-full" : "w-1/2 border-r border-white/[0.06]"
+            splitPaneOpen ? "w-full" : "w-1/2 border-r border-foreground/[0.06]"
           } flex-col`}
         >
           <div className="absolute right-3 top-2 z-10 flex items-center gap-1">
@@ -243,8 +243,8 @@ export function NoteEditor({
                 onClick={() => setEditMode((v) => !v)}
                 className={`flex items-center justify-center rounded p-1.5 backdrop-blur-sm transition-colors ${
                   editMode
-                    ? "bg-white/[0.08] text-white/80 hover:bg-white/[0.12]"
-                    : "bg-[#0a0a0a]/60 text-white/45 hover:bg-white/[0.08] hover:text-white/80"
+                    ? "bg-foreground/[0.08] text-foreground/80 hover:bg-foreground/[0.12]"
+                    : "bg-background/60 text-foreground/45 hover:bg-foreground/[0.08] hover:text-foreground/80"
                 }`}
               >
                 {editMode ? <Eye size={13} /> : <Pencil size={13} />}
@@ -258,7 +258,7 @@ export function NoteEditor({
                   setEditMode(true);
                   setAttaching(true);
                 }}
-                className="flex items-center justify-center rounded bg-[#0a0a0a]/60 p-1.5 text-white/45 backdrop-blur-sm transition-colors hover:bg-white/[0.08] hover:text-white/80"
+                className="flex items-center justify-center rounded bg-background/60 p-1.5 text-foreground/45 backdrop-blur-sm transition-colors hover:bg-foreground/[0.08] hover:text-foreground/80"
               >
                 <Paperclip size={13} />
               </button>
@@ -271,7 +271,7 @@ export function NoteEditor({
               onChange={handleMarkdownChange}
               placeholder={editorCopy.bodyPlaceholder}
               spellCheck={false}
-              className="flex-1 resize-none bg-transparent px-6 py-4 pr-20 font-mono text-[13px] leading-relaxed text-foreground placeholder:text-white/20 focus:outline-none"
+              className="flex-1 resize-none bg-transparent px-6 py-4 pr-20 font-mono text-[13px] leading-relaxed text-foreground placeholder:text-foreground/20 focus:outline-none"
             />
           ) : (
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 pr-20">
@@ -283,7 +283,7 @@ export function NoteEditor({
                   onOpenSnippet={handleInlineRefClick}
                 />
               ) : (
-                <p className="text-sm text-white/25">{editorCopy.previewEmpty}</p>
+                <p className="text-sm text-foreground/25">{editorCopy.previewEmpty}</p>
               )}
             </div>
           )}
@@ -303,7 +303,7 @@ export function NoteEditor({
         )}
       </div>
 
-      <div className="fixed bottom-4 right-4 z-40 rounded-full border border-white/[0.08] bg-[#0a0a0a]/80 px-3 py-1.5 backdrop-blur-sm">
+      <div className="fixed bottom-4 right-4 z-40 rounded-full border border-foreground/[0.08] bg-background/80 px-3 py-1.5 backdrop-blur-sm">
         <SyncIndicator status={syncStatus} copy={copy.snippetEditor} />
       </div>
 

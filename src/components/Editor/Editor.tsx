@@ -2,9 +2,10 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+import { vscodeDark, vscodeLight } from "@uiw/codemirror-theme-vscode";
 import { foldGutter } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
+import { useTheme } from "@/lib/useTheme";
 
 // Custom fold gutter with VS Code-style SVG markers (our own classes so CSS can target them)
 const customFoldGutter = foldGutter({
@@ -307,6 +308,7 @@ export function Editor({
   gutterBackground,
 }: EditorProps) {
   const [extensions, setExtensions] = useState<Extension[]>([]);
+  const theme = useTheme();
 
   const editorStyle = {
     fontSize: `${fontSize}px`,
@@ -332,7 +334,7 @@ export function Editor({
     <CodeMirror
       value={value}
       onChange={onChange}
-      theme={vscodeDark}
+      theme={theme === "light" ? vscodeLight : vscodeDark}
       extensions={readOnly ? extensions : [...extensions, customFoldGutter]}
       editable={!readOnly}
       readOnly={readOnly}

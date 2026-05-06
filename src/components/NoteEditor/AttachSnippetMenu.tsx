@@ -54,22 +54,22 @@ export function AttachSnippetMenu({ snippets, copy, onPick, onClose }: AttachSni
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="klipcode-dialog-animate w-full max-w-md overflow-hidden rounded-xl border border-white/[0.08] bg-[#0a0a0a] shadow-2xl"
+        className="klipcode-dialog-animate w-full max-w-md overflow-hidden rounded-xl border border-foreground/[0.08] bg-background shadow-2xl"
       >
-        <div className="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
-          <Search size={14} className="shrink-0 text-white/30" />
+        <div className="flex items-center gap-2 border-b border-foreground/[0.06] px-3 py-2">
+          <Search size={14} className="shrink-0 text-foreground/30" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={copy.noteEditor.attachSearchPlaceholder}
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/25 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-foreground/25 focus:outline-none"
           />
         </div>
         <div className="max-h-80 overflow-y-auto py-1">
           {results.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-white/30">
+            <p className="px-4 py-6 text-center text-xs text-foreground/30">
               {copy.noteEditor.attachNoResults}
             </p>
           ) : (
@@ -85,12 +85,12 @@ export function AttachSnippetMenu({ snippets, copy, onPick, onClose }: AttachSni
                   key={snippet.id}
                   type="button"
                   onClick={() => onPick(snippet.id)}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/[0.04]"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-foreground/[0.04]"
                 >
-                  <FileCode2 size={13} className="shrink-0 text-white/35" />
+                  <FileCode2 size={13} className="shrink-0 text-foreground/35" />
                   <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">{name}</span>
                   {langConfig?.label && (
-                    <span className="shrink-0 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-white/40">
+                    <span className="shrink-0 rounded bg-foreground/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-foreground/40">
                       {langConfig.label}
                     </span>
                   )}

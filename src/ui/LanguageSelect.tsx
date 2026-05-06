@@ -91,17 +91,23 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
     dropdownRef.current.style.minWidth = `${minW}px`;
   }, [open]);
 
-  /* Focus search on open */
+  /* Focus search when the dropdown opens */
   useEffect(() => {
-    if (open) setTimeout(() => searchRef.current?.focus(), 0);
-    else setSearch("");
+    if (!open) return;
+    const id = setTimeout(() => searchRef.current?.focus(), 0);
+    return () => clearTimeout(id);
   }, [open]);
+
+  function closeMenu() {
+    setOpen(false);
+    setSearch("");
+  }
 
   /* Dismiss on outside click or Escape */
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") closeMenu();
     };
     const onOutside = (e: MouseEvent) => {
       if (
@@ -109,7 +115,7 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
         dropdownRef.current?.contains(e.target as Node)
       )
         return;
-      setOpen(false);
+      closeMenu();
     };
     window.addEventListener("keydown", onKey, true);
     document.addEventListener("mousedown", onOutside);
@@ -124,12 +130,12 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? closeMenu() : setOpen(true))}
         className={[
           "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition-colors",
           open
-            ? "border-white/20 bg-white/[0.04] text-foreground"
-            : "border-white/[0.08] text-muted hover:border-white/15 hover:text-foreground",
+            ? "border-foreground/20 bg-foreground/[0.04] text-foreground"
+            : "border-foreground/[0.08] text-muted hover:border-foreground/15 hover:text-foreground",
         ].join(" ")}
       >
         {/* Color dot */}
@@ -140,7 +146,7 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
         <span className="leading-none">{selectedLang?.label ?? value}</span>
         <ChevronDown
           size={11}
-          className={`shrink-0 text-white/30 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-foreground/30 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -148,25 +154,19 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
         createPortal(
           <div
             ref={dropdownRef}
-            className="klipcode-menu-animate fixed z-[999] overflow-hidden rounded-xl"
-            style={{
-              background: "linear-gradient(180deg, #181818 0%, #111111 100%)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              boxShadow:
-                "0 0 0 1px rgba(255,255,255,0.03) inset, 0 20px 56px rgba(0,0,0,0.9), 0 4px 12px rgba(0,0,0,0.5)",
-            }}
+            className="klipcode-menu-animate fixed z-[999] overflow-hidden rounded-xl border border-border bg-surface shadow-2xl"
           >
             {/* Search input */}
-            <div className="border-b border-white/[0.06] px-2 py-2">
-              <div className="flex items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-1.5">
-                <Search size={12} className="shrink-0 text-white/30" />
+            <div className="border-b border-foreground/[0.06] px-2 py-2">
+              <div className="flex items-center gap-2 rounded-lg bg-foreground/[0.05] px-2.5 py-1.5">
+                <Search size={12} className="shrink-0 text-foreground/30" />
                 <input
                   ref={searchRef}
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={copy.searchPlaceholder}
-                  className="w-full bg-transparent text-xs text-white/70 placeholder:text-white/25 outline-none"
+                  className="w-full bg-transparent text-xs text-foreground/70 placeholder:text-foreground/25 outline-none"
                 />
               </div>
             </div>
@@ -174,7 +174,7 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
             {/* Language list */}
             <div className="max-h-[240px] overflow-y-auto p-1">
               {filtered.length === 0 ? (
-                <p className="px-2.5 py-2 text-xs text-white/25">{copy.noResults}</p>
+                <p className="px-2.5 py-2 text-xs text-foreground/25">{copy.noResults}</p>
               ) : (
                 filtered.map((lang) => {
                   const isSelected = lang.id === value;
@@ -185,14 +185,14 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={() => {
                         onChange(lang.id as LanguageId);
-                        setOpen(false);
+                        closeMenu();
                       }}
                       className={[
                         "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left text-[13px] leading-none",
                         "transition-colors duration-75",
                         isSelected
-                          ? "bg-white/[0.08] text-white"
-                          : "text-white/60 hover:bg-white/[0.06] hover:text-white/90",
+                          ? "bg-foreground/[0.08] text-foreground"
+                          : "text-foreground/60 hover:bg-foreground/[0.06] hover:text-foreground/90",
                       ].join(" ")}
                     >
                       <span
@@ -200,11 +200,11 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
                         style={{ backgroundColor: LANG_COLORS[lang.id] ?? "#858585" }}
                       />
                       <span className="flex-1">{lang.label}</span>
-                      <span className="shrink-0 font-mono text-[11px] text-white/25">
+                      <span className="shrink-0 font-mono text-[11px] text-foreground/25">
                         {lang.extension}
                       </span>
                       {isSelected && (
-                        <Check size={12} className="shrink-0 text-white/50" />
+                        <Check size={12} className="shrink-0 text-foreground/50" />
                       )}
                     </button>
                   );

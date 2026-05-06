@@ -23,7 +23,6 @@ import { Tooltip } from "@/ui/Tooltip";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
-import { LANGUAGES } from "@/lib/constants/languages";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import { getFolderPath } from "@/components/FolderView/utils";
 
@@ -43,21 +42,21 @@ function SyncIndicator({
   switch (status) {
     case "editing":
       return (
-        <span className={`${shared} text-white/40`}>
+        <span className={`${shared} text-foreground/40`}>
           <Pencil size={11} />
           {copy.syncEditing}
         </span>
       );
     case "saving":
       return (
-        <span className={`${shared} text-white/40`}>
+        <span className={`${shared} text-foreground/40`}>
           <Loader2 size={11} className="animate-spin" />
           {copy.syncSaving}
         </span>
       );
     case "saved-local":
       return (
-        <span className={`${shared} text-white/40`}>
+        <span className={`${shared} text-foreground/40`}>
           <CloudOff size={11} />
           {copy.syncSavedLocal}
         </span>
@@ -78,7 +77,7 @@ function SyncIndicator({
       );
     default:
       return (
-        <span className={`${shared} text-white/20`}>
+        <span className={`${shared} text-foreground/20`}>
           <Cloud size={11} />
           {copy.syncIdle}
         </span>
@@ -131,8 +130,6 @@ export function SnippetEditor({
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sourceUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const langConfig = LANGUAGES.find((l) => l.id === snippet.language);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -238,14 +235,14 @@ export function SnippetEditor({
     })),
     {
       id: snippet.id,
-      icon: <FileCode2 size={12} className="shrink-0 text-white/40" aria-hidden="true" />,
+      icon: <FileCode2 size={12} className="shrink-0 text-foreground/40" aria-hidden="true" />,
       label: (
         <input
           type="text"
           value={title}
           onChange={handleTitleChange}
           placeholder={editorCopy.titlePlaceholder}
-          className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-white/25 focus:outline-none"
+          className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-foreground/25 focus:outline-none"
           spellCheck={false}
         />
       ),
@@ -262,7 +259,7 @@ export function SnippetEditor({
         onChange={(v) => onUpdate(snippet.id, { language: v })}
         copy={copy.languageSelect}
       />
-      <div className="h-4 w-px bg-white/[0.08]" />
+      <div className="h-4 w-px bg-foreground/[0.08]" />
       <Tooltip
         content={isFormattable ? editorCopy.formatCode : editorCopy.formatNotSupported}
         placement="bottom"
@@ -272,7 +269,7 @@ export function SnippetEditor({
           aria-label={editorCopy.formatCode}
           onClick={handleFormat}
           disabled={!isFormattable || formatting}
-          className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70 disabled:cursor-not-allowed disabled:opacity-30"
+          className="flex items-center justify-center rounded p-1.5 text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/70 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <Zap size={13} className={formatting ? "animate-pulse" : undefined} />
         </button>
@@ -282,7 +279,7 @@ export function SnippetEditor({
           type="button"
           aria-label={editorCopy.copyCode}
           onClick={handleCopy}
-          className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+          className="flex items-center justify-center rounded p-1.5 text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/70"
         >
           {copied ? <Check size={13} /> : <Copy size={13} />}
         </button>
@@ -303,8 +300,8 @@ export function SnippetEditor({
       />
 
       {/* ── Source URL row ────────────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.04] px-6 py-1.5 text-[12px]">
-        <Globe size={12} className="shrink-0 text-white/30" aria-hidden="true" />
+      <div className="flex shrink-0 items-center gap-2 border-b border-foreground/[0.04] px-6 py-1.5 text-[12px]">
+        <Globe size={12} className="shrink-0 text-foreground/30" aria-hidden="true" />
         {editingSourceUrl || !trimmedSourceUrl ? (
           <input
             type="url"
@@ -314,7 +311,7 @@ export function SnippetEditor({
             onBlur={() => setEditingSourceUrl(false)}
             placeholder={editorCopy.sourceUrlPlaceholder}
             spellCheck={false}
-            className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-white/55 placeholder:text-white/20 focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-foreground/55 placeholder:text-foreground/20 focus:outline-none"
           />
         ) : isValidSourceUrl ? (
           <>
@@ -322,7 +319,7 @@ export function SnippetEditor({
               href={trimmedSourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate font-mono text-[12px] text-white/55 underline decoration-white/15 underline-offset-2 hover:text-white/80"
+              className="min-w-0 flex-1 truncate font-mono text-[12px] text-foreground/55 underline decoration-foreground/15 underline-offset-2 hover:text-foreground/80"
               title={trimmedSourceUrl}
             >
               {trimmedSourceUrl}
@@ -331,7 +328,7 @@ export function SnippetEditor({
               type="button"
               onClick={() => setEditingSourceUrl(true)}
               aria-label={editorCopy.sourceUrl}
-              className="shrink-0 rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-white/60"
+              className="shrink-0 rounded p-1 text-foreground/30 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/60"
             >
               <Pencil size={11} />
             </button>
@@ -340,7 +337,7 @@ export function SnippetEditor({
           <button
             type="button"
             onClick={() => setEditingSourceUrl(true)}
-            className="min-w-0 flex-1 truncate text-left font-mono text-[12px] text-white/55"
+            className="min-w-0 flex-1 truncate text-left font-mono text-[12px] text-foreground/55"
             title={trimmedSourceUrl}
           >
             {trimmedSourceUrl}
@@ -362,7 +359,7 @@ export function SnippetEditor({
       </div>
 
       {/* ── Sync status — fixed bottom-right corner ───────────────────────── */}
-      <div className="fixed bottom-4 right-4 z-50 rounded-full border border-white/[0.08] bg-[#0a0a0a]/80 px-3 py-1.5 backdrop-blur-sm">
+      <div className="fixed bottom-4 right-4 z-50 rounded-full border border-foreground/[0.08] bg-background/80 px-3 py-1.5 backdrop-blur-sm">
         <SyncIndicator status={syncStatus} copy={editorCopy} />
       </div>
     </div>

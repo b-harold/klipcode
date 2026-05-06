@@ -23,7 +23,7 @@ export function AsideHeader({
       <div className="flex items-center gap-2">
         {user ? (
           <div className="flex min-w-0 flex-1 items-center gap-2.5 p-1">
-            <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10">
+            <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-overlay-strong">
               <img
                 src={user.user_metadata.avatar_url}
                 alt={user.user_metadata.full_name || user.email || "Avatar"}
@@ -38,7 +38,7 @@ export function AsideHeader({
             <Tooltip content={copy.auth.signOut} placement="bottom">
               <button
                 onClick={onSignOut}
-                className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/10 hover:text-white/60"
+                className="shrink-0 rounded p-1 text-muted/70 transition-colors hover:bg-overlay hover:text-foreground"
                 aria-label={copy.auth.signOut}
               >
                 <LogOut size={12} />
@@ -50,7 +50,7 @@ export function AsideHeader({
             onClick={onSignIn}
             className="group flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2 text-left transition-colors hover:text-foreground"
           >
-            <LogIn size={15} className="shrink-0 text-white/60 group-hover:text-white" />
+            <LogIn size={15} className="shrink-0 text-muted group-hover:text-foreground" />
             <span className="truncate text-[12px] font-medium text-foreground/80 group-hover:text-foreground">
               {copy.auth.signIn}
             </span>
@@ -61,7 +61,7 @@ export function AsideHeader({
           <button
             type="button"
             onClick={onCollapse}
-            className="shrink-0 rounded-md p-1.5 text-white/20 transition-colors hover:bg-white/6 hover:text-white/60"
+            className="shrink-0 rounded-md p-1.5 text-muted/70 transition-colors hover:bg-overlay hover:text-foreground"
             aria-label={copy.aside.collapse}
           >
             <ChevronsLeft size={14} />

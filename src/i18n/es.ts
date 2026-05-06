@@ -91,6 +91,10 @@ export const es = {
     snippetCodePlaceholder: "Escribe o pega tu codigo aqui...",
     submitFolder: "Crear carpeta",
     submitSnippet: "Crear snippet",
+    noteTitlePlaceholder: "Título de la nota",
+    noteBodyPlaceholder: "Escribe tu nota en markdown…",
+    submitNote: "Crear nota",
+    folderNamePlaceholder: "Nombre de la carpeta",
   },
   workspace: {
     loading: "Cargando contenido local...",
@@ -168,6 +172,18 @@ export const es = {
   },
   pinnedToHome: {
     title: "Fijados en inicio",
+    emptyHint: "Fija snippets y notas desde el menú contextual — aparecerán aquí.",
+  },
+  themeToggle: {
+    toLight: "Cambiar a tema claro",
+    toDark: "Cambiar a tema oscuro",
+  },
+  homeCreate: {
+    snippetTitle: "Nuevo snippet",
+    noteTitle: "Nueva nota",
+    folderTitle: "Nueva carpeta",
+    snippetSubtitle: "Guarda un fragmento de código con resaltado de sintaxis.",
+    noteSubtitle: "Escribe una nota en markdown junto a tus snippets.",
   },
   folderView: {
     breadcrumbLabel: "Navegación de carpetas",

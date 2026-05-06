@@ -6,6 +6,7 @@ import {
   Copy,
   ExternalLink,
   FileText,
+  Folder,
   MoreHorizontal,
   PenLine,
   Pin,
@@ -24,8 +25,10 @@ import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 interface NoteCardProps {
   note: NoteRecord;
   copy: Dictionary;
+  folderName?: string | null;
   onSelect: () => void;
   onOpenInNewTab?: () => void;
+  onNavigateFolder?: () => void;
   onUnpinHome?: () => void;
   onUnpinAside?: () => void;
   onPinAside?: (pinned: boolean) => void;
@@ -55,8 +58,10 @@ function plainPreview(markdown: string): string {
 export function NoteCard({
   note,
   copy,
+  folderName,
   onSelect,
   onOpenInNewTab,
+  onNavigateFolder,
   onUnpinHome,
   onUnpinAside,
   onPinAside,
@@ -177,13 +182,13 @@ export function NoteCard({
         }
         onDragEnd={enableDrag ? () => drag.endDrag() : undefined}
         className={cn(
-          "group flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-left transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]",
+          "group flex flex-col gap-3 rounded-xl border border-border bg-surface p-4 text-left transition-colors hover:border-overlay-strong hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
           isDraggingThis ? "opacity-40" : "",
           className,
         )}
       >
         <div className="flex items-start gap-2">
-          <FileText size={14} className="mt-0.5 shrink-0 text-white/35" aria-hidden="true" />
+          <FileText size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             {renaming ? (
               <input
@@ -196,12 +201,12 @@ export function NoteCard({
                   if (e.key === "Escape") setRenaming(false);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full rounded bg-white/[0.07] px-2 py-0.5 text-[14px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35"
+                className="w-full rounded bg-overlay px-2 py-0.5 text-[15px] text-foreground outline-none ring-1 ring-overlay-strong focus:ring-accent/50"
               />
             ) : (
               <TruncateTooltip
                 text={displayName}
-                className="block truncate text-[14px] font-medium text-foreground"
+                className="block truncate text-[15px] font-medium text-foreground"
               />
             )}
           </div>
@@ -211,16 +216,35 @@ export function NoteCard({
               type="button"
               aria-label={copy.contextMenu.moreOptions}
               onClick={handleMoreClick}
-              className="opacity-0 transition-opacity group-hover:opacity-100 rounded p-1 text-white/40 hover:bg-white/[0.06] hover:text-foreground"
+              className="opacity-0 transition-opacity group-hover:opacity-100 rounded p-1 text-muted hover:bg-overlay hover:text-foreground"
             >
               <MoreHorizontal size={14} />
             </button>
           </Tooltip>
         </div>
 
-        <p className="line-clamp-4 min-h-[3em] text-[12px] leading-relaxed text-white/45">
-          {preview || <span className="italic text-white/25">{copy.noteCard.empty}</span>}
+        <p className="line-clamp-4 min-h-[3em] text-[13px] leading-relaxed text-muted">
+          {preview || <span className="italic text-muted/70">{copy.noteCard.empty}</span>}
         </p>
+
+        {folderName && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigateFolder?.();
+              }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md border border-border bg-overlay-soft px-2 py-1 text-[11px] font-medium text-muted transition-all",
+                onNavigateFolder ? "hover:border-overlay-strong hover:bg-overlay hover:text-foreground" : "cursor-default",
+              )}
+            >
+              <Folder size={12} />
+              <span className="max-w-[120px] truncate">{folderName}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {menu && (

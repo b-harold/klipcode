@@ -26,7 +26,7 @@ export function NewSnippetInput({ depth, folderId }: { depth: number; folderId: 
       style={{ paddingLeft: `${10 + depth * STEP}px` }}
     >
       <span className="w-[13px] shrink-0" />
-      <FileCode2 size={13} className="shrink-0 text-white/30" />
+      <FileCode2 size={13} className="shrink-0 text-foreground/30" />
       <input
         ref={inputRef}
         type="text"
@@ -39,7 +39,7 @@ export function NewSnippetInput({ depth, folderId }: { depth: number; folderId: 
           if (e.key === "Escape") cancelCreateSnippet();
         }}
         placeholder={copy.forms.snippetNamePlaceholder}
-        className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground placeholder:text-white/20 outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+        className="min-w-0 flex-1 rounded bg-foreground/[0.07] px-2 py-0.5 text-[13px] text-foreground placeholder:text-foreground/20 outline-none ring-1 ring-foreground/15 focus:ring-foreground/35 transition-shadow"
       />
     </div>
   );

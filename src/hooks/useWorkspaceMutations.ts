@@ -4,8 +4,12 @@ import type { User } from "@supabase/supabase-js";
 import { db } from "@/lib/db";
 import type {
   ClipboardEntry,
+  CreateNoteInput,
+  CreateSnippetInput,
   FolderRecord,
+  NoteChanges,
   NoteRecord,
+  SnippetChanges,
   SnippetRecord,
   SyncStatus,
 } from "@/lib/types";
@@ -55,6 +59,8 @@ export function useWorkspaceMutations({
   setNoteStatus,
 }: UseWorkspaceMutationsOptions) {
   const updateTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const pendingSnippetChangesRef = useRef<Map<string, SnippetChanges>>(new Map());
+  const pendingNoteChangesRef = useRef<Map<string, NoteChanges>>(new Map());
 
   // Cleanup debounce timers on unmount
   useEffect(() => {
@@ -64,22 +70,17 @@ export function useWorkspaceMutations({
     };
   }, []);
 
-  function syncAfterMutation(itemId?: string) {
+  function syncAfterMutation(itemId: string) {
     if (user && supabaseConfigured) {
       scheduleCloudSync();
-    } else if (itemId) {
+    } else {
       settleLocally(itemId);
     }
   }
 
   /* ── Snippet CRUD ─────────────────────────────────────────────────────── */
 
-  async function handleCreateSnippet(data: {
-    title: string;
-    language: string;
-    folderId: string;
-    code: string;
-  }) {
+  async function handleCreateSnippet(data: CreateSnippetInput) {
     if (!data.code.trim()) return;
 
     const snippetId = crypto.randomUUID();
@@ -92,7 +93,7 @@ export function useWorkspaceMutations({
       title: data.title.trim() || copy.snippetCard.untitled,
       language: data.language.trim(),
       code: data.code,
-      sourceUrl: null,
+      sourceUrl: data.sourceUrl,
       isPinnedAside: false,
       isPinnedHome: false,
       createdAt: timestamp,
@@ -132,38 +133,41 @@ export function useWorkspaceMutations({
     syncAfterMutation(snippetId);
   }
 
-  async function handleUpdateSnippet(
-    snippetId: string,
-    changes: { title?: string; code?: string; language?: string; sourceUrl?: string | null }
-  ) {
+  function handleUpdateSnippet(snippetId: string, changes: SnippetChanges) {
     setSnippetStatus(snippetId, "editing");
-
-    const existing = updateTimersRef.current.get(snippetId);
-    if (existing) clearTimeout(existing);
 
     // Supabase enforces btrim(title) <> '' on snippets — normalize before persisting
     // so cloud upserts don't fail with a check-constraint violation.
-    const normalized: typeof changes = { ...changes };
+    const normalized: SnippetChanges = { ...changes };
     if (changes.title !== undefined) {
       normalized.title = changes.title.trim() || copy.snippetCard.untitled;
     }
 
+    // Merge into any pending changes so quick consecutive edits across fields
+    // (e.g. title then code) are not dropped when the timer is rescheduled.
+    const merged: SnippetChanges = {
+      ...pendingSnippetChangesRef.current.get(snippetId),
+      ...normalized,
+    };
+    pendingSnippetChangesRef.current.set(snippetId, merged);
+
+    const existing = updateTimersRef.current.get(snippetId);
+    if (existing) clearTimeout(existing);
+
     const timer = setTimeout(async () => {
       updateTimersRef.current.delete(snippetId);
+      const pending = pendingSnippetChangesRef.current.get(snippetId);
+      pendingSnippetChangesRef.current.delete(snippetId);
+      if (!pending) return;
 
       await db.snippets.update(snippetId, {
-        ...normalized,
+        ...pending,
         updatedAt: new Date().toISOString(),
         dirty: true,
       });
 
       refreshWorkspace();
-
-      if (user && supabaseConfigured) {
-        scheduleCloudSync();
-      } else {
-        settleLocally(snippetId);
-      }
+      syncAfterMutation(snippetId);
     }, DEBOUNCE_MS);
 
     updateTimersRef.current.set(snippetId, timer);
@@ -176,7 +180,6 @@ export function useWorkspaceMutations({
       try {
         await supabase.from("snippets").delete().eq("id", id);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("Failed to delete snippet on cloud:", err);
       }
     }
@@ -236,37 +239,61 @@ export function useWorkspaceMutations({
     syncAfterMutation(noteId);
   }
 
-  async function handleUpdateNote(
-    noteId: string,
-    changes: { title?: string; markdown?: string }
-  ) {
+  async function handleCreateNote(data: CreateNoteInput) {
+    const noteId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+
+    await db.notes.put({
+      id: noteId,
+      ownerId: user?.id ?? null,
+      folderId: data.folderId || null,
+      title: data.title.trim() || copy.noteCard.untitled,
+      markdown: data.markdown,
+      isPinnedAside: false,
+      isPinnedHome: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      dirty: true,
+      lastSyncedAt: null,
+    });
+
+    setNoteStatus(noteId, "editing");
+    refreshWorkspace();
+    syncAfterMutation(noteId);
+  }
+
+  function handleUpdateNote(noteId: string, changes: NoteChanges) {
     setNoteStatus(noteId, "editing");
 
-    const existing = updateTimersRef.current.get(noteId);
-    if (existing) clearTimeout(existing);
-
     // Supabase enforces btrim(title) <> '' on notes — normalize before persisting.
-    const normalized: typeof changes = { ...changes };
+    const normalized: NoteChanges = { ...changes };
     if (changes.title !== undefined) {
       normalized.title = changes.title.trim() || copy.noteCard.untitled;
     }
 
+    const merged: NoteChanges = {
+      ...pendingNoteChangesRef.current.get(noteId),
+      ...normalized,
+    };
+    pendingNoteChangesRef.current.set(noteId, merged);
+
+    const existing = updateTimersRef.current.get(noteId);
+    if (existing) clearTimeout(existing);
+
     const timer = setTimeout(async () => {
       updateTimersRef.current.delete(noteId);
+      const pending = pendingNoteChangesRef.current.get(noteId);
+      pendingNoteChangesRef.current.delete(noteId);
+      if (!pending) return;
 
       await db.notes.update(noteId, {
-        ...normalized,
+        ...pending,
         updatedAt: new Date().toISOString(),
         dirty: true,
       });
 
       refreshWorkspace();
-
-      if (user && supabaseConfigured) {
-        scheduleCloudSync();
-      } else {
-        settleLocally(noteId);
-      }
+      syncAfterMutation(noteId);
     }, DEBOUNCE_MS);
 
     updateTimersRef.current.set(noteId, timer);
@@ -279,7 +306,6 @@ export function useWorkspaceMutations({
       try {
         await supabase.from("notes").delete().eq("id", id);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("Failed to delete note on cloud:", err);
       }
     }
@@ -347,19 +373,24 @@ export function useWorkspaceMutations({
         }
       }
     }
-    await Promise.all([...toDelete].map((fid) => db.folders.delete(fid)));
+    const folderIds = [...toDelete];
 
-    const allSnippets = await db.snippets.toArray();
+    const [allSnippets, allNotes] = await Promise.all([
+      db.snippets.toArray(),
+      db.notes.toArray(),
+    ]);
     const snippetIdsToDelete = allSnippets
       .filter((s) => s.folderId && toDelete.has(s.folderId))
       .map((s) => s.id);
-    await Promise.all(snippetIdsToDelete.map((sid) => db.snippets.delete(sid)));
-
-    const allNotes = await db.notes.toArray();
     const noteIdsToDelete = allNotes
       .filter((n) => n.folderId && toDelete.has(n.folderId))
       .map((n) => n.id);
-    await Promise.all(noteIdsToDelete.map((nid) => db.notes.delete(nid)));
+
+    await Promise.all([
+      db.folders.bulkDelete(folderIds),
+      db.snippets.bulkDelete(snippetIdsToDelete),
+      db.notes.bulkDelete(noteIdsToDelete),
+    ]);
 
     if (user && supabaseConfigured && supabase) {
       try {
@@ -369,11 +400,10 @@ export function useWorkspaceMutations({
         if (noteIdsToDelete.length > 0) {
           await supabase.from("notes").delete().in("id", noteIdsToDelete);
         }
-        if (toDelete.size > 0) {
-          await supabase.from("folders").delete().in("id", [...toDelete]);
+        if (folderIds.length > 0) {
+          await supabase.from("folders").delete().in("id", folderIds);
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("Failed to delete on cloud:", err);
       }
     }
@@ -475,6 +505,7 @@ export function useWorkspaceMutations({
     handlePinSnippet,
     handleMoveSnippet,
     handleCreateNoteInline,
+    handleCreateNote,
     handleUpdateNote,
     handleDeleteNote,
     handleRenameNote,
@@ -488,3 +519,5 @@ export function useWorkspaceMutations({
     handlePaste,
   };
 }
+
+export type WorkspaceMutations = ReturnType<typeof useWorkspaceMutations>;

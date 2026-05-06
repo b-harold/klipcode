@@ -22,12 +22,12 @@ export function useCloudSync({
   setAccountMessage,
 }: UseCloudSyncOptions) {
   const [snippetStatuses, setSnippetStatuses] = useState<Record<string, SyncStatus>>({});
+  const [noteStatuses, setNoteStatuses] = useState<Record<string, SyncStatus>>({});
 
   const localStatusTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cloudSyncInFlightRef = useRef(false);
 
-  // Refs for stable access inside async callbacks
   const userRef = useRef(user);
   userRef.current = user;
   const refreshRef = useRef(refreshWorkspace);
@@ -41,16 +41,27 @@ export function useCloudSync({
     setSnippetStatuses((prev) => ({ ...prev, [snippetId]: status }));
   }
 
-  function settleLocally(snippetId: string) {
-    const currentTimer = localStatusTimersRef.current.get(snippetId);
+  function setNoteStatus(noteId: string, status: SyncStatus) {
+    setNoteStatuses((prev) => ({ ...prev, [noteId]: status }));
+  }
+
+  function settleLocally(itemId: string) {
+    const currentTimer = localStatusTimersRef.current.get(itemId);
     if (currentTimer) clearTimeout(currentTimer);
 
     const nextTimer = setTimeout(() => {
-      setSnippetStatus(snippetId, "saved-local");
-      localStatusTimersRef.current.delete(snippetId);
+      // Update both maps; only the matching one persists since a record id
+      // is unique to its entity. Cheaper than tracking the entity type here.
+      setSnippetStatuses((prev) =>
+        prev[itemId] !== undefined ? { ...prev, [itemId]: "saved-local" } : prev,
+      );
+      setNoteStatuses((prev) =>
+        prev[itemId] !== undefined ? { ...prev, [itemId]: "saved-local" } : prev,
+      );
+      localStatusTimersRef.current.delete(itemId);
     }, DEBOUNCE_MS);
 
-    localStatusTimersRef.current.set(snippetId, nextTimer);
+    localStatusTimersRef.current.set(itemId, nextTimer);
   }
 
   async function runCloudSync() {
@@ -62,29 +73,32 @@ export function useCloudSync({
     try {
       const dirtyWorkspace = await getDirtyWorkspace(currentUser.id);
 
-      if (dirtyWorkspace.folders.length === 0 && dirtyWorkspace.snippets.length === 0) return;
-
-      for (const snippet of dirtyWorkspace.snippets) {
-        setSnippetStatus(snippet.id, "saving");
+      if (
+        dirtyWorkspace.folders.length === 0 &&
+        dirtyWorkspace.snippets.length === 0 &&
+        dirtyWorkspace.notes.length === 0
+      ) {
+        return;
       }
+
+      for (const snippet of dirtyWorkspace.snippets) setSnippetStatus(snippet.id, "saving");
+      for (const note of dirtyWorkspace.notes) setNoteStatus(note.id, "saving");
 
       setAccountMessageRef.current(copyRef.current.auth.cloudSyncRunning);
       const result = await syncDirtyWorkspace(currentUser.id);
       await fetchCloudWorkspace(currentUser.id);
       refreshRef.current();
 
-      for (const snippetId of result.syncedSnippetIds) {
-        setSnippetStatus(snippetId, "saved-cloud");
-      }
+      for (const snippetId of result.syncedSnippetIds) setSnippetStatus(snippetId, "saved-cloud");
+      for (const noteId of result.syncedNoteIds) setNoteStatus(noteId, "saved-cloud");
 
       setAccountMessageRef.current(copyRef.current.auth.syncedSession);
     } catch {
       const dirtyUser = userRef.current;
       if (dirtyUser) {
         const dirtyWorkspace = await getDirtyWorkspace(dirtyUser.id);
-        for (const snippet of dirtyWorkspace.snippets) {
-          setSnippetStatus(snippet.id, "error");
-        }
+        for (const snippet of dirtyWorkspace.snippets) setSnippetStatus(snippet.id, "error");
+        for (const note of dirtyWorkspace.notes) setNoteStatus(note.id, "error");
       }
 
       setAccountMessageRef.current(copyRef.current.auth.syncFailed);
@@ -95,7 +109,11 @@ export function useCloudSync({
       if (finalUser) {
         const dirtyWorkspace = await getDirtyWorkspace(finalUser.id);
 
-        if (dirtyWorkspace.folders.length > 0 || dirtyWorkspace.snippets.length > 0) {
+        if (
+          dirtyWorkspace.folders.length > 0 ||
+          dirtyWorkspace.snippets.length > 0 ||
+          dirtyWorkspace.notes.length > 0
+        ) {
           if (cloudSyncTimerRef.current) clearTimeout(cloudSyncTimerRef.current);
           cloudSyncTimerRef.current = setTimeout(() => {
             void runCloudSync();
@@ -124,5 +142,12 @@ export function useCloudSync({
     };
   }, []);
 
-  return { snippetStatuses, setSnippetStatus, settleLocally, scheduleCloudSync };
+  return {
+    snippetStatuses,
+    noteStatuses,
+    setSnippetStatus,
+    setNoteStatus,
+    settleLocally,
+    scheduleCloudSync,
+  };
 }

@@ -1,10 +1,11 @@
 import Dexie, { type Table } from "dexie";
 
-import type { FolderRecord, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
+import type { FolderRecord, NoteRecord, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
 
 class KlipCodeDatabase extends Dexie {
   folders!: Table<FolderRecord, string>;
   snippets!: Table<SnippetRecord, string>;
+  notes!: Table<NoteRecord, string>;
 
   constructor() {
     super("klipcode");
@@ -93,6 +94,23 @@ class KlipCodeDatabase extends Dexie {
             }),
         ]);
       });
+
+    this.version(5)
+      .stores({
+        folders: "id, ownerId, parentId, dirty, updatedAt, isPinnedAside, isPinnedHome",
+        snippets: "id, ownerId, folderId, dirty, updatedAt, isPinnedAside, isPinnedHome",
+        notes: "id, ownerId, folderId, dirty, updatedAt, isPinnedAside, isPinnedHome",
+      })
+      .upgrade((tx) => {
+        return tx
+          .table<SnippetRecord & { sourceUrl?: string | null }>("snippets")
+          .toCollection()
+          .modify((snippet) => {
+            if (snippet.sourceUrl === undefined) {
+              snippet.sourceUrl = null;
+            }
+          });
+      });
   }
 }
 
@@ -126,12 +144,21 @@ function sortSnippets(left: SnippetRecord, right: SnippetRecord) {
   return right.updatedAt.localeCompare(left.updatedAt);
 }
 
+function sortNotes(left: NoteRecord, right: NoteRecord) {
+  if (isPinned(left) !== isPinned(right)) {
+    return isPinned(left) ? -1 : 1;
+  }
+
+  return right.updatedAt.localeCompare(left.updatedAt);
+}
+
 export async function readWorkspace(
   currentUserId: string | null
 ): Promise<WorkspaceSnapshot> {
-  const [folders, snippets] = await Promise.all([
+  const [folders, snippets, notes] = await Promise.all([
     db.folders.toArray(),
     db.snippets.toArray(),
+    db.notes.toArray(),
   ]);
 
   return {
@@ -139,6 +166,9 @@ export async function readWorkspace(
     snippets: snippets
       .filter((snippet) => matchesOwner(snippet.ownerId, currentUserId))
       .sort(sortSnippets),
+    notes: notes
+      .filter((note) => matchesOwner(note.ownerId, currentUserId))
+      .sort(sortNotes),
   };
 }
 
@@ -150,5 +180,6 @@ export async function getDirtyWorkspace(
   return {
     folders: snapshot.folders.filter((folder) => folder.dirty),
     snippets: snapshot.snippets.filter((snippet) => snippet.dirty),
+    notes: snapshot.notes.filter((note) => note.dirty),
   };
 }

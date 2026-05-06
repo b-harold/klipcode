@@ -2,8 +2,10 @@ import { db, getDirtyWorkspace } from "@/lib/db";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type {
   CloudFolderRow,
+  CloudNoteRow,
   CloudSnippetRow,
   FolderRecord,
+  NoteRecord,
   SnippetRecord,
   SyncResult,
 } from "@/lib/types";
@@ -47,10 +49,25 @@ function mapSnippetToCloud(snippet: SnippetRecord, userId: string) {
     title: snippet.title,
     code: snippet.code,
     language: snippet.language,
+    source_url: snippet.sourceUrl,
     is_pinned_aside: snippet.isPinnedAside,
     is_pinned_home: snippet.isPinnedHome,
     created_at: snippet.createdAt,
     updated_at: snippet.updatedAt,
+  };
+}
+
+function mapNoteToCloud(note: NoteRecord, userId: string) {
+  return {
+    id: note.id,
+    owner_id: userId,
+    folder_id: note.folderId,
+    title: note.title,
+    markdown: note.markdown,
+    is_pinned_aside: note.isPinnedAside,
+    is_pinned_home: note.isPinnedHome,
+    created_at: note.createdAt,
+    updated_at: note.updatedAt,
   };
 }
 
@@ -77,12 +94,29 @@ function mapSnippetToLocal(snippet: CloudSnippetRow): SnippetRecord {
     title: snippet.title,
     code: snippet.code,
     language: snippet.language,
+    sourceUrl: snippet.source_url ?? null,
     isPinnedAside: snippet.is_pinned_aside,
     isPinnedHome: snippet.is_pinned_home,
     createdAt: snippet.created_at,
     updatedAt: snippet.updated_at,
     dirty: false,
     lastSyncedAt: snippet.updated_at,
+  };
+}
+
+function mapNoteToLocal(note: CloudNoteRow): NoteRecord {
+  return {
+    id: note.id,
+    ownerId: note.owner_id,
+    folderId: note.folder_id,
+    title: note.title,
+    markdown: note.markdown,
+    isPinnedAside: note.is_pinned_aside,
+    isPinnedHome: note.is_pinned_home,
+    createdAt: note.created_at,
+    updatedAt: note.updated_at,
+    dirty: false,
+    lastSyncedAt: note.updated_at,
   };
 }
 
@@ -120,11 +154,26 @@ async function markSnippetAsSynced(
   });
 }
 
+async function markNoteAsSynced(note: NoteRecord, userId: string, syncedAt: string) {
+  const currentNote = await db.notes.get(note.id);
+
+  if (!currentNote || currentNote.updatedAt !== note.updatedAt) {
+    return;
+  }
+
+  await db.notes.put({
+    ...currentNote,
+    ownerId: userId,
+    dirty: false,
+    lastSyncedAt: syncedAt,
+  });
+}
+
 export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   const supabase = getSupabaseBrowserClient();
 
   if (!supabase) {
-    return { syncedFolderIds: [], syncedSnippetIds: [] };
+    return { syncedFolderIds: [], syncedSnippetIds: [], syncedNoteIds: [] };
   }
 
   const dirtyWorkspace = await getDirtyWorkspace(userId);
@@ -135,8 +184,12 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   const snippets = [...dirtyWorkspace.snippets].sort((left, right) =>
     left.updatedAt.localeCompare(right.updatedAt)
   );
+  const notes = [...dirtyWorkspace.notes].sort((left, right) =>
+    left.updatedAt.localeCompare(right.updatedAt)
+  );
   const syncedFolderIds: string[] = [];
   const syncedSnippetIds: string[] = [];
+  const syncedNoteIds: string[] = [];
 
   for (const folder of folders) {
     const { error } = await supabase
@@ -166,7 +219,21 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
     syncedSnippetIds.push(snippet.id);
   }
 
-  return { syncedFolderIds, syncedSnippetIds };
+  for (const note of notes) {
+    const { error } = await supabase
+      .from("notes")
+      .upsert(mapNoteToCloud(note, userId), { onConflict: "id" });
+
+    if (error) {
+      throw error;
+    }
+
+    const syncedAt = new Date().toISOString();
+    await markNoteAsSynced(note, userId, syncedAt);
+    syncedNoteIds.push(note.id);
+  }
+
+  return { syncedFolderIds, syncedSnippetIds, syncedNoteIds };
 }
 
 export async function fetchCloudWorkspace(userId: string) {
@@ -176,19 +243,28 @@ export async function fetchCloudWorkspace(userId: string) {
     return;
   }
 
-  const [{ data: folders, error: foldersError }, { data: snippets, error: snippetsError }] =
-    await Promise.all([
-      supabase
-        .from("folders")
-        .select("id, owner_id, name, parent_id, is_pinned_aside, is_pinned_home, created_at, updated_at")
-        .eq("owner_id", userId),
-      supabase
-        .from("snippets")
-        .select(
-          "id, owner_id, folder_id, title, code, language, is_pinned_aside, is_pinned_home, created_at, updated_at"
-        )
-        .eq("owner_id", userId),
-    ]);
+  const [
+    { data: folders, error: foldersError },
+    { data: snippets, error: snippetsError },
+    { data: notes, error: notesError },
+  ] = await Promise.all([
+    supabase
+      .from("folders")
+      .select("id, owner_id, name, parent_id, is_pinned_aside, is_pinned_home, created_at, updated_at")
+      .eq("owner_id", userId),
+    supabase
+      .from("snippets")
+      .select(
+        "id, owner_id, folder_id, title, code, language, source_url, is_pinned_aside, is_pinned_home, created_at, updated_at"
+      )
+      .eq("owner_id", userId),
+    supabase
+      .from("notes")
+      .select(
+        "id, owner_id, folder_id, title, markdown, is_pinned_aside, is_pinned_home, created_at, updated_at"
+      )
+      .eq("owner_id", userId),
+  ]);
 
   if (foldersError) {
     throw foldersError;
@@ -196,6 +272,10 @@ export async function fetchCloudWorkspace(userId: string) {
 
   if (snippetsError) {
     throw snippetsError;
+  }
+
+  if (notesError) {
+    throw notesError;
   }
 
   for (const folderRow of folders as CloudFolderRow[]) {
@@ -218,6 +298,17 @@ export async function fetchCloudWorkspace(userId: string) {
     }
 
     await db.snippets.put(incomingSnippet);
+  }
+
+  for (const noteRow of notes as CloudNoteRow[]) {
+    const incomingNote = mapNoteToLocal(noteRow);
+    const currentNote = await db.notes.get(incomingNote.id);
+
+    if (currentNote?.dirty && currentNote.updatedAt >= incomingNote.updatedAt) {
+      continue;
+    }
+
+    await db.notes.put(incomingNote);
   }
 }
 

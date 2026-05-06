@@ -7,15 +7,17 @@ import { isDescendantOrSelf } from "@/components/Aside/utils";
 
 /* ─────────────────────────── Types ─────────────────────────────────────── */
 
+export type DraggableType = "folder" | "snippet" | "note";
+
 export interface DraggingItem {
-  type: "folder" | "snippet";
+  type: DraggableType;
   id: string;
 }
 
 interface DragCtxShape {
   dragging: DraggingItem | null;
   dragOverId: string | null;
-  startDrag: (type: "folder" | "snippet", id: string) => void;
+  startDrag: (type: DraggableType, id: string) => void;
   endDrag: () => void;
   enterDropTarget: (id: string) => void;
   clearDropTarget: () => void;
@@ -39,10 +41,17 @@ interface DragProviderProps {
   folders: FolderRecord[];
   onMoveFolder: (id: string, newParentId: string | null) => Promise<void>;
   onMoveSnippet: (id: string, newFolderId: string | null) => Promise<void>;
+  onMoveNote: (id: string, newFolderId: string | null) => Promise<void>;
   children: ReactNode;
 }
 
-export function DragProvider({ folders, onMoveFolder, onMoveSnippet, children }: DragProviderProps) {
+export function DragProvider({
+  folders,
+  onMoveFolder,
+  onMoveSnippet,
+  onMoveNote,
+  children,
+}: DragProviderProps) {
   const [dragging, setDragging] = useState<DraggingItem | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
@@ -67,8 +76,10 @@ export function DragProvider({ folders, onMoveFolder, onMoveSnippet, children }:
     if (dragging.type === "folder") {
       if (targetFolderId !== null && !canDropOnFolder(targetFolderId)) return;
       void onMoveFolder(dragging.id, targetFolderId);
-    } else {
+    } else if (dragging.type === "snippet") {
       void onMoveSnippet(dragging.id, targetFolderId);
+    } else {
+      void onMoveNote(dragging.id, targetFolderId);
     }
     setDragging(null);
     setDragOverId(null);

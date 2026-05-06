@@ -26,6 +26,21 @@ export interface SnippetRecord {
   title: string;
   code: string;
   language: string;
+  sourceUrl: string | null;
+  isPinnedAside: boolean;
+  isPinnedHome: boolean;
+  createdAt: string;
+  updatedAt: string;
+  dirty: boolean;
+  lastSyncedAt: string | null;
+}
+
+export interface NoteRecord {
+  id: string;
+  ownerId: string | null;
+  folderId: string | null;
+  title: string;
+  markdown: string;
   isPinnedAside: boolean;
   isPinnedHome: boolean;
   createdAt: string;
@@ -37,11 +52,13 @@ export interface SnippetRecord {
 export interface WorkspaceSnapshot {
   folders: FolderRecord[];
   snippets: SnippetRecord[];
+  notes: NoteRecord[];
 }
 
 export interface SyncResult {
   syncedFolderIds: string[];
   syncedSnippetIds: string[];
+  syncedNoteIds: string[];
 }
 
 export interface CloudFolderRow {
@@ -62,6 +79,19 @@ export interface CloudSnippetRow {
   title: string;
   code: string;
   language: string;
+  source_url: string | null;
+  is_pinned_aside: boolean;
+  is_pinned_home: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CloudNoteRow {
+  id: string;
+  owner_id: string;
+  folder_id: string | null;
+  title: string;
+  markdown: string;
   is_pinned_aside: boolean;
   is_pinned_home: boolean;
   created_at: string;
@@ -70,6 +100,6 @@ export interface CloudSnippetRow {
 
 export interface ClipboardEntry {
   type: "cut" | "copy";
-  itemType: "folder" | "snippet";
+  itemType: "folder" | "snippet" | "note";
   id: string;
 }

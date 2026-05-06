@@ -4,9 +4,10 @@ import { useMemo, type ReactNode } from "react";
 import { FileCode2, Folder, FolderOpen, Layers } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
-import type { ClipboardEntry, FolderRecord, SnippetRecord } from "@/lib/types";
-import { SPACE_ROOT_ID } from "@/lib/navigation";
+import type { ClipboardEntry, FolderRecord, NoteRecord, SnippetRecord } from "@/lib/types";
+import { SPACE_ROOT_ID, buildAppHref } from "@/lib/navigation";
 import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
+import { NoteCard } from "@/components/SnippetCards/NoteCard";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 import { useDragCtx } from "@/components/DragContext";
 import { FolderCard } from "./FolderCard";
@@ -18,17 +19,24 @@ export interface FolderViewProps {
   folderId: string;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
+  notes: NoteRecord[];
   copy: Dictionary;
   clipboard?: ClipboardEntry | null;
   onSelectSnippet: (snippetId: string) => void;
+  onSelectNote: (noteId: string) => void;
   onNavigateFolder: (folderId: string) => void;
   onNavigateHome: () => void;
   onPinSnippet?: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
+  onPinNote?: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   onPinFolder?: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   onDeleteSnippet?: (id: string) => Promise<void>;
+  onDeleteNote?: (id: string) => Promise<void>;
   onRenameSnippet?: (id: string, title: string) => Promise<void>;
+  onRenameNote?: (id: string, title: string) => Promise<void>;
   onCutSnippet?: (id: string) => void;
   onCopySnippet?: (id: string) => void;
+  onCutNote?: (id: string) => void;
+  onCopyNote?: (id: string) => void;
   onDeleteFolder?: (id: string) => Promise<void>;
   onRenameFolder?: (id: string, name: string) => Promise<void>;
   onCutFolder?: (id: string) => void;
@@ -41,17 +49,24 @@ export function FolderView({
   folderId,
   folders,
   snippets,
+  notes,
   copy,
   clipboard,
   onSelectSnippet,
+  onSelectNote,
   onNavigateFolder,
   onNavigateHome,
   onPinSnippet,
+  onPinNote,
   onPinFolder,
   onDeleteSnippet,
+  onDeleteNote,
   onRenameSnippet,
+  onRenameNote,
   onCutSnippet,
   onCopySnippet,
+  onCutNote,
+  onCopyNote,
   onDeleteFolder,
   onRenameFolder,
   onCutFolder,
@@ -109,11 +124,23 @@ export function FolderView({
     [snippets, parentKey],
   );
 
+  const folderNotes = useMemo(
+    () =>
+      notes
+        .filter((n) => n.folderId === parentKey)
+        .sort((a, b) => {
+          if (a.isPinnedAside !== b.isPinnedAside) return a.isPinnedAside ? -1 : 1;
+          return b.updatedAt.localeCompare(a.updatedAt);
+        }),
+    [notes, parentKey],
+  );
+
   // Pre-compute counts so FolderCard renders don't each filter the full lists (O(n) vs O(n*m))
   const snippetCountMap = useMemo(() => buildSnippetCountMap(snippets), [snippets]);
   const subFolderCountMap = useMemo(() => buildSubFolderCountMap(folders), [folders]);
 
-  const isEmpty = childFolders.length === 0 && folderSnippets.length === 0;
+  const isEmpty =
+    childFolders.length === 0 && folderSnippets.length === 0 && folderNotes.length === 0;
   const folderTitle = isRootSpace ? copy.aside.mySpace : (currentFolder?.name ?? copy.aside.mySpace);
 
   const metaParts = [
@@ -122,6 +149,9 @@ export function FolderView({
       : null,
     folderSnippets.length > 0
       ? `${folderSnippets.length} ${copy.folderView.snippetLabel}`
+      : null,
+    folderNotes.length > 0
+      ? `${folderNotes.length} ${copy.folderView.noteLabel}`
       : null,
   ].filter(Boolean);
 
@@ -226,7 +256,9 @@ export function FolderView({
                   subFolderCount={subFolderCountMap.get(folder.id) ?? 0}
                   copy={copy}
                   onClick={() => onNavigateFolder(folder.id)}
-                  onOpenInNewTab={() => window.open(`/?folder=${folder.id}`, "_blank", "noopener,noreferrer")}
+                  onOpenInNewTab={() =>
+                    window.open(buildAppHref(`folder=${folder.id}`), "_blank", "noopener,noreferrer")
+                  }
                   onPinAside={onPinFolder ? (pinned) => void onPinFolder(folder.id, "aside", pinned) : undefined}
                   onRename={onRenameFolder ? (name) => void onRenameFolder(folder.id, name) : undefined}
                   onDelete={onDeleteFolder ? () => void onDeleteFolder(folder.id) : undefined}
@@ -234,6 +266,39 @@ export function FolderView({
                   onCopy={onCopyFolder ? () => onCopyFolder(folder.id) : undefined}
                   onPaste={onPaste ? () => void onPaste(folder.id) : undefined}
                   hasPaste={hasPaste}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Notes grid ─────────────────────────────────────────────────── */}
+        {folderNotes.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/30">
+              {copy.folderView.notes}
+            </h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {folderNotes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  copy={copy}
+                  enableDrag
+                  onSelect={() => onSelectNote(note.id)}
+                  onOpenInNewTab={() =>
+                    window.open(buildAppHref(`note=${note.id}`), "_blank", "noopener,noreferrer")
+                  }
+                  onUnpinAside={onPinNote ? () => void onPinNote(note.id, "aside", false) : undefined}
+                  onPinAside={onPinNote ? (pinned) => void onPinNote(note.id, "aside", pinned) : undefined}
+                  onPinHome={onPinNote ? (pinned) => void onPinNote(note.id, "home", pinned) : undefined}
+                  onRename={onRenameNote ? (title) => void onRenameNote(note.id, title) : undefined}
+                  onDelete={onDeleteNote ? () => void onDeleteNote(note.id) : undefined}
+                  onCut={onCutNote ? () => onCutNote(note.id) : undefined}
+                  onCopy={onCopyNote ? () => onCopyNote(note.id) : undefined}
+                  onPaste={onPaste ? () => void onPaste(note.folderId) : undefined}
+                  hasPaste={hasPaste}
+                  className="w-full shrink"
                 />
               ))}
             </div>
@@ -255,7 +320,9 @@ export function FolderView({
                   copy={copy}
                   enableDrag
                   onSelect={() => onSelectSnippet(snippet.id)}
-                  onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
+                  onOpenInNewTab={() =>
+                    window.open(buildAppHref(`snippet=${snippet.id}`), "_blank", "noopener,noreferrer")
+                  }
                   onUnpinAside={onPinSnippet ? () => void onPinSnippet(snippet.id, "aside", false) : undefined}
                   onPinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}
                   onPinHome={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "home", pinned) : undefined}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Trash2, FolderOpen, FileCode2 } from "lucide-react";
+import { Trash2, FolderOpen, FileCode2, FileText } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
 
@@ -11,6 +11,7 @@ interface ConfirmDialogProps {
   folderName: string;
   nestedFolderCount: number;
   snippetCount: number;
+  noteCount: number;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -20,6 +21,7 @@ export function ConfirmDialog({
   folderName,
   nestedFolderCount,
   snippetCount,
+  noteCount,
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -106,6 +108,14 @@ export function ConfirmDialog({
                 <FileCode2 size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
                 <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
                   {copy.containsSnippets(snippetCount)}
+                </span>
+              </div>
+            )}
+            {noteCount > 0 && (
+              <div className="flex items-center gap-2">
+                <FileText size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
+                <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  {copy.containsNotes(noteCount)}
                 </span>
               </div>
             )}

@@ -267,4 +267,73 @@ create index if not exists idx_folders_owner_pinned_home on public.folders (owne
 create index if not exists idx_snippets_owner_pinned on public.snippets (owner_id, is_pinned_aside);
 create index if not exists idx_snippets_owner_pinned_home on public.snippets (owner_id, is_pinned_home);
 
+-- Source URL on snippets (where the code came from)
+alter table public.snippets
+  add column if not exists source_url text;
+
+-- Notes: markdown documents that live in folders alongside snippets and reference
+-- snippets via inline [[snippet:<uuid>]] markers in the markdown body.
+create table if not exists public.notes (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  folder_id uuid,
+  title text not null,
+  markdown text not null default '',
+  is_pinned_aside boolean not null default false,
+  is_pinned_home boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint notes_title_not_empty check (btrim(title) <> ''),
+  constraint notes_owner_folder_fk
+    foreign key (owner_id, folder_id)
+    references public.folders (owner_id, id)
+    on update cascade
+    on delete set null
+);
+
+create index if not exists idx_notes_owner_folder on public.notes (owner_id, folder_id);
+create index if not exists idx_notes_owner_updated_at on public.notes (owner_id, updated_at desc);
+create index if not exists idx_notes_owner_pinned on public.notes (owner_id, is_pinned_aside);
+create index if not exists idx_notes_owner_pinned_home on public.notes (owner_id, is_pinned_home);
+
+drop trigger if exists set_notes_updated_at on public.notes;
+create trigger set_notes_updated_at
+before update on public.notes
+for each row
+execute function public.set_updated_at();
+
+alter table public.notes enable row level security;
+alter table public.notes force row level security;
+
+drop policy if exists notes_select_own on public.notes;
+create policy notes_select_own
+on public.notes
+for select
+to authenticated
+using (auth.uid() = owner_id);
+
+drop policy if exists notes_insert_own on public.notes;
+create policy notes_insert_own
+on public.notes
+for insert
+to authenticated
+with check (auth.uid() = owner_id);
+
+drop policy if exists notes_update_own on public.notes;
+create policy notes_update_own
+on public.notes
+for update
+to authenticated
+using (auth.uid() = owner_id)
+with check (auth.uid() = owner_id);
+
+drop policy if exists notes_delete_own on public.notes;
+create policy notes_delete_own
+on public.notes
+for delete
+to authenticated
+using (auth.uid() = owner_id);
+
+grant select, insert, update, delete on public.notes to authenticated;
+
 commit;

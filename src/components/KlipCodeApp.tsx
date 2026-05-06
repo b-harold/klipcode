@@ -3,7 +3,7 @@
 import { startTransition, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 import { readWorkspace } from "@/lib/db";
 import { seedWelcomeContent } from "@/lib/seed";
@@ -24,7 +24,9 @@ import { DragProvider } from "@/components/DragContext";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
+import { NoteEditor } from "@/components/NoteEditor/NoteEditor";
 import { FolderView } from "@/components/FolderView/FolderView";
+import { SearchOverlay } from "@/components/Search/SearchOverlay";
 
 export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const copy = getDictionary(locale);
@@ -39,13 +41,14 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     });
   }
 
-  // onReconciled callback references sync.setSnippetStatus — safe because it's
-  // only invoked asynchronously from effects, well after all hooks initialise.
+  // onReconciled callback references sync.setSnippetStatus / setNoteStatus — safe
+  // because it's only invoked asynchronously after all hooks initialise.
   const auth = useAuth({
     copy,
     refreshWorkspace,
-    onReconciled: (ids) => {
-      for (const id of ids) sync.setSnippetStatus(id, "saved-cloud");
+    onReconciled: ({ snippetIds, noteIds }) => {
+      for (const id of snippetIds) sync.setSnippetStatus(id, "saved-cloud");
+      for (const id of noteIds) sync.setNoteStatus(id, "saved-cloud");
     },
   });
 
@@ -65,14 +68,22 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
   const selectedSnippetId = searchParams.get("snippet");
   const selectedFolderId = searchParams.get("folder");
+  const selectedNoteId = searchParams.get("note");
 
-  /** Used by useWorkspaceMutations which needs a (id: string | null) => void setter. */
   function setSelectedSnippetId(id: string | null) {
-    if (id !== null) router.push(`${base}?snippet=${id}`);
+    const next = new URLSearchParams();
+    if (selectedNoteId) next.set("note", selectedNoteId);
+    if (id) next.set("snippet", id);
+    const qs = next.toString();
+    router.push(qs ? `${base}?${qs}` : base);
+  }
+
+  function setSelectedNoteId(id: string | null) {
+    if (id !== null) router.push(`${base}?note=${id}`);
     else router.push(base);
   }
 
-  /* ── Clipboard state ──────────────────────────────────────────────────── */
+  /* ── Clipboard / dialog / search state ─────────────────────────────────── */
 
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
@@ -81,7 +92,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     name: string;
     nestedFolderCount: number;
     snippetCount: number;
+    noteCount: number;
   } | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   /* ── Workspace data ───────────────────────────────────────────────────── */
 
@@ -92,6 +105,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
   const folders = workspaceQuery.data?.folders ?? [];
   const snippets = workspaceQuery.data?.snippets ?? [];
+  const notes = workspaceQuery.data?.notes ?? [];
 
   /* ── Mutations ────────────────────────────────────────────────────────── */
 
@@ -102,14 +116,18 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     supabaseConfigured: auth.supabaseConfigured,
     folders,
     snippets,
+    notes,
     clipboard,
     setClipboard,
     selectedSnippetId,
+    selectedNoteId,
     setSelectedSnippetId,
+    setSelectedNoteId,
     refreshWorkspace,
     scheduleCloudSync: sync.scheduleCloudSync,
     settleLocally: sync.settleLocally,
     setSnippetStatus: sync.setSnippetStatus,
+    setNoteStatus: sync.setNoteStatus,
   });
 
   /* ── First-visit seeding ────────────────────────────────────────────────── */
@@ -122,6 +140,19 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.authReady, auth.user]);
 
+  /* ── Cmd/Ctrl+K to open search ─────────────────────────────────────────── */
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   /* ── Derived state & side-effects ─────────────────────────────────────── */
 
   useEffect(() => {
@@ -129,11 +160,16 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     if (selectedFolderId && selectedFolderId !== SPACE_ROOT_ID && !folders.find((f) => f.id === selectedFolderId)) {
       router.replace(base);
     }
-  }, [folders, selectedFolderId, workspaceQuery.isSuccess, router]);
+  }, [folders, selectedFolderId, workspaceQuery.isSuccess, router, base]);
 
   const selectedSnippet = selectedSnippetId
     ? (snippets.find((s) => s.id === selectedSnippetId) ?? null)
     : null;
+  const selectedNote = selectedNoteId
+    ? (notes.find((n) => n.id === selectedNoteId) ?? null)
+    : null;
+
+  const splitPaneOpen = Boolean(selectedNote && selectedSnippet);
 
   function handleNewSnippetAt(folderId: string | null) {
     router.push(base);
@@ -158,13 +194,30 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
     const nestedFolderCount = folderSet.size - 1;
     const snippetCount = snippets.filter((s) => s.folderId && folderSet.has(s.folderId)).length;
+    const noteCount = notes.filter((n) => n.folderId && folderSet.has(n.folderId)).length;
 
-    if (nestedFolderCount === 0 && snippetCount === 0) {
+    if (nestedFolderCount === 0 && snippetCount === 0 && noteCount === 0) {
       await mutations.handleDeleteFolder(id);
       return;
     }
 
-    setPendingDeleteFolder({ id, name: folder.name, nestedFolderCount, snippetCount });
+    setPendingDeleteFolder({ id, name: folder.name, nestedFolderCount, snippetCount, noteCount });
+  }
+
+  function openSnippetSplit(snippetId: string) {
+    if (selectedNoteId) {
+      router.push(`${base}?note=${selectedNoteId}&snippet=${snippetId}`);
+    } else {
+      router.push(`${base}?snippet=${snippetId}`);
+    }
+  }
+
+  function closeSplitSnippet() {
+    if (selectedNoteId) {
+      router.push(`${base}?note=${selectedNoteId}`);
+    } else {
+      router.push(base);
+    }
   }
 
   const menuButton = !sidebarOpen ? (
@@ -187,34 +240,43 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       folders={folders}
       onMoveFolder={mutations.handleMoveFolder}
       onMoveSnippet={mutations.handleMoveSnippet}
+      onMoveNote={mutations.handleMoveNote}
     >
     <div className="flex h-screen overflow-hidden">
       <Aside
         user={auth.user}
         folders={folders}
         snippets={snippets}
+        notes={notes}
         copy={copy}
         clipboard={clipboard}
         isOpen={sidebarOpen}
         isMobile={isMobile}
         onSetOpen={setSidebarOpen}
         onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
+        onSelectNote={(id) => router.push(`${base}?note=${id}`)}
         onGoHome={() => router.push(base)}
         onGoSpace={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
+        onOpenSearch={() => setSearchOpen(true)}
         onNewSnippetAt={handleNewSnippetAt}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
+        onCreateNoteInline={mutations.handleCreateNoteInline}
         onCreateFolder={mutations.handleCreateFolder}
         onDeleteFolder={handleDeleteFolderWithConfirm}
         onDeleteSnippet={mutations.handleDeleteSnippet}
+        onDeleteNote={mutations.handleDeleteNote}
         onRenameFolder={mutations.handleRenameFolder}
         onRenameSnippet={mutations.handleRenameSnippet}
+        onRenameNote={mutations.handleRenameNote}
         onPinFolder={mutations.handlePinFolder}
         onPinSnippet={mutations.handlePinSnippet}
+        onPinNote={mutations.handlePinNote}
         onCut={setClipboard}
         onCopy={(entry) => setClipboard({ ...entry, type: "copy" })}
         onPaste={mutations.handlePaste}
         onMoveFolder={mutations.handleMoveFolder}
         onMoveSnippet={mutations.handleMoveSnippet}
+        onMoveNote={mutations.handleMoveNote}
         onSignIn={auth.handleGitHubSignIn}
         onSignOut={auth.handleSignOut}
         onSelectFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
@@ -223,7 +285,51 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       <div className="relative flex flex-1 flex-col overflow-hidden">
         <AccountToast message={auth.accountMessage} />
 
-        {selectedSnippet ? (
+        {selectedNote ? (
+          <div className="flex flex-1 min-h-0 overflow-hidden">
+            <div className={splitPaneOpen ? "hidden flex-1 min-w-0 md:flex md:flex-col" : "flex flex-1 min-w-0 flex-col"}>
+              <NoteEditor
+                key={selectedNote.id}
+                note={selectedNote}
+                folders={folders}
+                snippets={snippets}
+                copy={copy}
+                syncStatus={sync.noteStatuses[selectedNote.id] ?? "idle"}
+                splitPaneOpen={splitPaneOpen}
+                onClose={() => router.push(base)}
+                onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
+                onNavigateHome={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
+                onUpdate={mutations.handleUpdateNote}
+                onUpdateSnippet={mutations.handleUpdateSnippet}
+                onOpenSnippet={openSnippetSplit}
+                menuButton={menuButton}
+              />
+            </div>
+            {splitPaneOpen && selectedSnippet && (
+              <div className="relative flex flex-1 min-w-0 flex-col border-l border-white/[0.06]">
+                <button
+                  type="button"
+                  aria-label={copy.noteEditor.closeSnippetPane}
+                  onClick={closeSplitSnippet}
+                  className="absolute right-3 top-2.5 z-20 rounded-md p-1 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                >
+                  <X size={14} />
+                </button>
+                <SnippetEditor
+                  key={selectedSnippet.id}
+                  snippet={selectedSnippet}
+                  folders={folders}
+                  copy={copy}
+                  syncStatus={sync.snippetStatuses[selectedSnippet.id] ?? "idle"}
+                  onClose={closeSplitSnippet}
+                  onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
+                  onNavigateHome={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
+                  onUpdate={mutations.handleUpdateSnippet}
+                />
+              </div>
+            )}
+          </div>
+        ) : selectedSnippet ? (
           <div className="flex-1 overflow-hidden">
             <SnippetEditor
               key={selectedSnippet.id}
@@ -243,17 +349,24 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             folderId={selectedFolderId}
             folders={folders}
             snippets={snippets}
+            notes={notes}
             copy={copy}
             clipboard={clipboard}
             onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
+            onSelectNote={(id) => router.push(`${base}?note=${id}`)}
             onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
             onNavigateHome={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
             onPinSnippet={mutations.handlePinSnippet}
+            onPinNote={mutations.handlePinNote}
             onPinFolder={mutations.handlePinFolder}
             onDeleteSnippet={mutations.handleDeleteSnippet}
+            onDeleteNote={mutations.handleDeleteNote}
             onRenameSnippet={mutations.handleRenameSnippet}
+            onRenameNote={mutations.handleRenameNote}
             onCutSnippet={(id) => setClipboard({ type: "cut", itemType: "snippet", id })}
             onCopySnippet={(id) => setClipboard({ type: "copy", itemType: "snippet", id })}
+            onCutNote={(id) => setClipboard({ type: "cut", itemType: "note", id })}
+            onCopyNote={(id) => setClipboard({ type: "copy", itemType: "note", id })}
             onDeleteFolder={handleDeleteFolderWithConfirm}
             onRenameFolder={mutations.handleRenameFolder}
             onCutFolder={(id) => setClipboard({ type: "cut", itemType: "folder", id })}
@@ -302,10 +415,33 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         folderName={pendingDeleteFolder.name}
         nestedFolderCount={pendingDeleteFolder.nestedFolderCount}
         snippetCount={pendingDeleteFolder.snippetCount}
+        noteCount={pendingDeleteFolder.noteCount}
         onCancel={() => setPendingDeleteFolder(null)}
         onConfirm={() => {
           void mutations.handleDeleteFolder(pendingDeleteFolder.id);
           setPendingDeleteFolder(null);
+        }}
+      />
+    )}
+
+    {searchOpen && (
+      <SearchOverlay
+        snippets={snippets}
+        notes={notes}
+        folders={folders}
+        copy={copy}
+        onClose={() => setSearchOpen(false)}
+        onSelectSnippet={(id) => {
+          setSearchOpen(false);
+          router.push(`${base}?snippet=${id}`);
+        }}
+        onSelectNote={(id) => {
+          setSearchOpen(false);
+          router.push(`${base}?note=${id}`);
+        }}
+        onSelectFolder={(id) => {
+          setSearchOpen(false);
+          router.push(`${base}?folder=${id}`);
         }}
       />
     )}

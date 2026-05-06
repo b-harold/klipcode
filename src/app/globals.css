@@ -222,6 +222,57 @@ body {
   background-size: 16px 16px;
 }
 
+/* ─── Markdown body (note preview) ────────────────────────────────────────── */
+.markdown-body { color: var(--foreground); line-height: 1.65; font-size: 14px; }
+.markdown-body > * + * { margin-top: 0.85em; }
+.markdown-body h1 { font-size: 1.6em; font-weight: 600; letter-spacing: -0.01em; margin-top: 1.4em; }
+.markdown-body h2 { font-size: 1.3em; font-weight: 600; letter-spacing: -0.01em; margin-top: 1.3em; }
+.markdown-body h3 { font-size: 1.1em; font-weight: 600; margin-top: 1.2em; }
+.markdown-body h4, .markdown-body h5, .markdown-body h6 { font-size: 1em; font-weight: 600; margin-top: 1.2em; }
+.markdown-body a { color: #8ab4f8; text-decoration: underline; text-underline-offset: 2px; }
+.markdown-body a:hover { color: #b3cdfb; }
+.markdown-body strong { font-weight: 600; color: var(--foreground); }
+.markdown-body em { color: rgba(237,237,237,0.85); }
+.markdown-body code {
+  font-family: 'Cascadia Code', var(--font-geist-mono), monospace;
+  font-size: 0.9em;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.markdown-body pre {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+}
+.markdown-body pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.85em;
+}
+.markdown-body ul { padding-left: 1.4em; list-style: disc; }
+.markdown-body ol { padding-left: 1.4em; list-style: decimal; }
+.markdown-body li + li { margin-top: 0.25em; }
+.markdown-body blockquote {
+  border-left: 2px solid rgba(255,255,255,0.18);
+  padding-left: 0.9em;
+  color: rgba(237,237,237,0.7);
+  font-style: italic;
+}
+.markdown-body hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 1.6em 0; }
+.markdown-body table { border-collapse: collapse; width: 100%; }
+.markdown-body th, .markdown-body td {
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 6px 10px;
+  text-align: left;
+}
+.markdown-body th { background: rgba(255,255,255,0.03); font-weight: 600; }
+.markdown-body img { max-width: 100%; border-radius: 6px; }
+
 /* Expanded: chevron down */
 .cm-fold-open {
   background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23858585'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z'/%3E%3C/svg%3E");

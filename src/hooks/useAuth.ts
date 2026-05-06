@@ -7,7 +7,7 @@ import type { Dictionary } from "@/i18n";
 interface UseAuthOptions {
   copy: Dictionary;
   refreshWorkspace: () => void;
-  onReconciled: (syncedSnippetIds: string[]) => void;
+  onReconciled: (ids: { snippetIds: string[]; noteIds: string[] }) => void;
 }
 
 export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions) {
@@ -43,7 +43,10 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
       try {
         const result = await reconcileWorkspace(nextUser.id);
         refreshRef.current();
-        onReconciledRef.current(result.syncedSnippetIds);
+        onReconciledRef.current({
+          snippetIds: result.syncedSnippetIds,
+          noteIds: result.syncedNoteIds,
+        });
         setAccountMessage(copy.auth.syncedSession);
       } catch {
         setAccountMessage(copy.auth.syncFailed);

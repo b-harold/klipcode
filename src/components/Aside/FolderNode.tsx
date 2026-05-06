@@ -2,24 +2,28 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Folder, FolderOpen, Pin, PinOff } from "lucide-react";
-import type { FolderRecord, SnippetRecord } from "@/lib/types";
+import type { FolderRecord, NoteRecord, SnippetRecord } from "@/lib/types";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
 import { NewFolderInput } from "./NewFolderInput";
 import { NewSnippetInput } from "./NewSnippetInput";
+import { NewNoteInput } from "./NewNoteInput";
 import { SnippetNode } from "./SnippetNode";
+import { NoteNode } from "./NoteNode";
 import { STEP, sortByPinThenAlpha } from "./utils";
 
 export function FolderNode({
   folder,
   folders,
   snippets,
+  notes,
   depth,
 }: {
   folder: FolderRecord;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
+  notes: NoteRecord[];
   depth: number;
 }) {
   const ctx = useAsideCtx();
@@ -28,6 +32,7 @@ export function FolderNode({
   const isRenaming = ctx.renamingId === folder.id;
   const isCreatingHere = ctx.creatingFolderParentId === folder.id;
   const isCreatingSnippetHere = ctx.creatingSnippetFolderId === folder.id;
+  const isCreatingNoteHere = ctx.creatingNoteFolderId === folder.id;
 
   const childFolders = sortByPinThenAlpha(
     folders.filter((f) => f.parentId === folder.id),
@@ -37,12 +42,17 @@ export function FolderNode({
     snippets.filter((s) => s.folderId === folder.id),
     (s) => s.title ?? "",
   );
+  const childNotes = sortByPinThenAlpha(
+    notes.filter((n) => n.folderId === folder.id),
+    (n) => n.title ?? "",
+  );
 
   const prevCreating = useRef(false);
   useEffect(() => {
-    if ((isCreatingHere || isCreatingSnippetHere) && !prevCreating.current) setIsOpen(true);
-    prevCreating.current = isCreatingHere || isCreatingSnippetHere;
-  }, [isCreatingHere, isCreatingSnippetHere]);
+    const anyCreating = isCreatingHere || isCreatingSnippetHere || isCreatingNoteHere;
+    if (anyCreating && !prevCreating.current) setIsOpen(true);
+    prevCreating.current = anyCreating;
+  }, [isCreatingHere, isCreatingSnippetHere, isCreatingNoteHere]);
 
   function openContextMenu(e: React.MouseEvent) {
     e.preventDefault();
@@ -65,8 +75,8 @@ export function FolderNode({
     isDraggingThis ? "opacity-40" : "",
     isDropTarget ? "bg-white/[0.07] text-foreground ring-1 ring-inset ring-white/[0.18]" : "",
   ].filter(Boolean).join(" ");
-  const hasChildren = childFolders.length > 0 || childSnippets.length > 0;
-  const isAnyCreatingHere = isCreatingHere || isCreatingSnippetHere;
+  const hasChildren = childFolders.length > 0 || childSnippets.length > 0 || childNotes.length > 0;
+  const isAnyCreatingHere = isCreatingHere || isCreatingSnippetHere || isCreatingNoteHere;
 
   return (
     <div>
@@ -202,17 +212,24 @@ export function FolderNode({
           {isCreatingSnippetHere && (
             <NewSnippetInput depth={depth + 1} folderId={folder.id} />
           )}
+          {isCreatingNoteHere && (
+            <NewNoteInput depth={depth + 1} folderId={folder.id} />
+          )}
           {childFolders.map((child) => (
             <FolderNode
               key={child.id}
               folder={child}
               folders={folders}
               snippets={snippets}
+              notes={notes}
               depth={depth + 1}
             />
           ))}
           {childSnippets.map((snippet) => (
             <SnippetNode key={snippet.id} snippet={snippet} depth={depth + 1} />
+          ))}
+          {childNotes.map((note) => (
+            <NoteNode key={note.id} note={note} depth={depth + 1} />
           ))}
         </div>
       )}

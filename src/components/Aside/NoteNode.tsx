@@ -1,0 +1,103 @@
+"use client";
+
+import { FileText, Pin, PinOff } from "lucide-react";
+import type { NoteRecord } from "@/lib/types";
+import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
+import { useAsideCtx } from "./AsideContext";
+import { ItemActions } from "./ItemActions";
+import { STEP } from "./utils";
+
+export function NoteNode({ note, depth }: { note: NoteRecord; depth: number }) {
+  const ctx = useAsideCtx();
+  const isRenaming = ctx.renamingId === note.id;
+
+  const displayName = note.title || ctx.copy.noteCard.untitled;
+
+  const paddingLeft = 10 + depth * STEP + 19;
+  const isDraggingThis = ctx.dragging?.id === note.id;
+  const sharedRowClass = [
+    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-all duration-100 hover:bg-white/[0.04] hover:text-foreground",
+    isDraggingThis ? "opacity-40" : "",
+  ].filter(Boolean).join(" ");
+
+  function openContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    ctx.openMenu({ type: "note", id: note.id, x: e.clientX, y: e.clientY });
+  }
+
+  function openMoreMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    ctx.openMenu({ type: "note", id: note.id, x: rect.left, y: rect.bottom + 4 });
+  }
+
+  return isRenaming ? (
+    <div
+      className={sharedRowClass}
+      style={{ paddingLeft }}
+      onContextMenu={openContextMenu}
+    >
+      <FileText size={13} className="shrink-0 text-white/20" />
+      <input
+        autoFocus
+        defaultValue={note.title ?? ""}
+        onBlur={(e) => ctx.submitNoteRename(note.id, e.target.value)}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === "Enter")
+            ctx.submitNoteRename(note.id, (e.target as HTMLInputElement).value);
+          if (e.key === "Escape") ctx.cancelRename();
+        }}
+        className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+      />
+    </div>
+  ) : (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => ctx.selectNote(note.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          ctx.selectNote(note.id);
+        }
+      }}
+      onContextMenu={openContextMenu}
+      className={sharedRowClass}
+      style={{ paddingLeft }}
+    >
+      <span
+        draggable
+        onDragStart={(e) => {
+          e.stopPropagation();
+          ctx.startDrag("note", note.id);
+          e.dataTransfer.effectAllowed = "move";
+        }}
+        onDragEnd={() => ctx.endDrag()}
+        className="flex min-w-0 flex-1 items-center gap-1.5 cursor-grab active:cursor-grabbing"
+      >
+        <FileText size={13} className="shrink-0 text-white/20" />
+        <TruncateTooltip text={displayName} className="flex-1 truncate leading-none" />
+      </span>
+      <ItemActions onMore={openMoreMenu} label={ctx.copy.contextMenu.moreOptions} />
+      {note.isPinnedAside && (
+        <Tooltip content={ctx.copy.aside.unpin}>
+          <span
+            role="button"
+            aria-label={ctx.copy.aside.unpin}
+            className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
+            onClick={(e) => {
+              e.stopPropagation();
+              void ctx.pinNote(note.id, "aside", false);
+            }}
+          >
+            <Pin size={10} className="block group-hover/pin:hidden" />
+            <PinOff size={10} className="hidden group-hover/pin:block" />
+          </span>
+        </Tooltip>
+      )}
+    </div>
+  );
+}

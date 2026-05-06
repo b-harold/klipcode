@@ -300,6 +300,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
                 onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
                 onNavigateHome={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
                 onUpdate={mutations.handleUpdateNote}
+                onUpdateSnippet={mutations.handleUpdateSnippet}
                 onOpenSnippet={openSnippetSplit}
                 menuButton={menuButton}
               />

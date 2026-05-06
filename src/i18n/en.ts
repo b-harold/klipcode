@@ -212,6 +212,9 @@ export const en = {
     noAttachments: "No snippets attached yet. Use the paperclip to attach one — or type [[snippet:id]] in the markdown.",
     backToAttachments: "Back",
     openInEditor: "Open in editor",
+    editSnippet: "Edit snippet",
+    viewSnippet: "View snippet",
+    copySourceUrl: "Copy source URL",
   },
   search: {
     title: "Search",

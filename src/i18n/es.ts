@@ -212,6 +212,9 @@ export const es = {
     noAttachments: "Aún no hay snippets adjuntos. Usa el clip para adjuntar uno — o escribe [[snippet:id]] en el markdown.",
     backToAttachments: "Volver",
     openInEditor: "Abrir en el editor",
+    editSnippet: "Editar snippet",
+    viewSnippet: "Ver snippet",
+    copySourceUrl: "Copiar URL de origen",
   },
   search: {
     title: "Buscar",

@@ -90,6 +90,10 @@ export interface NoteEditorProps {
   onNavigateFolder?: (folderId: string) => void;
   onNavigateHome?: () => void;
   onUpdate: (noteId: string, changes: { title?: string; markdown?: string }) => void;
+  onUpdateSnippet?: (
+    snippetId: string,
+    changes: { title?: string; code?: string; language?: string; sourceUrl?: string | null },
+  ) => void;
   onOpenSnippet: (snippetId: string) => void;
   menuButton?: React.ReactNode;
 }
@@ -105,6 +109,7 @@ export function NoteEditor({
   onNavigateFolder,
   onNavigateHome,
   onUpdate,
+  onUpdateSnippet,
   onOpenSnippet,
   menuButton,
 }: NoteEditorProps) {
@@ -213,55 +218,52 @@ export function NoteEditor({
     },
   ];
 
-  const breadcrumbActions = (
-    <>
-      <Tooltip content={editorCopy.attachSnippet} placement="bottom">
-        <button
-          type="button"
-          aria-label={editorCopy.attachSnippet}
-          onClick={() => {
-            // Auto-switch to edit mode so the new ref is inserted at the cursor position.
-            setEditMode(true);
-            setAttaching(true);
-          }}
-          className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
-        >
-          <Paperclip size={13} />
-        </button>
-      </Tooltip>
-      <div className="h-4 w-px bg-white/[0.08]" />
-      <Tooltip content={editMode ? editorCopy.viewMarkdown : editorCopy.editMarkdown} placement="bottom">
-        <button
-          type="button"
-          aria-label={editMode ? editorCopy.viewMarkdown : editorCopy.editMarkdown}
-          onClick={() => setEditMode((v) => !v)}
-          className={`flex items-center justify-center rounded p-1.5 transition-colors ${
-            editMode
-              ? "bg-white/[0.06] text-white/80"
-              : "text-white/35 hover:bg-white/[0.06] hover:text-white/70"
-          }`}
-        >
-          {editMode ? <Eye size={13} /> : <Pencil size={13} />}
-        </button>
-      </Tooltip>
-    </>
-  );
-
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <Breadcrumbs
         items={breadcrumbItems}
         leading={menuButton}
-        actions={breadcrumbActions}
         defaultStuck
       />
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div
-          className={`flex min-h-0 ${
+          className={`relative flex min-h-0 ${
             splitPaneOpen ? "w-full" : "w-1/2 border-r border-white/[0.06]"
           } flex-col`}
         >
+          <div className="absolute right-3 top-2 z-10 flex items-center gap-1">
+            <Tooltip
+              content={editMode ? editorCopy.viewMarkdown : editorCopy.editMarkdown}
+              placement="bottom"
+            >
+              <button
+                type="button"
+                aria-label={editMode ? editorCopy.viewMarkdown : editorCopy.editMarkdown}
+                onClick={() => setEditMode((v) => !v)}
+                className={`flex items-center justify-center rounded p-1.5 backdrop-blur-sm transition-colors ${
+                  editMode
+                    ? "bg-white/[0.08] text-white/80 hover:bg-white/[0.12]"
+                    : "bg-[#0a0a0a]/60 text-white/45 hover:bg-white/[0.08] hover:text-white/80"
+                }`}
+              >
+                {editMode ? <Eye size={13} /> : <Pencil size={13} />}
+              </button>
+            </Tooltip>
+            <Tooltip content={editorCopy.attachSnippet} placement="bottom">
+              <button
+                type="button"
+                aria-label={editorCopy.attachSnippet}
+                onClick={() => {
+                  setEditMode(true);
+                  setAttaching(true);
+                }}
+                className="flex items-center justify-center rounded bg-[#0a0a0a]/60 p-1.5 text-white/45 backdrop-blur-sm transition-colors hover:bg-white/[0.08] hover:text-white/80"
+              >
+                <Paperclip size={13} />
+              </button>
+            </Tooltip>
+          </div>
           {editMode ? (
             <textarea
               ref={textareaRef}
@@ -269,10 +271,10 @@ export function NoteEditor({
               onChange={handleMarkdownChange}
               placeholder={editorCopy.bodyPlaceholder}
               spellCheck={false}
-              className="flex-1 resize-none bg-transparent px-6 py-4 font-mono text-[13px] leading-relaxed text-foreground placeholder:text-white/20 focus:outline-none"
+              className="flex-1 resize-none bg-transparent px-6 py-4 pr-20 font-mono text-[13px] leading-relaxed text-foreground placeholder:text-white/20 focus:outline-none"
             />
           ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 pr-20">
               {markdown.trim() ? (
                 <MarkdownView
                   markdown={markdown}
@@ -295,7 +297,7 @@ export function NoteEditor({
               copy={copy}
               selectedSnippetId={attachmentSelectionId}
               onSelect={setAttachmentSelectionId}
-              onOpenInEditor={onOpenSnippet}
+              onUpdateSnippet={onUpdateSnippet}
             />
           </div>
         )}

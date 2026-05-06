@@ -5,6 +5,7 @@ import { FilePlus, FilePlus2, FolderPlus, Home, Layers, Search } from "lucide-re
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tooltip } from "@/ui/Tooltip";
 
 import type { AsideProps, AsideCtxShape, MenuTarget } from "./types";
@@ -34,7 +35,6 @@ export function Aside({
   onGoHome,
   onGoSpace,
   onOpenSearch,
-  onNewSnippetAt,
   onCreateSnippetInline,
   onCreateNoteInline,
   onCreateFolder,
@@ -80,8 +80,6 @@ export function Aside({
     folders,
     snippets,
     notes,
-    onGoHome,
-    onNewSnippetAt,
     onPaste,
     onPinFolder,
     onPinSnippet,
@@ -188,7 +186,7 @@ export function Aside({
       <div
         aria-hidden="true"
         onClick={() => onSetOpen(false)}
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ease-in-out${
+        className={`fixed inset-0 z-40 bg-foreground/40 transition-opacity duration-300 ease-in-out${
           isOpen && isMobile ? " opacity-100" : " pointer-events-none opacity-0"
         }`}
       />
@@ -204,7 +202,7 @@ export function Aside({
       >
         <aside
           className={[
-            "flex h-screen w-60 shrink-0 flex-col border-r border-white/6 bg-surface",
+            "flex h-screen w-60 shrink-0 flex-col border-r border-border bg-surface",
             isMobile
               ? `fixed inset-y-0 left-0 z-50 shadow-2xl transition-transform duration-300 ease-in-out ${
                   isOpen ? "translate-x-0" : "-translate-x-full"
@@ -222,14 +220,14 @@ export function Aside({
             onCollapse={() => onSetOpen(false)}
           />
 
-          <div className="mx-4 mb-2 border-t border-white/5" />
+          <div className="mx-4 mb-2 border-t border-border" />
 
           {/* Home + Search */}
           <div className="px-2">
             <button
               type="button"
               onClick={onGoHome}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-overlay-soft hover:text-foreground"
             >
               <Home size={14} className="shrink-0" />
               <span>{copy.aside.home}</span>
@@ -237,17 +235,17 @@ export function Aside({
             <button
               type="button"
               onClick={onOpenSearch}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-overlay-soft hover:text-foreground"
             >
               <Search size={14} className="shrink-0" />
               <span className="flex-1 text-left">{copy.aside.search}</span>
-              <span className="hidden shrink-0 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] text-white/40 sm:inline">
+              <span className="hidden shrink-0 rounded bg-overlay px-1.5 py-0.5 text-[10px] text-muted sm:inline">
                 {copy.aside.searchShortcut}
               </span>
             </button>
           </div>
 
-          <div className="mx-4 my-3 border-t border-white/5" />
+          <div className="mx-4 my-3 border-t border-border" />
 
           {/* My Space */}
           <div className="flex flex-1 flex-col overflow-hidden px-2">
@@ -255,10 +253,10 @@ export function Aside({
               <button
                 type="button"
                 onClick={onGoSpace}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-white/4 hover:text-foreground"
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-overlay-soft hover:text-foreground"
               >
-                <Layers size={12} className="text-white/25" />
-                <span className="text-[11px] font-medium uppercase tracking-wider text-white/35">
+                <Layers size={12} className="text-muted opacity-70" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                   {copy.aside.mySpace}
                 </span>
               </button>
@@ -268,7 +266,7 @@ export function Aside({
                     type="button"
                     aria-label={copy.aside.addSnippet}
                     onClick={() => setCreatingSnippetFolderId(null)}
-                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/6 hover:text-muted"
+                    className="rounded p-1 text-muted/80 transition-colors hover:bg-overlay hover:text-foreground"
                   >
                     <FilePlus size={13} />
                   </button>
@@ -278,7 +276,7 @@ export function Aside({
                     type="button"
                     aria-label={copy.aside.addNote}
                     onClick={() => setCreatingNoteFolderId(null)}
-                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/6 hover:text-muted"
+                    className="rounded p-1 text-muted/80 transition-colors hover:bg-overlay hover:text-foreground"
                   >
                     <FilePlus2 size={13} />
                   </button>
@@ -288,7 +286,7 @@ export function Aside({
                     type="button"
                     aria-label={copy.aside.addFolder}
                     onClick={() => setCreatingFolderParentId(null)}
-                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/6 hover:text-muted"
+                    className="rounded p-1 text-muted/80 transition-colors hover:bg-overlay hover:text-foreground"
                   >
                     <FolderPlus size={13} />
                   </button>
@@ -308,7 +306,7 @@ export function Aside({
               creatingFolderParentId === undefined &&
               creatingSnippetFolderId === undefined &&
               creatingNoteFolderId === undefined ? (
-                <p className="px-3 pt-1 text-xs text-white/20">{copy.aside.emptySpace}</p>
+                <p className="px-3 pt-1 text-xs text-muted/70">{copy.aside.emptySpace}</p>
               ) : (
                 <div>
                   {creatingFolderParentId === null && (
@@ -350,8 +348,8 @@ export function Aside({
                   className={[
                     "mx-1 mt-1.5 flex items-center justify-center gap-1.5 rounded-md border border-dashed py-2 text-[11px] transition-all duration-150 select-none",
                     drag.dragOverId === "root"
-                      ? "border-white/30 bg-white/5 text-white/55"
-                      : "border-white/8 text-white/20",
+                      ? "border-accent/40 bg-overlay text-foreground"
+                      : "border-border text-muted/70",
                   ].join(" ")}
                 >
                   <Layers size={11} />
@@ -361,19 +359,20 @@ export function Aside({
             </div>
           </div>
 
-          <div className="shrink-0 px-2 pb-4 pt-2">
+          <div className="shrink-0 flex items-center gap-2 px-2 pb-4 pt-2">
             <a
               href="https://github.com/martinezharo/klipcode"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex w-full items-center justify-center py-2 px-3 gap-2 rounded-md border border-white/4 bg-white/1 text-[12px] font-medium text-white/40 shadow-sm transition-all duration-300 hover:border-white/10 hover:bg-white/4 hover:text-white"
+              className="group flex flex-1 items-center justify-center py-2 px-3 gap-2 rounded-md border border-border bg-overlay-soft text-[12px] font-medium text-muted shadow-sm transition-all duration-300 hover:border-overlay-strong hover:bg-overlay hover:text-foreground"
             >
               <GitHubIcon
                 size={14}
-                className="shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:text-white"
+                className="shrink-0 transition-transform duration-300 group-hover:scale-110"
               />
               <span className="truncate tracking-wide">martinezharo/klipcode</span>
             </a>
+            <ThemeToggle copy={copy.themeToggle} />
           </div>
         </aside>
       </div>

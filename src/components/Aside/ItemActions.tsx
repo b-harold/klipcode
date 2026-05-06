@@ -14,7 +14,7 @@ export function ItemActions({
         <button
           type="button"
           aria-label={label}
-          className="rounded p-0.5 text-white/35 transition-colors hover:bg-white/[0.08] hover:text-white/70"
+          className="rounded p-0.5 text-foreground/35 transition-colors hover:bg-foreground/[0.08] hover:text-foreground/70"
           onClick={onMore}
         >
           <MoreHorizontal size={12} />

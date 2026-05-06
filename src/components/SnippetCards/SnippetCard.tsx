@@ -3,7 +3,6 @@
 import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 
-import { LANGUAGES } from "@/lib/constants/languages";
 import type { Dictionary } from "@/i18n";
 import type { SnippetRecord } from "@/lib/types";
 import { cn, getSnippetDisplayName } from "@/lib/utils";
@@ -234,7 +233,7 @@ export function SnippetCard({
       } : undefined}
       onDragEnd={enableDrag ? () => drag.endDrag() : undefined}
       className={cn(
-        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-overlay-strong hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
         enableDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "cursor-grab active:cursor-grabbing"),
         className,
       )}
@@ -253,10 +252,10 @@ export function SnippetCard({
                 if (e.key === "Escape") setIsRenaming(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded bg-white/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+              className="w-full rounded bg-overlay px-2 py-0.5 text-[15px] font-medium text-foreground outline-none ring-1 ring-overlay-strong focus:ring-accent/50 transition-shadow"
             />
           ) : (
-            <TruncateTooltip text={displayName} className="block truncate text-sm font-medium text-foreground" placement="bottom" />
+            <TruncateTooltip text={displayName} className="block truncate text-[15px] font-medium text-foreground" placement="bottom" />
           )}
         </div>
 
@@ -267,7 +266,7 @@ export function SnippetCard({
               <button
                 type="button"
                 onClick={handleUnpinHome}
-                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-overlay hover:text-foreground"
                 aria-label={cm.unpinHome}
               >
                 <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
@@ -282,7 +281,7 @@ export function SnippetCard({
               <button
                 type="button"
                 onClick={handleUnpinAside}
-                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-overlay hover:text-foreground"
                 aria-label={cm.unpinAside}
               >
                 <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
@@ -298,8 +297,8 @@ export function SnippetCard({
                 type="button"
                 onClick={handleMoreClick}
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
-                  menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
+                  "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-overlay hover:text-foreground",
+                  menuAnchor ? "opacity-100 bg-overlay text-foreground" : "opacity-100",
                 )}
                 aria-label={cm.moreOptions}
               >
@@ -312,7 +311,7 @@ export function SnippetCard({
             <button
               type="button"
               onClick={handleCopy}
-              className="flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+              className="flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-overlay hover:text-foreground"
               aria-label={cm.copyContent}
             >
               {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -322,11 +321,11 @@ export function SnippetCard({
       </div>
 
       <div className="relative overflow-hidden px-1 pb-1">
-        <div className="max-h-[140px] overflow-hidden rounded-lg border border-white/[0.04] bg-[#0b0b0b] px-3 py-2 font-mono text-[12px] leading-5 text-white/90">
-          <div className="pointer-events-none select-none text-white/40">
+        <div className="max-h-[140px] overflow-hidden rounded-lg border border-overlay bg-[var(--code-background)] px-3 py-2 font-mono text-[12px] leading-5 text-[color:var(--code-foreground)]">
+          <div className="pointer-events-none select-none">
             {previewLines.map((line, index) => (
               <div key={`${snippet.id}-${index}`} className="flex gap-3">
-                <span className="w-5 shrink-0 text-right tabular-nums text-white/25">
+                <span className="w-5 shrink-0 text-right tabular-nums text-[color:var(--code-line-number)]">
                   {index + 1}
                 </span>
                 <span className="min-w-0 flex-1 truncate whitespace-pre">{line || " "}</span>
@@ -346,8 +345,8 @@ export function SnippetCard({
               onNavigateFolder?.();
             }}
             className={cn(
-              "flex items-center gap-1.5 rounded-md border border-white/[0.05] bg-white/[0.02] px-2 py-1 text-[11px] font-medium text-muted transition-all",
-              onNavigateFolder ? "hover:border-white/[0.1] hover:bg-white/[0.06] hover:text-foreground" : "cursor-default",
+              "flex items-center gap-1.5 rounded-md border border-border bg-overlay-soft px-2 py-1 text-[11px] font-medium text-muted transition-all",
+              onNavigateFolder ? "hover:border-overlay-strong hover:bg-overlay hover:text-foreground" : "cursor-default",
             )}
           >
             <Folder size={12} />

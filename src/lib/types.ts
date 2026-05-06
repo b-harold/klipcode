@@ -103,3 +103,29 @@ export interface ClipboardEntry {
   itemType: "folder" | "snippet" | "note";
   id: string;
 }
+
+export interface CreateSnippetInput {
+  title: string;
+  language: string;
+  folderId: string;
+  code: string;
+  sourceUrl: string | null;
+}
+
+export interface CreateNoteInput {
+  title: string;
+  folderId: string;
+  markdown: string;
+}
+
+export interface SnippetChanges {
+  title?: string;
+  code?: string;
+  language?: string;
+  sourceUrl?: string | null;
+}
+
+export interface NoteChanges {
+  title?: string;
+  markdown?: string;
+}

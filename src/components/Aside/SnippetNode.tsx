@@ -1,7 +1,6 @@
 "use client";
 
 import { FileCode2, Pin, PinOff } from "lucide-react";
-import { LANGUAGES } from "@/lib/constants/languages";
 import type { SnippetRecord } from "@/lib/types";
 import { getSnippetDisplayName } from "@/lib/utils";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
@@ -18,7 +17,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
   const paddingLeft = 10 + depth * STEP + 19;
   const isDraggingThis = ctx.dragging?.id === snippet.id;
   const sharedRowClass = [
-    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-all duration-100 hover:bg-white/[0.04] hover:text-foreground",
+    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-sm text-muted transition-all duration-100 hover:bg-overlay-soft hover:text-foreground",
     isDraggingThis ? "opacity-40" : "",
   ].filter(Boolean).join(" ");
 
@@ -41,7 +40,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
       style={{ paddingLeft }}
       onContextMenu={openContextMenu}
     >
-      <FileCode2 size={13} className="shrink-0 text-white/20" />
+      <FileCode2 size={13} className="shrink-0 text-muted/70" />
       <input
         autoFocus
         defaultValue={snippet.title ?? ""}
@@ -52,7 +51,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
             ctx.submitSnippetRename(snippet.id, (e.target as HTMLInputElement).value);
           if (e.key === "Escape") ctx.cancelRename();
         }}
-        className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+        className="min-w-0 flex-1 rounded bg-overlay px-2 py-0.5 text-sm text-foreground outline-none ring-1 ring-overlay-strong focus:ring-accent/40 transition-shadow"
       />
     </div>
   ) : (
@@ -80,7 +79,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
         onDragEnd={() => ctx.endDrag()}
         className="flex min-w-0 flex-1 items-center gap-1.5 cursor-grab active:cursor-grabbing"
       >
-        <FileCode2 size={13} className="shrink-0 text-white/20" />
+        <FileCode2 size={13} className="shrink-0 text-muted/70" />
         <TruncateTooltip text={displayName} className="flex-1 truncate leading-none" />
       </span>
       <ItemActions onMore={openMoreMenu} label={ctx.copy.contextMenu.moreOptions} />
@@ -89,7 +88,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
           <span
             role="button"
             aria-label={ctx.copy.aside.unpin}
-            className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
+            className="group/pin shrink-0 rounded p-px text-muted/80 transition-colors hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
               void ctx.pinSnippet(snippet.id, "aside", false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ChevronRight, Folder, FolderOpen, Pin, PinOff } from "lucide-react";
 import type { FolderRecord, NoteRecord, SnippetRecord } from "@/lib/types";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
@@ -47,12 +47,16 @@ export function FolderNode({
     (n) => n.title ?? "",
   );
 
-  const prevCreating = useRef(false);
-  useEffect(() => {
-    const anyCreating = isCreatingHere || isCreatingSnippetHere || isCreatingNoteHere;
-    if (anyCreating && !prevCreating.current) setIsOpen(true);
-    prevCreating.current = anyCreating;
-  }, [isCreatingHere, isCreatingSnippetHere, isCreatingNoteHere]);
+  // Auto-open the folder the moment a "creating here" signal flips on, so the
+  // new input is visible. Documented "adjust state when a prop changes" pattern:
+  // store the previous value and update during render.
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const anyCreating = isCreatingHere || isCreatingSnippetHere || isCreatingNoteHere;
+  const [prevAnyCreating, setPrevAnyCreating] = useState(anyCreating);
+  if (anyCreating !== prevAnyCreating) {
+    setPrevAnyCreating(anyCreating);
+    if (anyCreating) setIsOpen(true);
+  }
 
   function openContextMenu(e: React.MouseEvent) {
     e.preventDefault();
@@ -71,9 +75,9 @@ export function FolderNode({
   const isDraggingThis = ctx.dragging?.id === folder.id;
   const isDropTarget = ctx.dragOverId === folder.id && ctx.canDropOnFolder(folder.id);
   const sharedRowClass = [
-    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-all duration-100 hover:bg-white/[0.04] hover:text-foreground",
+    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-sm text-muted transition-all duration-100 hover:bg-overlay-soft hover:text-foreground",
     isDraggingThis ? "opacity-40" : "",
-    isDropTarget ? "bg-white/[0.07] text-foreground ring-1 ring-inset ring-white/[0.18]" : "",
+    isDropTarget ? "bg-overlay text-foreground ring-1 ring-inset ring-accent/30" : "",
   ].filter(Boolean).join(" ");
   const hasChildren = childFolders.length > 0 || childSnippets.length > 0 || childNotes.length > 0;
   const isAnyCreatingHere = isCreatingHere || isCreatingSnippetHere || isCreatingNoteHere;
@@ -88,12 +92,12 @@ export function FolderNode({
         >
           <ChevronRight
             size={13}
-            className={`shrink-0 text-white/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
+            className={`shrink-0 text-muted/70 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
           />
           {isOpen && hasChildren ? (
-            <FolderOpen size={13} className="shrink-0 text-white/25" />
+            <FolderOpen size={13} className="shrink-0 text-muted/70" />
           ) : (
-            <Folder size={13} className="shrink-0 text-white/25" />
+            <Folder size={13} className="shrink-0 text-muted/70" />
           )}
           <input
             autoFocus
@@ -105,7 +109,7 @@ export function FolderNode({
                 ctx.submitFolderRename(folder.id, (e.target as HTMLInputElement).value);
               if (e.key === "Escape") ctx.cancelRename();
             }}
-            className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+            className="min-w-0 flex-1 rounded bg-overlay px-2 py-0.5 text-sm text-foreground outline-none ring-1 ring-overlay-strong focus:ring-accent/40 transition-shadow"
           />
         </div>
       ) : (
@@ -142,7 +146,7 @@ export function FolderNode({
           <Tooltip content={isOpen ? ctx.copy.aside.collapseFolder : ctx.copy.aside.expandFolder}>
             <button
               type="button"
-              className="flex h-4 w-4 shrink-0 items-center justify-center text-white/25 transition-colors hover:text-white/45"
+              className="flex h-4 w-4 shrink-0 items-center justify-center text-muted/70 transition-colors hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsOpen((value) => !value);
@@ -168,9 +172,9 @@ export function FolderNode({
             className="flex min-w-0 flex-1 items-center gap-1.5 text-left cursor-grab active:cursor-grabbing"
           >
             {isOpen && hasChildren ? (
-              <FolderOpen size={13} className="shrink-0 text-white/25" />
+              <FolderOpen size={13} className="shrink-0 text-muted/70" />
             ) : (
-              <Folder size={13} className="shrink-0 text-white/25" />
+              <Folder size={13} className="shrink-0 text-muted/70" />
             )}
             <TruncateTooltip text={folder.name} className="flex-1 truncate leading-none" />
           </button>
@@ -184,7 +188,7 @@ export function FolderNode({
               <button
                 type="button"
                 aria-label={ctx.copy.aside.unpin}
-                className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
+                className="group/pin shrink-0 rounded p-px text-muted/80 transition-colors hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   void ctx.pinFolder(folder.id, "aside", false);
@@ -202,7 +206,7 @@ export function FolderNode({
         <div className="relative">
           {(hasChildren || isAnyCreatingHere) && (
             <div
-              className="absolute bottom-1 top-0 w-px bg-white/[0.05]"
+              className="absolute bottom-1 top-0 w-px bg-border"
               style={{ left: `${paddingLeft + 6}px` }}
             />
           )}

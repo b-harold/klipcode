@@ -51,7 +51,7 @@ function InlineCopyButton({ value, label }: { value: string; label: string }) {
             handleClick(e as unknown as React.MouseEvent);
           }
         }}
-        className="inline-flex shrink-0 items-center justify-center rounded p-1 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+        className="inline-flex shrink-0 items-center justify-center rounded p-1 text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/70"
       >
         {copied ? <Check size={12} /> : <Copy size={12} />}
       </span>
@@ -62,7 +62,7 @@ function InlineCopyButton({ value, label }: { value: string; label: string }) {
 export function SnippetReferenceCard({ snippet, copy, onOpen }: SnippetReferenceCardProps) {
   if (!snippet) {
     return (
-      <span className="my-1 inline-flex items-center gap-1.5 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[12px] text-white/30">
+      <span className="my-1 inline-flex items-center gap-1.5 rounded-md border border-foreground/[0.06] bg-foreground/[0.02] px-2 py-1 text-[12px] text-foreground/30">
         <FileX2 size={12} aria-hidden="true" />
         {copy.noteEditor.deletedReference}
       </span>
@@ -95,23 +95,23 @@ export function SnippetReferenceCard({ snippet, copy, onOpen }: SnippetReference
           onOpen();
         }
       }}
-      className="my-3 block w-full max-w-3xl cursor-pointer overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.02] text-left align-middle transition-colors hover:border-white/[0.15] hover:bg-white/[0.04]"
+      className="my-3 block w-full max-w-3xl cursor-pointer overflow-hidden rounded-lg border border-foreground/[0.08] bg-foreground/[0.02] text-left align-middle transition-colors hover:border-foreground/[0.15] hover:bg-foreground/[0.04]"
     >
-      <span className="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
-        <FileCode2 size={13} className="shrink-0 text-white/45" aria-hidden="true" />
+      <span className="flex items-center gap-2 border-b border-foreground/[0.06] px-3 py-2">
+        <FileCode2 size={13} className="shrink-0 text-foreground/45" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-foreground">
           {displayName}
         </span>
         <InlineCopyButton value={snippet.code ?? ""} label={copy.snippetEditor.copyCode} />
         {langConfig?.label && (
-          <span className="shrink-0 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-white/40">
+          <span className="shrink-0 rounded bg-foreground/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-foreground/40">
             {langConfig.label}
           </span>
         )}
       </span>
       {sourceUrl && (
-        <span className="flex items-center gap-2 border-b border-white/[0.04] px-3 py-1.5">
-          <Globe size={11} className="shrink-0 text-white/30" aria-hidden="true" />
+        <span className="flex items-center gap-2 border-b border-foreground/[0.04] px-3 py-1.5">
+          <Globe size={11} className="shrink-0 text-foreground/30" aria-hidden="true" />
           {isValidSourceUrl ? (
             <span
               role="link"
@@ -126,13 +126,13 @@ export function SnippetReferenceCard({ snippet, copy, onOpen }: SnippetReference
                   window.open(sourceUrl, "_blank", "noopener,noreferrer");
                 }
               }}
-              className="min-w-0 flex-1 truncate font-mono text-[11px] text-white/55 underline decoration-white/15 underline-offset-2 hover:text-white/80"
+              className="min-w-0 flex-1 truncate font-mono text-[11px] text-foreground/55 underline decoration-foreground/15 underline-offset-2 hover:text-foreground/80"
               title={sourceUrl}
             >
               {sourceUrl}
             </span>
           ) : (
-            <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-white/55" title={sourceUrl}>
+            <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-foreground/55" title={sourceUrl}>
               {sourceUrl}
             </span>
           )}
@@ -140,17 +140,17 @@ export function SnippetReferenceCard({ snippet, copy, onOpen }: SnippetReference
         </span>
       )}
       {previewText.trim() ? (
-        <span className="block overflow-x-auto whitespace-pre px-3 py-2 font-mono text-[11px] leading-relaxed text-white/55">
+        <span className="block overflow-x-auto whitespace-pre px-3 py-2 font-mono text-[11px] leading-relaxed text-foreground/55">
           {previewText}
           {truncated && (
             <>
               {"\n"}
-              <span className="text-white/30">…</span>
+              <span className="text-foreground/30">…</span>
             </>
           )}
         </span>
       ) : (
-        <span className="block px-3 py-2 text-[11px] italic text-white/25">
+        <span className="block px-3 py-2 text-[11px] italic text-foreground/25">
           {copy.snippetCard.untitled}
         </span>
       )}

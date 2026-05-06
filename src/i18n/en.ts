@@ -91,6 +91,10 @@ export const en = {
     snippetCodePlaceholder: "Write or paste your code here...",
     submitFolder: "Create folder",
     submitSnippet: "Create snippet",
+    noteTitlePlaceholder: "Note title",
+    noteBodyPlaceholder: "Write your note in markdown…",
+    submitNote: "Create note",
+    folderNamePlaceholder: "Folder name",
   },
   workspace: {
     loading: "Loading local content...",
@@ -168,6 +172,18 @@ export const en = {
   },
   pinnedToHome: {
     title: "Pinned to home",
+    emptyHint: "Pin snippets and notes here from the right-click menu — they'll show up on home.",
+  },
+  themeToggle: {
+    toLight: "Switch to light theme",
+    toDark: "Switch to dark theme",
+  },
+  homeCreate: {
+    snippetTitle: "New snippet",
+    noteTitle: "New note",
+    folderTitle: "New folder",
+    snippetSubtitle: "Save a piece of code with syntax highlighting.",
+    noteSubtitle: "Write a markdown note alongside your snippets.",
   },
   folderView: {
     breadcrumbLabel: "Folder navigation",

@@ -78,8 +78,6 @@ export function FolderView({
 
   const isRootSpace = folderId === SPACE_ROOT_ID;
   const currentFolder = isRootSpace ? null : folders.find((f) => f.id === folderId);
-  if (!isRootSpace && !currentFolder) return null;
-
   const parentKey = isRootSpace ? null : folderId;
 
   const dropTargetSentinel = parentKey ?? "space-root";
@@ -138,6 +136,8 @@ export function FolderView({
   // Pre-compute counts so FolderCard renders don't each filter the full lists (O(n) vs O(n*m))
   const snippetCountMap = useMemo(() => buildSnippetCountMap(snippets), [snippets]);
   const subFolderCountMap = useMemo(() => buildSubFolderCountMap(folders), [folders]);
+
+  if (!isRootSpace && !currentFolder) return null;
 
   const isEmpty =
     childFolders.length === 0 && folderSnippets.length === 0 && folderNotes.length === 0;
@@ -200,11 +200,11 @@ export function FolderView({
         {/* ── Folder header ──────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-foreground/[0.08] bg-foreground/[0.04]">
               {isRootSpace ? (
-                <Layers size={20} className="text-white/40" />
+                <Layers size={20} className="text-foreground/40" />
               ) : (
-                <FolderOpen size={20} className="text-white/40" />
+                <FolderOpen size={20} className="text-foreground/40" />
               )}
             </div>
             <div>
@@ -222,8 +222,8 @@ export function FolderView({
             <div className={[
               "flex items-center justify-center gap-1.5 rounded-lg border border-dashed py-2 text-[11px] select-none transition-colors duration-100",
               isCurrentFolderDropTarget
-                ? "border-white/35 bg-white/[0.05] text-white/60"
-                : "border-white/[0.1] bg-transparent text-white/25",
+                ? "border-foreground/35 bg-foreground/[0.05] text-foreground/60"
+                : "border-foreground/[0.1] bg-transparent text-foreground/25",
             ].join(" ")}>
               {isRootSpace ? <Layers size={11} /> : <FolderOpen size={11} />}
               {folderTitle}
@@ -233,18 +233,18 @@ export function FolderView({
 
         {/* ── Empty state ────────────────────────────────────────────────── */}
         {isEmpty && (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/[0.07] py-20">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
-              <FileCode2 size={22} className="text-white/20" />
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-foreground/[0.07] py-20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-foreground/[0.08] bg-foreground/[0.03]">
+              <FileCode2 size={22} className="text-foreground/20" />
             </div>
-            <p className="text-sm text-white/30">{copy.folderView.empty}</p>
+            <p className="text-sm text-foreground/30">{copy.folderView.empty}</p>
           </div>
         )}
 
         {/* ── Sub-folders ────────────────────────────────────────────────── */}
         {childFolders.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/30">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground/30">
               {copy.folderView.subFolders}
             </h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -275,7 +275,7 @@ export function FolderView({
         {/* ── Notes grid ─────────────────────────────────────────────────── */}
         {folderNotes.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/30">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground/30">
               {copy.folderView.notes}
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -308,7 +308,7 @@ export function FolderView({
         {/* ── Snippets grid ──────────────────────────────────────────────── */}
         {folderSnippets.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/30">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground/30">
               {copy.folderView.snippets}
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

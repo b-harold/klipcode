@@ -74,15 +74,8 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
         ref={menuRef}
         role="menu"
         aria-orientation="vertical"
-        className="klipcode-menu-animate fixed z-999 min-w-52 overflow-hidden rounded-xl p-1"
-        style={{
-          left: x,
-          top: y,
-          background: "linear-gradient(180deg, #181818 0%, #111111 100%)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          boxShadow:
-            "0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 64px rgba(0,0,0,0.9), 0 4px 16px rgba(0,0,0,0.6)",
-        }}
+        className="klipcode-menu-animate fixed z-999 min-w-52 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-2xl"
+        style={{ left: x, top: y }}
         onMouseDown={(e) => e.stopPropagation()}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -94,10 +87,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
           return (
             <div key={gi}>
               {gi > 0 && (
-                <div
-                  className="mx-1 my-1 h-px"
-                  style={{ background: "rgba(255,255,255,0.06)" }}
-                />
+                <div className="mx-1 my-1 h-px bg-overlay" />
               )}
               {group.items.map((item) => {
                 const Ic = item.Icon;
@@ -120,7 +110,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
                       "disabled:pointer-events-none disabled:opacity-25",
                       destructive
                         ? "text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                        : "text-white/60 hover:bg-white/[0.07] hover:text-white/90",
+                        : "text-foreground/60 hover:bg-foreground/[0.07] hover:text-foreground/90",
                     ].join(" ")}
                   >
                     <Ic

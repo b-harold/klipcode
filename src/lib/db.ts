@@ -41,6 +41,13 @@ class KlipCodeDatabase extends Dexie {
         ]);
       });
 
+    type LegacyPinnedRow = {
+      isPinnedAside?: boolean;
+      isPinnedHome?: boolean;
+      isPinned?: boolean;
+      pinType?: "pinned" | "home" | string;
+    };
+
     this.version(3)
       .stores({
         folders: "id, ownerId, parentId, dirty, updatedAt, isPinnedAside, isPinnedHome",
@@ -49,7 +56,7 @@ class KlipCodeDatabase extends Dexie {
       .upgrade((tx) => {
         return Promise.all([
           tx
-            .table<any>("folders")
+            .table<LegacyPinnedRow>("folders")
             .toCollection()
             .modify((folder) => {
               folder.isPinnedAside = Boolean(folder.isPinnedAside || folder.isPinned || folder.pinType === "pinned");
@@ -58,7 +65,7 @@ class KlipCodeDatabase extends Dexie {
               delete folder.pinType;
             }),
           tx
-            .table<any>("snippets")
+            .table<LegacyPinnedRow>("snippets")
             .toCollection()
             .modify((snippet) => {
               snippet.isPinnedAside = Boolean(snippet.isPinnedAside || snippet.isPinned || snippet.pinType === "pinned");
@@ -77,7 +84,7 @@ class KlipCodeDatabase extends Dexie {
       .upgrade((tx) => {
         return Promise.all([
           tx
-            .table<any>("folders")
+            .table<LegacyPinnedRow>("folders")
             .toCollection()
             .modify((folder) => {
               folder.isPinnedAside = Boolean(folder.isPinnedAside || folder.isPinned);
@@ -85,7 +92,7 @@ class KlipCodeDatabase extends Dexie {
               delete folder.isPinned;
             }),
           tx
-            .table<any>("snippets")
+            .table<LegacyPinnedRow>("snippets")
             .toCollection()
             .modify((snippet) => {
               snippet.isPinnedAside = Boolean(snippet.isPinnedAside || snippet.isPinned);

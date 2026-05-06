@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Menu, X } from "lucide-react";
@@ -21,7 +21,7 @@ import { AccountToast } from "@/components/AccountToast/AccountToast";
 import { Aside } from "@/components/Aside/Aside";
 import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
 import { DragProvider } from "@/components/DragContext";
-import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
+import { HomeCreatePanel } from "@/components/HomeCreatePanel/HomeCreatePanel";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 import { NoteEditor } from "@/components/NoteEditor/NoteEditor";
@@ -86,7 +86,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   /* ── Clipboard / dialog / search state ─────────────────────────────────── */
 
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
-  const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<{
     id: string;
     name: string;
@@ -103,9 +102,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     queryFn: () => readWorkspace(auth.user?.id ?? null),
   });
 
-  const folders = workspaceQuery.data?.folders ?? [];
-  const snippets = workspaceQuery.data?.snippets ?? [];
-  const notes = workspaceQuery.data?.notes ?? [];
+  const folders = useMemo(() => workspaceQuery.data?.folders ?? [], [workspaceQuery.data]);
+  const snippets = useMemo(() => workspaceQuery.data?.snippets ?? [], [workspaceQuery.data]);
+  const notes = useMemo(() => workspaceQuery.data?.notes ?? [], [workspaceQuery.data]);
 
   /* ── Mutations ────────────────────────────────────────────────────────── */
 
@@ -171,11 +170,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
   const splitPaneOpen = Boolean(selectedNote && selectedSnippet);
 
-  function handleNewSnippetAt(folderId: string | null) {
-    router.push(base);
-    setDefaultNewSnippetFolderId(folderId);
-  }
-
   async function handleDeleteFolderWithConfirm(id: string): Promise<void> {
     const folder = folders.find((f) => f.id === id);
     if (!folder) return;
@@ -226,7 +220,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         type="button"
         aria-label={copy.aside.open}
         onClick={() => setSidebarOpen(true)}
-        className="shrink-0 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/6 hover:text-white/70"
+        className="shrink-0 rounded-md p-1.5 text-foreground/40 transition-colors hover:bg-foreground/6 hover:text-foreground/70"
       >
         <Menu size={16} />
       </button>
@@ -258,7 +252,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onGoHome={() => router.push(base)}
         onGoSpace={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
         onOpenSearch={() => setSearchOpen(true)}
-        onNewSnippetAt={handleNewSnippetAt}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
         onCreateNoteInline={mutations.handleCreateNoteInline}
         onCreateFolder={mutations.handleCreateFolder}
@@ -306,12 +299,12 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
               />
             </div>
             {splitPaneOpen && selectedSnippet && (
-              <div className="relative flex flex-1 min-w-0 flex-col border-l border-white/[0.06]">
+              <div className="relative flex flex-1 min-w-0 flex-col border-l border-foreground/[0.06]">
                 <button
                   type="button"
                   aria-label={copy.noteEditor.closeSnippetPane}
                   onClick={closeSplitSnippet}
-                  className="absolute right-3 top-2.5 z-20 rounded-md p-1 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                  className="absolute right-3 top-2.5 z-20 rounded-md p-1 text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
                 >
                   <X size={14} />
                 </button>
@@ -381,26 +374,35 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
                 {menuButton}
               </div>
             )}
-            <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
-              <NewSnippet
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-8">
+              <HomeCreatePanel
                 copy={copy}
                 folders={folders}
-                defaultFolderId={defaultNewSnippetFolderId}
+                defaultFolderId={null}
                 onCreateSnippet={mutations.handleCreateSnippet}
+                onCreateNote={mutations.handleCreateNote}
+                onCreateFolder={mutations.handleCreateFolder}
               />
 
               <SnippetCards
                 snippets={snippets}
+                notes={notes}
                 folders={folders}
                 copy={copy}
                 clipboard={clipboard}
                 onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
+                onSelectNote={(id) => router.push(`${base}?note=${id}`)}
                 onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
                 onPinSnippet={mutations.handlePinSnippet}
+                onPinNote={mutations.handlePinNote}
                 onDeleteSnippet={mutations.handleDeleteSnippet}
+                onDeleteNote={mutations.handleDeleteNote}
                 onRenameSnippet={mutations.handleRenameSnippet}
+                onRenameNote={mutations.handleRenameNote}
                 onCutSnippet={(id) => setClipboard({ type: "cut", itemType: "snippet", id })}
                 onCopySnippet={(id) => setClipboard({ type: "copy", itemType: "snippet", id })}
+                onCutNote={(id) => setClipboard({ type: "cut", itemType: "note", id })}
+                onCopyNote={(id) => setClipboard({ type: "copy", itemType: "note", id })}
                 onPaste={mutations.handlePaste}
               />
             </div>

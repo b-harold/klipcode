@@ -126,7 +126,7 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   const supabase = getSupabaseBrowserClient();
 
   if (!supabase) {
-    return { syncedFolderIds: [], syncedSnippetIds: [] };
+    return { syncedFolderIds: [], syncedSnippetIds: [], localSnippetIds: [] };
   }
 
   const dirtyWorkspace = await getDirtyWorkspace(userId);
@@ -139,6 +139,7 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   );
   const syncedFolderIds: string[] = [];
   const syncedSnippetIds: string[] = [];
+  const localSnippetIds: string[] = [];
 
   for (const folder of folders) {
     const { error } = await supabase
@@ -155,6 +156,13 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   }
 
   for (const snippet of snippets) {
+    if (!snippet.code.trim()) {
+      const syncedAt = new Date().toISOString();
+      const marked = await markSnippetAsSynced(snippet, userId, syncedAt);
+      if (marked) localSnippetIds.push(snippet.id);
+      continue;
+    }
+
     const { error } = await supabase
       .from("snippets")
       .upsert(mapSnippetToCloud(snippet, userId), { onConflict: "id" });
@@ -168,7 +176,7 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
     if (marked) syncedSnippetIds.push(snippet.id);
   }
 
-  return { syncedFolderIds, syncedSnippetIds };
+  return { syncedFolderIds, syncedSnippetIds, localSnippetIds };
 }
 
 export async function fetchCloudWorkspace(userId: string) {

@@ -42,6 +42,7 @@ export interface WorkspaceSnapshot {
 export interface SyncResult {
   syncedFolderIds: string[];
   syncedSnippetIds: string[];
+  localSnippetIds: string[];
 }
 
 export interface CloudFolderRow {

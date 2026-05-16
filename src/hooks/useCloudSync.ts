@@ -85,6 +85,10 @@ export function useCloudSync({
         setSnippetStatus(snippetId, "saved-cloud");
       }
 
+      for (const snippetId of syncResult.localSnippetIds) {
+        settleLocally(snippetId);
+      }
+
       setAccountMessageRef.current(copyRef.current.auth.syncedSession);
       syncSucceeded = true;
       syncErrorCountRef.current = 0;
@@ -95,6 +99,9 @@ export function useCloudSync({
       if (syncResult) {
         for (const snippetId of syncResult.syncedSnippetIds) {
           setSnippetStatus(snippetId, "saved-cloud");
+        }
+        for (const snippetId of syncResult.localSnippetIds) {
+          settleLocally(snippetId);
         }
       }
 

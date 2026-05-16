@@ -110,7 +110,6 @@ create table if not exists public.snippets (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint snippets_title_not_empty check (btrim(title) <> ''),
-  constraint snippets_code_not_empty check (btrim(code) <> ''),
   constraint snippets_owner_folder_fk
     foreign key (owner_id, folder_id)
     references public.folders (owner_id, id)

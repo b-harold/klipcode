@@ -86,11 +86,11 @@ function mapSnippetToLocal(snippet: CloudSnippetRow): SnippetRecord {
   };
 }
 
-async function markFolderAsSynced(folder: FolderRecord, userId: string, syncedAt: string) {
+async function markFolderAsSynced(folder: FolderRecord, userId: string, syncedAt: string): Promise<boolean> {
   const currentFolder = await db.folders.get(folder.id);
 
   if (!currentFolder || currentFolder.updatedAt !== folder.updatedAt) {
-    return;
+    return false;
   }
 
   await db.folders.put({
@@ -99,17 +99,18 @@ async function markFolderAsSynced(folder: FolderRecord, userId: string, syncedAt
     dirty: false,
     lastSyncedAt: syncedAt,
   });
+  return true;
 }
 
 async function markSnippetAsSynced(
   snippet: SnippetRecord,
   userId: string,
   syncedAt: string
-) {
+): Promise<boolean> {
   const currentSnippet = await db.snippets.get(snippet.id);
 
   if (!currentSnippet || currentSnippet.updatedAt !== snippet.updatedAt) {
-    return;
+    return false;
   }
 
   await db.snippets.put({
@@ -118,6 +119,7 @@ async function markSnippetAsSynced(
     dirty: false,
     lastSyncedAt: syncedAt,
   });
+  return true;
 }
 
 export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
@@ -148,8 +150,8 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
     }
 
     const syncedAt = new Date().toISOString();
-    await markFolderAsSynced(folder, userId, syncedAt);
-    syncedFolderIds.push(folder.id);
+    const marked = await markFolderAsSynced(folder, userId, syncedAt);
+    if (marked) syncedFolderIds.push(folder.id);
   }
 
   for (const snippet of snippets) {
@@ -162,8 +164,8 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
     }
 
     const syncedAt = new Date().toISOString();
-    await markSnippetAsSynced(snippet, userId, syncedAt);
-    syncedSnippetIds.push(snippet.id);
+    const marked = await markSnippetAsSynced(snippet, userId, syncedAt);
+    if (marked) syncedSnippetIds.push(snippet.id);
   }
 
   return { syncedFolderIds, syncedSnippetIds };

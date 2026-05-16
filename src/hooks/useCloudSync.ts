@@ -3,8 +3,10 @@ import type { User } from "@supabase/supabase-js";
 import { getDirtyWorkspace } from "@/lib/db";
 import { fetchCloudWorkspace, syncDirtyWorkspace } from "@/lib/sync";
 import type { Dictionary } from "@/i18n";
-import type { SyncStatus } from "@/lib/types";
+import type { SyncResult, SyncStatus } from "@/lib/types";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
+
+const MAX_SYNC_ERRORS = 5;
 
 interface UseCloudSyncOptions {
   user: User | null;
@@ -26,6 +28,7 @@ export function useCloudSync({
   const localStatusTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cloudSyncInFlightRef = useRef(false);
+  const syncErrorCountRef = useRef(0);
 
   // Refs for stable access inside async callbacks
   const userRef = useRef(user);
@@ -58,27 +61,43 @@ export function useCloudSync({
     if (!currentUser || !supabaseConfigured || cloudSyncInFlightRef.current) return;
 
     cloudSyncInFlightRef.current = true;
+    let syncSucceeded = false;
+    let syncResult: SyncResult | null = null;
 
     try {
       const dirtyWorkspace = await getDirtyWorkspace(currentUser.id);
 
-      if (dirtyWorkspace.folders.length === 0 && dirtyWorkspace.snippets.length === 0) return;
+      if (dirtyWorkspace.folders.length === 0 && dirtyWorkspace.snippets.length === 0) {
+        syncSucceeded = true;
+        return;
+      }
 
       for (const snippet of dirtyWorkspace.snippets) {
         setSnippetStatus(snippet.id, "saving");
       }
 
       setAccountMessageRef.current(copyRef.current.auth.cloudSyncRunning);
-      const result = await syncDirtyWorkspace(currentUser.id);
+      syncResult = await syncDirtyWorkspace(currentUser.id);
       await fetchCloudWorkspace(currentUser.id);
       refreshRef.current();
 
-      for (const snippetId of result.syncedSnippetIds) {
+      for (const snippetId of syncResult.syncedSnippetIds) {
         setSnippetStatus(snippetId, "saved-cloud");
       }
 
       setAccountMessageRef.current(copyRef.current.auth.syncedSession);
+      syncSucceeded = true;
+      syncErrorCountRef.current = 0;
     } catch {
+      syncErrorCountRef.current++;
+
+      // If syncDirtyWorkspace succeeded before the error, mark those snippets as saved.
+      if (syncResult) {
+        for (const snippetId of syncResult.syncedSnippetIds) {
+          setSnippetStatus(snippetId, "saved-cloud");
+        }
+      }
+
       const dirtyUser = userRef.current;
       if (dirtyUser) {
         const dirtyWorkspace = await getDirtyWorkspace(dirtyUser.id);
@@ -90,6 +109,10 @@ export function useCloudSync({
       setAccountMessageRef.current(copyRef.current.auth.syncFailed);
     } finally {
       cloudSyncInFlightRef.current = false;
+
+      // Stop automatic retries after too many consecutive errors to prevent
+      // an infinite save loop when Supabase is unreachable or auth has expired.
+      if (!syncSucceeded && syncErrorCountRef.current >= MAX_SYNC_ERRORS) return;
 
       const finalUser = userRef.current;
       if (finalUser) {
@@ -107,6 +130,9 @@ export function useCloudSync({
 
   function scheduleCloudSync() {
     if (!userRef.current || !supabaseConfigured) return;
+
+    // Reset error count so a new user edit always triggers a fresh sync attempt.
+    syncErrorCountRef.current = 0;
 
     if (cloudSyncTimerRef.current) clearTimeout(cloudSyncTimerRef.current);
 

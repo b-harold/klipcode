@@ -122,6 +122,27 @@ async function markSnippetAsSynced(
   return true;
 }
 
+/**
+ * Settle a snippet that has no cloud counterpart (a brand-new, still-empty
+ * placeholder) without claiming a cloud sync. Clearing `dirty` stops the retry
+ * loop, while keeping `lastSyncedAt` null marks it as never-uploaded so the
+ * deletion reconciliation in `fetchCloudWorkspace` won't mistake it for a row
+ * that was deleted remotely.
+ */
+async function markSnippetSettledLocally(snippet: SnippetRecord): Promise<boolean> {
+  const currentSnippet = await db.snippets.get(snippet.id);
+
+  if (!currentSnippet || currentSnippet.updatedAt !== snippet.updatedAt) {
+    return false;
+  }
+
+  await db.snippets.put({
+    ...currentSnippet,
+    dirty: false,
+  });
+  return true;
+}
+
 export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   const supabase = getSupabaseBrowserClient();
 
@@ -156,9 +177,12 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   }
 
   for (const snippet of snippets) {
-    if (!snippet.code.trim()) {
-      const syncedAt = new Date().toISOString();
-      const marked = await markSnippetAsSynced(snippet, userId, syncedAt);
+    // A still-empty snippet that has never been uploaded is just a placeholder:
+    // settle it locally so it stops retrying, but don't create a cloud row.
+    // Once a snippet HAS been synced, an empty body is an intentional clear and
+    // must be uploaded — otherwise the next fetch resurrects the old content.
+    if (!snippet.code.trim() && snippet.lastSyncedAt === null) {
+      const marked = await markSnippetSettledLocally(snippet);
       if (marked) localSnippetIds.push(snippet.id);
       continue;
     }
@@ -228,6 +252,46 @@ export async function fetchCloudWorkspace(userId: string) {
     }
 
     await db.snippets.put(incomingSnippet);
+  }
+
+  await reconcileDeletions(
+    userId,
+    new Set((folders as CloudFolderRow[]).map((folder) => folder.id)),
+    new Set((snippets as CloudSnippetRow[]).map((snippet) => snippet.id))
+  );
+}
+
+/**
+ * Propagate remote deletions to this device. A local record that we own, that
+ * has no pending local changes, and that we have uploaded before (`lastSyncedAt`
+ * is set) but is now absent from the cloud was deleted on another device, so we
+ * remove it locally. Dirty records (unsynced local edits), never-uploaded
+ * placeholders, and shared/seeded records (`ownerId === null`) are left intact.
+ */
+async function reconcileDeletions(
+  userId: string,
+  cloudFolderIds: Set<string>,
+  cloudSnippetIds: Set<string>
+) {
+  const [localFolders, localSnippets] = await Promise.all([
+    db.folders.where("ownerId").equals(userId).toArray(),
+    db.snippets.where("ownerId").equals(userId).toArray(),
+  ]);
+
+  const foldersToDelete = localFolders
+    .filter((folder) => !folder.dirty && folder.lastSyncedAt !== null && !cloudFolderIds.has(folder.id))
+    .map((folder) => folder.id);
+
+  const snippetsToDelete = localSnippets
+    .filter((snippet) => !snippet.dirty && snippet.lastSyncedAt !== null && !cloudSnippetIds.has(snippet.id))
+    .map((snippet) => snippet.id);
+
+  if (foldersToDelete.length > 0) {
+    await db.folders.bulkDelete(foldersToDelete);
+  }
+
+  if (snippetsToDelete.length > 0) {
+    await db.snippets.bulkDelete(snippetsToDelete);
   }
 }
 

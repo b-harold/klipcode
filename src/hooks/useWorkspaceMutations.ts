@@ -147,13 +147,26 @@ export function useWorkspaceMutations({
   }
 
   async function handleDeleteSnippet(id: string) {
+    // Cancel any pending debounced update so it can't write the row back after
+    // we delete it (and trigger a pointless cloud sync).
+    const pendingTimer = updateTimersRef.current.get(id);
+    if (pendingTimer) {
+      clearTimeout(pendingTimer);
+      updateTimersRef.current.delete(id);
+    }
+
     await db.snippets.delete(id);
 
     if (user && supabaseConfigured && supabase) {
       try {
-        await supabase.from("snippets").delete().eq("id", id);
+        // `.delete()` resolves with `{ error }` instead of throwing, so the
+        // error has to be checked explicitly — the catch only covers network
+        // rejections.
+        const { error } = await supabase.from("snippets").delete().eq("id", id);
+        if (error) {
+          console.error("Failed to delete snippet on cloud:", error);
+        }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("Failed to delete snippet on cloud:", err);
       }
     }
@@ -231,14 +244,21 @@ export function useWorkspaceMutations({
 
     if (user && supabaseConfigured && supabase) {
       try {
+        // `.delete()` resolves with `{ error }` rather than throwing, so each
+        // result has to be inspected explicitly.
         if (snippetIdsToDelete.length > 0) {
-          await supabase.from("snippets").delete().in("id", snippetIdsToDelete);
+          const { error } = await supabase.from("snippets").delete().in("id", snippetIdsToDelete);
+          if (error) {
+            console.error("Failed to delete snippets on cloud:", error);
+          }
         }
         if (toDelete.size > 0) {
-          await supabase.from("folders").delete().in("id", [...toDelete]);
+          const { error } = await supabase.from("folders").delete().in("id", [...toDelete]);
+          if (error) {
+            console.error("Failed to delete folders on cloud:", error);
+          }
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("Failed to delete on cloud:", err);
       }
     }
@@ -277,6 +297,75 @@ export function useWorkspaceMutations({
 
   /* ── Clipboard ────────────────────────────────────────────────────────── */
 
+  /**
+   * Deep-copies a folder and all of its descendant folders/snippets under a new
+   * parent, assigning fresh ids and remapping the parent/folder references so
+   * the duplicated subtree is fully independent of the original.
+   */
+  async function duplicateFolderTree(
+    sourceFolderId: string,
+    targetParentId: string | null,
+    timestamp: string
+  ) {
+    const [allFolders, allSnippets] = await Promise.all([
+      db.folders.toArray(),
+      db.snippets.toArray(),
+    ]);
+
+    // Collect the source folder and every descendant folder.
+    const subtreeIds = new Set<string>([sourceFolderId]);
+    const queue = [sourceFolderId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const folder of allFolders) {
+        if (folder.parentId === current && !subtreeIds.has(folder.id)) {
+          subtreeIds.add(folder.id);
+          queue.push(folder.id);
+        }
+      }
+    }
+
+    // Map every original folder id to its freshly generated copy id.
+    const idMap = new Map<string, string>();
+    for (const id of subtreeIds) idMap.set(id, crypto.randomUUID());
+
+    const newFolders: FolderRecord[] = [];
+    for (const folder of allFolders) {
+      if (!subtreeIds.has(folder.id)) continue;
+      const isRoot = folder.id === sourceFolderId;
+      newFolders.push({
+        ...folder,
+        id: idMap.get(folder.id)!,
+        ownerId: user?.id ?? null,
+        parentId: isRoot ? targetParentId : idMap.get(folder.parentId!) ?? targetParentId,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        dirty: true,
+        lastSyncedAt: null,
+      });
+    }
+
+    const newSnippets: SnippetRecord[] = [];
+    for (const snippet of allSnippets) {
+      if (!snippet.folderId || !subtreeIds.has(snippet.folderId)) continue;
+      newSnippets.push({
+        ...snippet,
+        id: crypto.randomUUID(),
+        ownerId: user?.id ?? null,
+        folderId: idMap.get(snippet.folderId)!,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        dirty: true,
+        lastSyncedAt: null,
+      });
+    }
+
+    await db.transaction("rw", [db.folders, db.snippets], async () => {
+      if (newFolders.length > 0) await db.folders.bulkPut(newFolders);
+      if (newSnippets.length > 0) await db.snippets.bulkPut(newSnippets);
+    });
+  }
+
   async function handlePaste(targetFolderId: string | null) {
     if (!clipboard) return;
     const timestamp = new Date().toISOString();
@@ -300,9 +389,14 @@ export function useWorkspaceMutations({
         });
       }
     } else {
+      const folder = await db.folders.get(clipboard.id);
+      if (!folder) return;
+
       if (clipboard.type === "cut") {
         await db.folders.update(clipboard.id, { parentId: targetFolderId, updatedAt: timestamp, dirty: true });
         setClipboard(null);
+      } else {
+        await duplicateFolderTree(clipboard.id, targetFolderId, timestamp);
       }
     }
 

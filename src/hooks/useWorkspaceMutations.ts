@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
 import { db } from "@/lib/db";
+import { recordDeletions } from "@/lib/sync";
 import type { ClipboardEntry, FolderRecord, SnippetRecord, SyncStatus } from "@/lib/types";
 import { DEFAULT_LANGUAGE } from "@/lib/constants/languages";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
@@ -10,7 +10,6 @@ import type { Dictionary } from "@/i18n";
 interface UseWorkspaceMutationsOptions {
   copy: Dictionary;
   user: User | null;
-  supabase: SupabaseClient | null;
   supabaseConfigured: boolean;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
@@ -27,7 +26,6 @@ interface UseWorkspaceMutationsOptions {
 export function useWorkspaceMutations({
   copy,
   user,
-  supabase,
   supabaseConfigured,
   folders,
   snippets,
@@ -155,20 +153,15 @@ export function useWorkspaceMutations({
       updateTimersRef.current.delete(id);
     }
 
+    const existing = await db.snippets.get(id);
     await db.snippets.delete(id);
 
-    if (user && supabaseConfigured && supabase) {
-      try {
-        // `.delete()` resolves with `{ error }` instead of throwing, so the
-        // error has to be checked explicitly — the catch only covers network
-        // rejections.
-        const { error } = await supabase.from("snippets").delete().eq("id", id);
-        if (error) {
-          console.error("Failed to delete snippet on cloud:", error);
-        }
-      } catch (err) {
-        console.error("Failed to delete snippet on cloud:", err);
-      }
+    // Only records that actually reached the cloud (`lastSyncedAt` set) need a
+    // tombstone. Queueing one and scheduling a sync lets the delete retry if the
+    // cloud call fails, instead of the row resurrecting on the next fetch.
+    if (user && supabaseConfigured && existing?.lastSyncedAt != null) {
+      await recordDeletions(user.id, [{ id, kind: "snippet" }]);
+      scheduleCloudSync();
     }
 
     if (selectedSnippetId === id) setSelectedSnippetId(null);
@@ -234,32 +227,29 @@ export function useWorkspaceMutations({
         }
       }
     }
-    await Promise.all([...toDelete].map((fid) => db.folders.delete(fid)));
-
     const allSnippets = await db.snippets.toArray();
-    const snippetIdsToDelete = allSnippets
-      .filter((s) => s.folderId && toDelete.has(s.folderId))
-      .map((s) => s.id);
+    const snippetsToDelete = allSnippets.filter((s) => s.folderId && toDelete.has(s.folderId));
+    const snippetIdsToDelete = snippetsToDelete.map((s) => s.id);
+
+    const foldersToDelete = allFolders.filter((f) => toDelete.has(f.id));
+
+    await Promise.all([...toDelete].map((fid) => db.folders.delete(fid)));
     await Promise.all(snippetIdsToDelete.map((sid) => db.snippets.delete(sid)));
 
-    if (user && supabaseConfigured && supabase) {
-      try {
-        // `.delete()` resolves with `{ error }` rather than throwing, so each
-        // result has to be inspected explicitly.
-        if (snippetIdsToDelete.length > 0) {
-          const { error } = await supabase.from("snippets").delete().in("id", snippetIdsToDelete);
-          if (error) {
-            console.error("Failed to delete snippets on cloud:", error);
-          }
-        }
-        if (toDelete.size > 0) {
-          const { error } = await supabase.from("folders").delete().in("id", [...toDelete]);
-          if (error) {
-            console.error("Failed to delete folders on cloud:", error);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to delete on cloud:", err);
+    // Queue tombstones for the subtree records that exist in the cloud, then let
+    // the sync loop flush (and retry) them so a failed delete can't resurrect.
+    if (user && supabaseConfigured) {
+      const tombstones = [
+        ...foldersToDelete
+          .filter((f) => f.lastSyncedAt != null)
+          .map((f) => ({ id: f.id, kind: "folder" as const })),
+        ...snippetsToDelete
+          .filter((s) => s.lastSyncedAt != null)
+          .map((s) => ({ id: s.id, kind: "snippet" as const })),
+      ];
+      if (tombstones.length > 0) {
+        await recordDeletions(user.id, tombstones);
+        scheduleCloudSync();
       }
     }
 

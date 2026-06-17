@@ -30,6 +30,22 @@ const fakeClient = {
         else rows.push(row as never);
         return Promise.resolve({ error: null });
       },
+      delete() {
+        const remove = (predicate: (row: { id: string }) => boolean) => {
+          cloud[table] = (cloud[table] as Array<{ id: string }>).filter(
+            (row) => !predicate(row)
+          ) as never;
+          return Promise.resolve({ error: null });
+        };
+        return {
+          eq(_column: string, value: string) {
+            return remove((row) => row.id === value);
+          },
+          in(_column: string, values: string[]) {
+            return remove((row) => values.includes(row.id));
+          },
+        };
+      },
     };
   },
 };
@@ -39,7 +55,13 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 import { db } from "@/lib/db";
-import { fetchCloudWorkspace, syncDirtyWorkspace } from "@/lib/sync";
+import {
+  fetchCloudWorkspace,
+  recordDeletions,
+  reconcileWorkspace,
+  syncDirtyWorkspace,
+  syncTombstones,
+} from "@/lib/sync";
 
 const USER = "user-1";
 
@@ -95,9 +117,25 @@ function cloudFolder(folder: FolderRecord): CloudFolderRow {
   };
 }
 
+function cloudSnippet(snippet: SnippetRecord): CloudSnippetRow {
+  return {
+    id: snippet.id,
+    owner_id: USER,
+    folder_id: snippet.folderId,
+    title: snippet.title,
+    code: snippet.code,
+    language: snippet.language,
+    is_pinned_aside: snippet.isPinnedAside,
+    is_pinned_home: snippet.isPinnedHome,
+    created_at: snippet.createdAt,
+    updated_at: snippet.updatedAt,
+  };
+}
+
 beforeEach(async () => {
   await db.folders.clear();
   await db.snippets.clear();
+  await db.tombstones.clear();
   cloud.folders = [];
   cloud.snippets = [];
 });
@@ -169,5 +207,59 @@ describe("syncDirtyWorkspace() empty-code handling", () => {
     const stored = await db.snippets.get(placeholder.id);
     expect(stored?.dirty).toBe(false);
     expect(stored?.lastSyncedAt).toBeNull();
+  });
+});
+
+// ── Tombstones (deletion queue) ─────────────────────────────────────────────────
+
+describe("syncTombstones() + fetchCloudWorkspace()", () => {
+  it("deletes the cloud row and clears the tombstone on success", async () => {
+    const snippet = makeSnippet();
+    cloud.snippets = [cloudSnippet(snippet)];
+    await recordDeletions(USER, [{ id: snippet.id, kind: "snippet" }]);
+
+    await syncTombstones(USER);
+
+    expect(cloud.snippets.find((row) => row.id === snippet.id)).toBeUndefined();
+    expect(await db.tombstones.get(snippet.id)).toBeUndefined();
+  });
+
+  it("does not resurrect a tombstoned row while its delete is still pending", async () => {
+    // The cloud delete failed earlier, so the row is still in the cloud and a
+    // tombstone is queued. A pull must not re-download it.
+    const snippet = makeSnippet();
+    cloud.snippets = [cloudSnippet(snippet)];
+    await recordDeletions(USER, [{ id: snippet.id, kind: "snippet" }]);
+
+    await fetchCloudWorkspace(USER);
+
+    expect(await db.snippets.get(snippet.id)).toBeUndefined();
+    expect(await db.tombstones.get(snippet.id)).toBeDefined();
+  });
+});
+
+// ── Claiming anonymous/seed content on sign-in ──────────────────────────────────
+
+describe("reconcileWorkspace() anonymous claim", () => {
+  it("uploads seed (ownerId null, clean) records and assigns them to the account", async () => {
+    const seedFolder = makeFolder({ ownerId: null, dirty: false, lastSyncedAt: null });
+    const seedSnippet = makeSnippet({
+      ownerId: null,
+      dirty: false,
+      lastSyncedAt: null,
+      folderId: seedFolder.id,
+    });
+    await db.folders.add(seedFolder);
+    await db.snippets.add(seedSnippet);
+
+    await reconcileWorkspace(USER);
+
+    expect(cloud.folders.find((row) => row.id === seedFolder.id)?.owner_id).toBe(USER);
+    expect(cloud.snippets.find((row) => row.id === seedSnippet.id)?.owner_id).toBe(USER);
+
+    const localSnippet = await db.snippets.get(seedSnippet.id);
+    expect(localSnippet?.ownerId).toBe(USER);
+    expect(localSnippet?.dirty).toBe(false);
+    expect(localSnippet?.lastSyncedAt).not.toBeNull();
   });
 });

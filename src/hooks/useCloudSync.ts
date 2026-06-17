@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { getDirtyWorkspace } from "@/lib/db";
-import { fetchCloudWorkspace, syncDirtyWorkspace } from "@/lib/sync";
+import { getDirtyWorkspace, getPendingTombstones } from "@/lib/db";
+import { fetchCloudWorkspace, syncDirtyWorkspace, syncTombstones } from "@/lib/sync";
 import type { Dictionary } from "@/i18n";
 import type { SyncResult, SyncStatus } from "@/lib/types";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
@@ -66,8 +66,13 @@ export function useCloudSync({
 
     try {
       const dirtyWorkspace = await getDirtyWorkspace(currentUser.id);
+      const pendingTombstones = await getPendingTombstones(currentUser.id);
 
-      if (dirtyWorkspace.folders.length === 0 && dirtyWorkspace.snippets.length === 0) {
+      if (
+        dirtyWorkspace.folders.length === 0 &&
+        dirtyWorkspace.snippets.length === 0 &&
+        pendingTombstones.length === 0
+      ) {
         syncSucceeded = true;
         return;
       }
@@ -78,6 +83,7 @@ export function useCloudSync({
 
       setAccountMessageRef.current(copyRef.current.auth.cloudSyncRunning);
       syncResult = await syncDirtyWorkspace(currentUser.id);
+      await syncTombstones(currentUser.id);
       await fetchCloudWorkspace(currentUser.id);
       refreshRef.current();
 
@@ -124,8 +130,13 @@ export function useCloudSync({
       const finalUser = userRef.current;
       if (finalUser) {
         const dirtyWorkspace = await getDirtyWorkspace(finalUser.id);
+        const pendingTombstones = await getPendingTombstones(finalUser.id);
 
-        if (dirtyWorkspace.folders.length > 0 || dirtyWorkspace.snippets.length > 0) {
+        if (
+          dirtyWorkspace.folders.length > 0 ||
+          dirtyWorkspace.snippets.length > 0 ||
+          pendingTombstones.length > 0
+        ) {
           if (cloudSyncTimerRef.current) clearTimeout(cloudSyncTimerRef.current);
           cloudSyncTimerRef.current = setTimeout(() => {
             void runCloudSync();

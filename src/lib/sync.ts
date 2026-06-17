@@ -1,4 +1,4 @@
-import { db, getDirtyWorkspace } from "@/lib/db";
+import { db, getDirtyWorkspace, getPendingTombstones } from "@/lib/db";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type {
   CloudFolderRow,
@@ -232,8 +232,17 @@ export async function fetchCloudWorkspace(userId: string) {
     throw snippetsError;
   }
 
+  // A record we deleted locally but whose cloud delete is still pending must not
+  // be re-downloaded, or it would resurrect until the queued delete lands.
+  const tombstonedIds = new Set((await getPendingTombstones(userId)).map((t) => t.id));
+
   for (const folderRow of folders as CloudFolderRow[]) {
     const incomingFolder = mapFolderToLocal(folderRow);
+
+    if (tombstonedIds.has(incomingFolder.id)) {
+      continue;
+    }
+
     const currentFolder = await db.folders.get(incomingFolder.id);
 
     if (currentFolder?.dirty && currentFolder.updatedAt >= incomingFolder.updatedAt) {
@@ -245,6 +254,11 @@ export async function fetchCloudWorkspace(userId: string) {
 
   for (const snippetRow of snippets as CloudSnippetRow[]) {
     const incomingSnippet = mapSnippetToLocal(snippetRow);
+
+    if (tombstonedIds.has(incomingSnippet.id)) {
+      continue;
+    }
+
     const currentSnippet = await db.snippets.get(incomingSnippet.id);
 
     if (currentSnippet?.dirty && currentSnippet.updatedAt >= incomingSnippet.updatedAt) {
@@ -295,8 +309,96 @@ async function reconcileDeletions(
   }
 }
 
+/**
+ * Queue cloud deletions for owned, previously-synced records that were just
+ * removed locally. The tombstones are flushed by `syncTombstones` (immediately
+ * via the sync loop, and retried if the cloud delete fails).
+ */
+export async function recordDeletions(
+  ownerId: string,
+  items: Array<{ id: string; kind: "folder" | "snippet" }>
+): Promise<void> {
+  if (items.length === 0) {
+    return;
+  }
+
+  const deletedAt = new Date().toISOString();
+  await db.tombstones.bulkPut(
+    items.map((item) => ({ id: item.id, kind: item.kind, ownerId, deletedAt }))
+  );
+}
+
+/**
+ * Flush queued deletions to the cloud. Snippets are removed before folders so a
+ * folder removal never strands a child row. Each tombstone is cleared only once
+ * its cloud delete succeeds; a failure leaves it queued for the next attempt.
+ */
+export async function syncTombstones(userId: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+
+  if (!supabase) {
+    return;
+  }
+
+  const tombstones = await getPendingTombstones(userId);
+
+  if (tombstones.length === 0) {
+    return;
+  }
+
+  const snippetIds = tombstones.filter((t) => t.kind === "snippet").map((t) => t.id);
+  const folderIds = tombstones.filter((t) => t.kind === "folder").map((t) => t.id);
+
+  if (snippetIds.length > 0) {
+    const { error } = await supabase.from("snippets").delete().in("id", snippetIds);
+    if (error) {
+      throw error;
+    }
+    await db.tombstones.bulkDelete(snippetIds);
+  }
+
+  if (folderIds.length > 0) {
+    const { error } = await supabase.from("folders").delete().in("id", folderIds);
+    if (error) {
+      throw error;
+    }
+    await db.tombstones.bulkDelete(folderIds);
+  }
+}
+
+/**
+ * On sign-in, take over any anonymous (`ownerId === null`) local records —
+ * including the seeded welcome content, which is created `dirty: false` — by
+ * assigning them to the account and marking them dirty so the next push uploads
+ * them. Without this the seed stays visible locally but never reaches the cloud
+ * or other devices.
+ */
+async function claimAnonymousRecords(userId: string): Promise<void> {
+  const [folders, snippets] = await Promise.all([
+    db.folders.toArray(),
+    db.snippets.toArray(),
+  ]);
+
+  const anonymousFolders = folders.filter((folder) => folder.ownerId === null);
+  const anonymousSnippets = snippets.filter((snippet) => snippet.ownerId === null);
+
+  if (anonymousFolders.length > 0) {
+    await db.folders.bulkPut(
+      anonymousFolders.map((folder) => ({ ...folder, ownerId: userId, dirty: true }))
+    );
+  }
+
+  if (anonymousSnippets.length > 0) {
+    await db.snippets.bulkPut(
+      anonymousSnippets.map((snippet) => ({ ...snippet, ownerId: userId, dirty: true }))
+    );
+  }
+}
+
 export async function reconcileWorkspace(userId: string) {
+  await claimAnonymousRecords(userId);
   const result = await syncDirtyWorkspace(userId);
+  await syncTombstones(userId);
   await fetchCloudWorkspace(userId);
   return result;
 }

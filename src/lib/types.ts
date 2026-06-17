@@ -34,6 +34,19 @@ export interface SnippetRecord {
   lastSyncedAt: string | null;
 }
 
+/**
+ * A pending cloud deletion. Created when an owned, previously-synced record is
+ * deleted locally; removed once the matching cloud row is deleted. While it
+ * exists, `fetchCloudWorkspace` won't re-download the row (no resurrection) and
+ * the sync loop keeps retrying the cloud delete.
+ */
+export interface TombstoneRecord {
+  id: string;
+  kind: "folder" | "snippet";
+  ownerId: string;
+  deletedAt: string;
+}
+
 export interface WorkspaceSnapshot {
   folders: FolderRecord[];
   snippets: SnippetRecord[];

@@ -130,11 +130,14 @@ before update on public.profiles
 for each row
 execute function public.set_updated_at();
 
+-- folders.updated_at / snippets.updated_at are NOT maintained by a trigger.
+-- The local-first client is the single source of truth for these timestamps:
+-- it sends `updated_at` on every upsert and uses it for optimistic-concurrency
+-- and last-write-wins comparisons during sync. A `set_updated_at` trigger would
+-- overwrite the client value with server `now()`, mixing client and server
+-- clocks and silently dropping newer edits under clock skew. (`profiles` is
+-- server-managed only and keeps its trigger.)
 drop trigger if exists set_folders_updated_at on public.folders;
-create trigger set_folders_updated_at
-before update on public.folders
-for each row
-execute function public.set_updated_at();
 
 drop trigger if exists validate_folders_hierarchy on public.folders;
 create trigger validate_folders_hierarchy
@@ -142,11 +145,8 @@ before insert or update of parent_id, owner_id on public.folders
 for each row
 execute function public.validate_folder_hierarchy();
 
+-- See the note on folders above: snippets.updated_at is client-authoritative.
 drop trigger if exists set_snippets_updated_at on public.snippets;
-create trigger set_snippets_updated_at
-before update on public.snippets
-for each row
-execute function public.set_updated_at();
 
 drop trigger if exists on_auth_user_created on auth.users;
 drop trigger if exists on_auth_user_changed on auth.users;

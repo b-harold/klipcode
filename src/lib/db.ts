@@ -1,10 +1,16 @@
 import Dexie, { type Table } from "dexie";
 
-import type { FolderRecord, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
+import type {
+  FolderRecord,
+  SnippetRecord,
+  TombstoneRecord,
+  WorkspaceSnapshot,
+} from "@/lib/types";
 
 class KlipCodeDatabase extends Dexie {
   folders!: Table<FolderRecord, string>;
   snippets!: Table<SnippetRecord, string>;
+  tombstones!: Table<TombstoneRecord, string>;
 
   constructor() {
     super("klipcode");
@@ -93,6 +99,14 @@ class KlipCodeDatabase extends Dexie {
             }),
         ]);
       });
+
+    // v5 adds the pending-deletions queue (tombstones). New store only, so no
+    // data migration is required for existing records.
+    this.version(5).stores({
+      folders: "id, ownerId, parentId, dirty, updatedAt, isPinnedAside, isPinnedHome",
+      snippets: "id, ownerId, folderId, dirty, updatedAt, isPinnedAside, isPinnedHome",
+      tombstones: "id, ownerId",
+    });
   }
 }
 
@@ -151,4 +165,10 @@ export async function getDirtyWorkspace(
     folders: snapshot.folders.filter((folder) => folder.dirty),
     snippets: snapshot.snippets.filter((snippet) => snippet.dirty),
   };
+}
+
+export async function getPendingTombstones(
+  currentUserId: string
+): Promise<TombstoneRecord[]> {
+  return db.tombstones.where("ownerId").equals(currentUserId).toArray();
 }

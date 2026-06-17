@@ -98,7 +98,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const mutations = useWorkspaceMutations({
     copy,
     user: auth.user,
-    supabase: auth.supabase,
     supabaseConfigured: auth.supabaseConfigured,
     folders,
     snippets,

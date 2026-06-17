@@ -9,6 +9,7 @@ import { readWorkspace } from "@/lib/db";
 import { seedWelcomeContent } from "@/lib/seed";
 import type { ClipboardEntry } from "@/lib/types";
 import { getDictionary } from "@/i18n";
+import { localeHref } from "@/lib/locale";
 import { SPACE_ROOT_ID } from "@/lib/navigation";
 import { Tooltip } from "@/ui/Tooltip";
 
@@ -61,7 +62,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const base = `/${locale}/app`;
+  const base = localeHref(locale, "/app");
 
   const selectedSnippetId = searchParams.get("snippet");
   const selectedFolderId = searchParams.get("folder");

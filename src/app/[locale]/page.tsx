@@ -3,10 +3,10 @@ import Link from "next/link";
 import { getDictionary } from "@/i18n";
 import { HeroPerspective } from "@/components/HeroPerspective";
 import { LandingHeader } from "@/components/LandingHeader";
+import { LocaleSwitchLink } from "@/components/LocaleSwitchLink";
+import { isLocale, localeHref, type Locale } from "@/lib/locale";
 import { Logo } from "@/ui/Logo";
 import { GitHubIcon } from "@/components/Aside/GitHubIcon";
-
-type Locale = "en" | "es";
 
 /* ── tiny svg icons (inline to avoid extra requests) ──────────────────────── */
 
@@ -82,11 +82,11 @@ export default async function LandingPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = getDictionary(locale as Locale);
+  const loc: Locale = isLocale(locale) ? locale : "en";
+  const t = getDictionary(loc);
   const l = t.landing;
-  const appHref = `/${locale}/app`;
-  const altLocale = locale === "es" ? "en" : "es";
-  const altHref = `/${altLocale}`;
+  const appHref = localeHref(loc, "/app");
+  const altLocale: Locale = loc === "es" ? "en" : "es";
 
   const features = [
     { icon: <IconBolt />, ...l.features.quickSave },
@@ -104,20 +104,20 @@ export default async function LandingPage({
 
       {/* ─── Navbar ───────────────────────────────────────────────────────── */}
       <LandingHeader>
-          <Link href={`/${locale}`} className="flex items-center gap-2 text-foreground">
+          <Link href={localeHref(loc)} className="flex items-center gap-2 text-foreground">
             <Logo className="h-5 w-5" />
             <span className="text-sm font-semibold tracking-tight">KlipCode</span>
           </Link>
 
           <div className="flex items-center gap-3">
-            <Link
-              href={altHref}
+            <LocaleSwitchLink
+              to={altLocale}
               className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] text-muted transition-colors hover:text-foreground sm:text-xs"
               aria-label={altLocale === "es" ? "Español" : "English"}
             >
               <IconGlobe />
               {altLocale.toUpperCase()}
-            </Link>
+            </LocaleSwitchLink>
 
             <Link
               href={appHref}

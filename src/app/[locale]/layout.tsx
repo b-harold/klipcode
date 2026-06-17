@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { getDictionary } from "@/i18n";
+import { isLocale, localeHref } from "@/lib/locale";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,6 @@ const geistMono = Geist_Mono({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://klipcode.com";
 
-type Locale = "en" | "es";
-
 export async function generateStaticParams() {
   return [{ locale: "en" }, { locale: "es" }];
 }
@@ -26,24 +25,26 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const dict = getDictionary(locale as Locale);
-  const alt = locale === "es" ? "en" : "es";
+  const loc = isLocale(locale) ? locale : "en";
+  const dict = getDictionary(loc);
+  const canonical = `${siteUrl}${localeHref(loc)}`;
 
   return {
     alternates: {
-      canonical: `${siteUrl}/${locale}`,
+      canonical,
       languages: {
-        [locale]: `${siteUrl}/${locale}`,
-        [alt]: `${siteUrl}/${alt}`,
+        en: `${siteUrl}${localeHref("en")}`,
+        es: `${siteUrl}${localeHref("es")}`,
+        "x-default": `${siteUrl}${localeHref("en")}`,
       },
     },
     openGraph: {
       type: "website",
-      url: `${siteUrl}/${locale}`,
+      url: canonical,
       title: `KlipCode — ${dict.app.subtitle}`,
       description: dict.landing.hero.subtitle,
       siteName: "KlipCode",
-      locale: locale === "es" ? "es_ES" : "en_US",
+      locale: loc === "es" ? "es_ES" : "en_US",
     },
     twitter: {
       card: "summary_large_image",

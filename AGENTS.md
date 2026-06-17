@@ -20,7 +20,7 @@ Description: Multi-device code snippet management web application. Focus on inpu
 
 - Sync/State: TanStack Query (React Query).
 
-- Deployment: Dokploy.
+- Deployment: Cloudflare Workers (via OpenNext).
 
 - Package Manager: PNPM.
 

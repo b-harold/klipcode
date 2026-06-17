@@ -60,7 +60,7 @@ There is **no Save button**: edits debounce at `DEBOUNCE_MS` (800ms, `src/lib/co
 
 ### Routing & i18n
 
-Locale-prefixed App Router: `src/app/[locale]/` with `[locale]` ∈ `{en, es}`. `src/middleware.ts` redirects unprefixed paths to a locale inferred from `Accept-Language`. The app shell is `/[locale]/app`; `/[locale]` is the marketing landing page.
+Locale-prefixed App Router: `src/app/[locale]/` with `[locale]` ∈ `{en, es}`. `src/proxy.ts` (the Next.js 16 `proxy` convention, formerly `middleware`) redirects unprefixed paths to a locale inferred from `Accept-Language`. The app shell is `/[locale]/app`; `/[locale]` is the marketing landing page.
 
 All user-facing text must come from the i18n dictionaries (`src/i18n/en.ts`, `src/i18n/es.ts`) via `getDictionary(locale)` — never hardcode strings. The dictionary shape is the `Dictionary` type; both locale files must stay structurally identical (there's a test for this).
 

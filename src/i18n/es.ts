@@ -256,6 +256,11 @@ export const es = {
       source: "Código fuente",
     },
   },
+  error: {
+    title: "Algo ha salido mal",
+    description: "Se ha producido un error inesperado. Puedes intentarlo de nuevo.",
+    retry: "Reintentar",
+  },
   seed: {
     folderName: "bienvenido",
     snippetName: "klipcode",

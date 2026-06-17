@@ -7,6 +7,14 @@ import type {
   WorkspaceSnapshot,
 } from "@/lib/types";
 
+/**
+ * Shape of folder/snippet records as written by versions prior to v4: a single
+ * `isPinned` flag and, briefly in v3, a `pinType` discriminator. Both were
+ * folded into the `isPinnedAside` / `isPinnedHome` booleans.
+ */
+type LegacyFolderRecord = FolderRecord & { isPinned?: boolean; pinType?: string };
+type LegacySnippetRecord = SnippetRecord & { isPinned?: boolean; pinType?: string };
+
 class KlipCodeDatabase extends Dexie {
   folders!: Table<FolderRecord, string>;
   snippets!: Table<SnippetRecord, string>;
@@ -54,7 +62,7 @@ class KlipCodeDatabase extends Dexie {
       .upgrade((tx) => {
         return Promise.all([
           tx
-            .table<any>("folders")
+            .table<LegacyFolderRecord>("folders")
             .toCollection()
             .modify((folder) => {
               folder.isPinnedAside = Boolean(folder.isPinnedAside || folder.isPinned || folder.pinType === "pinned");
@@ -63,7 +71,7 @@ class KlipCodeDatabase extends Dexie {
               delete folder.pinType;
             }),
           tx
-            .table<any>("snippets")
+            .table<LegacySnippetRecord>("snippets")
             .toCollection()
             .modify((snippet) => {
               snippet.isPinnedAside = Boolean(snippet.isPinnedAside || snippet.isPinned || snippet.pinType === "pinned");
@@ -82,7 +90,7 @@ class KlipCodeDatabase extends Dexie {
       .upgrade((tx) => {
         return Promise.all([
           tx
-            .table<any>("folders")
+            .table<LegacyFolderRecord>("folders")
             .toCollection()
             .modify((folder) => {
               folder.isPinnedAside = Boolean(folder.isPinnedAside || folder.isPinned);
@@ -90,7 +98,7 @@ class KlipCodeDatabase extends Dexie {
               delete folder.isPinned;
             }),
           tx
-            .table<any>("snippets")
+            .table<LegacySnippetRecord>("snippets")
             .toCollection()
             .modify((snippet) => {
               snippet.isPinnedAside = Boolean(snippet.isPinnedAside || snippet.isPinned);
@@ -171,4 +179,18 @@ export async function getPendingTombstones(
   currentUserId: string
 ): Promise<TombstoneRecord[]> {
   return db.tombstones.where("ownerId").equals(currentUserId).toArray();
+}
+
+/**
+ * Remove every local record owned by a user, plus any queued deletions. Used on
+ * sign-out so personal data doesn't linger in IndexedDB on a shared machine.
+ * Anonymous/seeded records (`ownerId === null`) are left untouched. Cloud-synced
+ * data is recovered from the cloud on the next sign-in.
+ */
+export async function clearOwnedData(userId: string): Promise<void> {
+  await Promise.all([
+    db.folders.where("ownerId").equals(userId).delete(),
+    db.snippets.where("ownerId").equals(userId).delete(),
+    db.tombstones.where("ownerId").equals(userId).delete(),
+  ]);
 }

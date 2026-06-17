@@ -7,6 +7,17 @@ import type { SyncResult, SyncStatus } from "@/lib/types";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 
 const MAX_SYNC_ERRORS = 5;
+const MAX_SYNC_BACKOFF_MS = 30_000;
+
+/**
+ * Delay before the next retry. With no errors it's the normal debounce; after a
+ * failure it backs off exponentially (capped) so we don't hammer an unreachable
+ * cloud every debounce tick.
+ */
+function getRetryDelay(errorCount: number): number {
+  if (errorCount <= 0) return DEBOUNCE_MS;
+  return Math.min(DEBOUNCE_MS * 2 ** (errorCount - 1), MAX_SYNC_BACKOFF_MS);
+}
 
 interface UseCloudSyncOptions {
   user: User | null;
@@ -140,7 +151,7 @@ export function useCloudSync({
           if (cloudSyncTimerRef.current) clearTimeout(cloudSyncTimerRef.current);
           cloudSyncTimerRef.current = setTimeout(() => {
             void runCloudSync();
-          }, DEBOUNCE_MS);
+          }, getRetryDelay(syncErrorCountRef.current));
         }
       }
     }
@@ -159,6 +170,10 @@ export function useCloudSync({
     }, DEBOUNCE_MS);
   }
 
+  // Stable ref so the reconnect listeners below always call the latest closure.
+  const scheduleCloudSyncRef = useRef(scheduleCloudSync);
+  scheduleCloudSyncRef.current = scheduleCloudSync;
+
   // Cleanup sync timers on unmount
   useEffect(() => {
     const localTimers = localStatusTimersRef.current;
@@ -167,6 +182,32 @@ export function useCloudSync({
       for (const timer of localTimers.values()) clearTimeout(timer);
     };
   }, []);
+
+  // Resume syncing when connectivity returns or the tab becomes visible. This
+  // restarts the loop even after it gave up at MAX_SYNC_ERRORS, and clears the
+  // backoff so the retry is immediate. `scheduleCloudSync` no-ops when there's
+  // nothing to sync or no signed-in user.
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+
+    function resume() {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+      syncErrorCountRef.current = 0;
+      scheduleCloudSyncRef.current();
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") resume();
+    }
+
+    window.addEventListener("online", resume);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("online", resume);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [supabaseConfigured]);
 
   return { snippetStatuses, setSnippetStatus, settleLocally, scheduleCloudSync };
 }

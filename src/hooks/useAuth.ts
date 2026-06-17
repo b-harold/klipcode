@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
+import { clearOwnedData } from "@/lib/db";
 import { reconcileWorkspace } from "@/lib/sync";
 import type { Dictionary } from "@/i18n";
 
@@ -111,7 +112,11 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
 
   async function handleSignOut() {
     if (!supabase) return;
+    const signedOutUserId = user?.id ?? null;
     await supabase.auth.signOut();
+    // Wipe this account's local data so it isn't readable on a shared machine.
+    // Synced data comes back from the cloud on the next sign-in.
+    if (signedOutUserId) await clearOwnedData(signedOutUserId);
     setUser(null);
     setAccountMessage(supabaseConfigured ? copy.auth.localMode : copy.auth.notConfigured);
     refreshRef.current();

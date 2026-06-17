@@ -257,6 +257,11 @@ export const en = {
       source: "Source",
     },
   },
+  error: {
+    title: "Something went wrong",
+    description: "An unexpected error occurred. You can try again.",
+    retry: "Try again",
+  },
   seed: {
     folderName: "welcome",
     snippetName: "klipcode",

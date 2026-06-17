@@ -15,26 +15,26 @@ Findings from a full project review (2026-06-11). Organized by area; file refere
 
 ## 🔒 Security
 
-- [ ] **Add security headers.** `public/_headers` only sets caching. Add at minimum: `Content-Security-Policy` (script/style/connect-src limited to self + Supabase), `X-Frame-Options: DENY` (or `frame-ancestors`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
-- [ ] **Sign-out leaves personal data in IndexedDB.** Synced records (`ownerId = user.id`) stay on disk after `handleSignOut` (`src/hooks/useAuth.ts:112`). On a shared machine, anyone can read them via devtools. Offer/perform local-data wipe on sign-out (at least for owned records).
+- [x] **Add security headers.** `public/_headers` only sets caching. Add at minimum: `Content-Security-Policy` (script/style/connect-src limited to self + Supabase), `X-Frame-Options: DENY` (or `frame-ancestors`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`. _(Fixed: a `/*` block in `public/_headers` now sets CSP (self + `*.supabase.co` https/wss for connect-src), `X-Frame-Options: DENY` + `frame-ancestors 'none'`, `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy`.)_
+- [x] **Sign-out leaves personal data in IndexedDB.** Synced records (`ownerId = user.id`) stay on disk after `handleSignOut` (`src/hooks/useAuth.ts:112`). On a shared machine, anyone can read them via devtools. Offer/perform local-data wipe on sign-out (at least for owned records). _(Fixed: `clearOwnedData` wipes the signing-out user's folders, snippets, and tombstones from IndexedDB on `handleSignOut`; synced data returns from the cloud on next sign-in.)_
 - [ ] **Supabase session is persisted in `localStorage`** (default with `persistSession: true`, `src/lib/supabase.ts`). Any future XSS gives token theft. Low priority (no XSS vectors found — no `dangerouslySetInnerHTML` anywhere, good), but worth knowing the trade-off.
-- [ ] **Add `.claude/` to `.gitignore`** — it's currently untracked-but-visible in `git status` and easy to commit by accident.
+- [x] **Add `.claude/` to `.gitignore`** — it's currently untracked-but-visible in `git status` and easy to commit by accident. _(Already covered: `.gitignore` ignores `.claude/*` under the `#agents` section and nothing under it is tracked.)_
 - [x] RLS reviewed: policies in `db-structure.sql` are owner-scoped, `force row level security` is on, grants limited to `authenticated`. Solid — no action needed.
 
 ## ⚡ Performance
 
 - [ ] **Batch the sync round trips.** `syncDirtyWorkspace` (`src/lib/sync.ts:144-177`) does one network upsert per record, awaited sequentially — N dirty snippets = N round trips. Supabase `upsert` accepts arrays; folders can be batched per depth level, snippets in one call. Same for `fetchCloudWorkspace`: replace the per-row `get` + `put` loops with one in-memory diff plus `bulkPut`.
 - [ ] **Every debounced keystroke re-reads the whole database.** `handleUpdateSnippet` → `refreshWorkspace` → query invalidation → `readWorkspace` loads *all* folders and snippets with `toArray()`, filters and sorts in JS (`src/lib/db.ts:129`). Fine at 100 snippets, painful at 5,000. Options: update the React Query cache in place for single-record edits, and/or use the Dexie indexes (`ownerId`) with `where()` instead of full scans.
-- [ ] **No backoff or reconnect handling for sync retries.** `useCloudSync` retries every 800 ms up to `MAX_SYNC_ERRORS`, then stops until the next edit. Add exponential backoff, and listen for the `online` event (and/or visibility change) to resume automatically when the connection returns.
+- [x] **No backoff or reconnect handling for sync retries.** `useCloudSync` retries every 800 ms up to `MAX_SYNC_ERRORS`, then stops until the next edit. Add exponential backoff, and listen for the `online` event (and/or visibility change) to resume automatically when the connection returns. _(Fixed: retries now back off exponentially (`getRetryDelay`, capped at 30s), and `online` + `visibilitychange` listeners resume syncing — clearing the error count so the loop restarts even after hitting `MAX_SYNC_ERRORS`.)_
 - [ ] **Remote changes only arrive on login or after a local edit.** With `refetchOnWindowFocus: false` (`src/components/AppProviders.tsx:13`) there is no pull path for edits made on another device during a session. Consider Supabase Realtime subscriptions, or at least a periodic / on-focus `fetchCloudWorkspace`.
 
 ## 🧹 Best practices / code quality
 
 - [ ] **`src/lib/sync.ts` has zero test coverage** — it's the most fragile logic in the app (conflict resolution, dirty flags, the bugs above). Add Vitest tests with a mocked Supabase client; the `fake-indexeddb` setup already exists.
 - [ ] **Pre-commit only runs tests** (`.husky/pre-commit`). Add `pnpm lint` and `tsc --noEmit`. Also there is no CI — add a GitHub Actions workflow (lint + typecheck + test + build) so main stays green.
-- [ ] **Remove `any` from Dexie migrations** v3/v4 (`src/lib/db.ts:51,60,79,87`) — type the legacy shape explicitly like v2 does.
+- [x] **Remove `any` from Dexie migrations** v3/v4 (`src/lib/db.ts:51,60,79,87`) — type the legacy shape explicitly like v2 does. _(Fixed: v3/v4 upgrades now use explicit `LegacyFolderRecord` / `LegacySnippetRecord` types.)_
 - [ ] **`workspaceQuery` error state is never rendered.** If IndexedDB is unavailable (Safari private mode, storage pressure) the app silently shows an empty workspace. Render an error/empty-storage state in `KlipCodeApp.tsx`.
-- [ ] **No `error.tsx` boundary** in the app router — an uncaught render error white-screens the app. Add a global (and `[locale]`-level) error boundary.
+- [x] **No `error.tsx` boundary** in the app router — an uncaught render error white-screens the app. Add a global (and `[locale]`-level) error boundary. _(Fixed: added `src/app/global-error.tsx` (own html/body, inline styles) and `src/app/[locale]/error.tsx` (localized via the new i18n `error` section).)_
 - [ ] **Surface cloud-delete failures to the user** instead of `console.error` (`useWorkspaceMutations.ts:157,242`) — reuse the `AccountToast` channel.
 - [ ] **Locale dictionaries aren't type-checked against each other.** `en.ts`/`es.ts` — derive `Dictionary` from `typeof en` and type `es` as `Dictionary` so a missing key fails compilation (verify this is already the case in `src/i18n/index.ts`; the i18n test suggests partial coverage).
 

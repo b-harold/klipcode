@@ -31,7 +31,7 @@ function getPreferredLocale(request: NextRequest): Locale {
   return DEFAULT_LOCALE;
 }
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Spanish keeps its prefix. Treat visiting it as an explicit choice.

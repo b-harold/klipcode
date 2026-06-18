@@ -49,6 +49,8 @@ Findings from a full project review (2026-06-11). Organized by area; file refere
 - [ ] **Snippet duplication** action ("Duplicate" in the context menu — copy/paste already half-implements this).
 - [ ] **More OAuth providers** — GitHub-only today; Google would widen the audience.
 - [ ] **PWA manifest + installability.** The app is already offline-capable thanks to IndexedDB; a manifest and basic service worker would make it installable.
+- [ ] **Auto-detect language from file extension.** When creating a snippet and entering a title with an extension (e.g. `script.js`, `style.css`, `index.html`), automatically set the language syntax without requiring manual selection from the language dropdown.
+- [ ] **Preview button for markdown and HTML.** Add a preview toggle button in the editor for `.md` and `.html` snippets to render and display the output without leaving the editor.
 
 ## 🎨 UI / UX
 

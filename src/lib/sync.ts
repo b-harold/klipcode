@@ -152,52 +152,74 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
 
   const dirtyWorkspace = await getDirtyWorkspace(userId);
   const folderMap = new Map(dirtyWorkspace.folders.map((folder) => [folder.id, folder]));
-  const folders = [...dirtyWorkspace.folders].sort(
-    (left, right) => folderDepth(left, folderMap) - folderDepth(right, folderMap)
-  );
-  const snippets = [...dirtyWorkspace.snippets].sort((left, right) =>
-    left.updatedAt.localeCompare(right.updatedAt)
-  );
   const syncedFolderIds: string[] = [];
   const syncedSnippetIds: string[] = [];
   const localSnippetIds: string[] = [];
 
-  for (const folder of folders) {
+  // Folders are upserted one depth level at a time (shallowest first). The cloud
+  // FK `(owner_id, parent_id) → folders(owner_id, id)` means a child can't land
+  // before its parent, but folders at the same depth are independent and go up in
+  // a single batched upsert — so N folders become at most (max depth) round trips.
+  const foldersByDepth = new Map<number, FolderRecord[]>();
+  for (const folder of dirtyWorkspace.folders) {
+    const depth = folderDepth(folder, folderMap);
+    const bucket = foldersByDepth.get(depth);
+    if (bucket) {
+      bucket.push(folder);
+    } else {
+      foldersByDepth.set(depth, [folder]);
+    }
+  }
+
+  for (const depth of [...foldersByDepth.keys()].sort((left, right) => left - right)) {
+    const levelFolders = foldersByDepth.get(depth)!;
+
     const { error } = await supabase
       .from("folders")
-      .upsert(mapFolderToCloud(folder, userId), { onConflict: "id" });
+      .upsert(levelFolders.map((folder) => mapFolderToCloud(folder, userId)), { onConflict: "id" });
 
     if (error) {
       throw error;
     }
 
     const syncedAt = new Date().toISOString();
-    const marked = await markFolderAsSynced(folder, userId, syncedAt);
-    if (marked) syncedFolderIds.push(folder.id);
+    for (const folder of levelFolders) {
+      const marked = await markFolderAsSynced(folder, userId, syncedAt);
+      if (marked) syncedFolderIds.push(folder.id);
+    }
   }
 
-  for (const snippet of snippets) {
-    // A still-empty snippet that has never been uploaded is just a placeholder:
-    // settle it locally so it stops retrying, but don't create a cloud row.
-    // Once a snippet HAS been synced, an empty body is an intentional clear and
-    // must be uploaded — otherwise the next fetch resurrects the old content.
+  // Snippets have no inter-snippet dependency, so the whole dirty set goes up in
+  // one upsert. Still-empty, never-uploaded placeholders are settled locally
+  // instead (no cloud row); once a snippet HAS been synced, an empty body is an
+  // intentional clear and must be uploaded — otherwise the next fetch resurrects
+  // the old content.
+  const snippetsToUpload: SnippetRecord[] = [];
+  for (const snippet of dirtyWorkspace.snippets) {
     if (!snippet.code.trim() && snippet.lastSyncedAt === null) {
       const marked = await markSnippetSettledLocally(snippet);
       if (marked) localSnippetIds.push(snippet.id);
-      continue;
+    } else {
+      snippetsToUpload.push(snippet);
     }
+  }
 
+  if (snippetsToUpload.length > 0) {
     const { error } = await supabase
       .from("snippets")
-      .upsert(mapSnippetToCloud(snippet, userId), { onConflict: "id" });
+      .upsert(snippetsToUpload.map((snippet) => mapSnippetToCloud(snippet, userId)), {
+        onConflict: "id",
+      });
 
     if (error) {
       throw error;
     }
 
     const syncedAt = new Date().toISOString();
-    const marked = await markSnippetAsSynced(snippet, userId, syncedAt);
-    if (marked) syncedSnippetIds.push(snippet.id);
+    for (const snippet of snippetsToUpload) {
+      const marked = await markSnippetAsSynced(snippet, userId, syncedAt);
+      if (marked) syncedSnippetIds.push(snippet.id);
+    }
   }
 
   return { syncedFolderIds, syncedSnippetIds, localSnippetIds };
@@ -236,6 +258,16 @@ export async function fetchCloudWorkspace(userId: string) {
   // be re-downloaded, or it would resurrect until the queued delete lands.
   const tombstonedIds = new Set((await getPendingTombstones(userId)).map((t) => t.id));
 
+  // Read the local tables once, diff in memory, then write everything in a single
+  // bulkPut per table — instead of a get + put round trip for every cloud row.
+  const [localFolders, localSnippets] = await Promise.all([
+    db.folders.toArray(),
+    db.snippets.toArray(),
+  ]);
+  const localFolderMap = new Map(localFolders.map((folder) => [folder.id, folder]));
+  const localSnippetMap = new Map(localSnippets.map((snippet) => [snippet.id, snippet]));
+
+  const foldersToPut: FolderRecord[] = [];
   for (const folderRow of folders as CloudFolderRow[]) {
     const incomingFolder = mapFolderToLocal(folderRow);
 
@@ -243,15 +275,16 @@ export async function fetchCloudWorkspace(userId: string) {
       continue;
     }
 
-    const currentFolder = await db.folders.get(incomingFolder.id);
+    const currentFolder = localFolderMap.get(incomingFolder.id);
 
     if (currentFolder?.dirty && currentFolder.updatedAt >= incomingFolder.updatedAt) {
       continue;
     }
 
-    await db.folders.put(incomingFolder);
+    foldersToPut.push(incomingFolder);
   }
 
+  const snippetsToPut: SnippetRecord[] = [];
   for (const snippetRow of snippets as CloudSnippetRow[]) {
     const incomingSnippet = mapSnippetToLocal(snippetRow);
 
@@ -259,19 +292,32 @@ export async function fetchCloudWorkspace(userId: string) {
       continue;
     }
 
-    const currentSnippet = await db.snippets.get(incomingSnippet.id);
+    const currentSnippet = localSnippetMap.get(incomingSnippet.id);
 
     if (currentSnippet?.dirty && currentSnippet.updatedAt >= incomingSnippet.updatedAt) {
       continue;
     }
 
-    await db.snippets.put(incomingSnippet);
+    snippetsToPut.push(incomingSnippet);
   }
 
+  if (foldersToPut.length > 0) {
+    await db.folders.bulkPut(foldersToPut);
+  }
+
+  if (snippetsToPut.length > 0) {
+    await db.snippets.bulkPut(snippetsToPut);
+  }
+
+  // Reuse the snapshot read above for deletion reconciliation. A record absent
+  // from the cloud is unaffected by the puts (which only touch cloud-present
+  // rows), so the pre-put snapshot yields the correct deletion set.
   await reconcileDeletions(
     userId,
     new Set((folders as CloudFolderRow[]).map((folder) => folder.id)),
-    new Set((snippets as CloudSnippetRow[]).map((snippet) => snippet.id))
+    new Set((snippets as CloudSnippetRow[]).map((snippet) => snippet.id)),
+    localFolders,
+    localSnippets
   );
 }
 
@@ -285,12 +331,16 @@ export async function fetchCloudWorkspace(userId: string) {
 async function reconcileDeletions(
   userId: string,
   cloudFolderIds: Set<string>,
-  cloudSnippetIds: Set<string>
+  cloudSnippetIds: Set<string>,
+  localFoldersSnapshot?: FolderRecord[],
+  localSnippetsSnapshot?: SnippetRecord[]
 ) {
-  const [localFolders, localSnippets] = await Promise.all([
-    db.folders.where("ownerId").equals(userId).toArray(),
-    db.snippets.where("ownerId").equals(userId).toArray(),
-  ]);
+  const [allFolders, allSnippets] = localFoldersSnapshot && localSnippetsSnapshot
+    ? [localFoldersSnapshot, localSnippetsSnapshot]
+    : await Promise.all([db.folders.toArray(), db.snippets.toArray()]);
+
+  const localFolders = allFolders.filter((folder) => folder.ownerId === userId);
+  const localSnippets = allSnippets.filter((snippet) => snippet.ownerId === userId);
 
   const foldersToDelete = localFolders
     .filter((folder) => !folder.dirty && folder.lastSyncedAt !== null && !cloudFolderIds.has(folder.id))

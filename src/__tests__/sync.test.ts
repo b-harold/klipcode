@@ -23,11 +23,14 @@ const fakeClient = {
           },
         };
       },
-      upsert(row: CloudFolderRow | CloudSnippetRow) {
+      upsert(rowOrRows: CloudFolderRow | CloudSnippetRow | Array<CloudFolderRow | CloudSnippetRow>) {
         const rows = cloud[table] as Array<{ id: string }>;
-        const index = rows.findIndex((existing) => existing.id === row.id);
-        if (index >= 0) rows[index] = row as never;
-        else rows.push(row as never);
+        const incoming = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
+        for (const row of incoming) {
+          const index = rows.findIndex((existing) => existing.id === row.id);
+          if (index >= 0) rows[index] = row as never;
+          else rows.push(row as never);
+        }
         return Promise.resolve({ error: null });
       },
       delete() {
@@ -207,6 +210,40 @@ describe("syncDirtyWorkspace() empty-code handling", () => {
     const stored = await db.snippets.get(placeholder.id);
     expect(stored?.dirty).toBe(false);
     expect(stored?.lastSyncedAt).toBeNull();
+  });
+});
+
+// ── Batched uploads ─────────────────────────────────────────────────────────────
+
+describe("syncDirtyWorkspace() batching", () => {
+  it("uploads every dirty snippet in one pass and clears their dirty flag", async () => {
+    const a = makeSnippet({ dirty: true });
+    const b = makeSnippet({ dirty: true });
+    const c = makeSnippet({ dirty: true });
+    await db.snippets.bulkAdd([a, b, c]);
+
+    const result = await syncDirtyWorkspace(USER);
+
+    expect(result.syncedSnippetIds).toEqual(expect.arrayContaining([a.id, b.id, c.id]));
+    for (const id of [a.id, b.id, c.id]) {
+      expect(cloud.snippets.find((row) => row.id === id)).toBeDefined();
+      expect((await db.snippets.get(id))?.dirty).toBe(false);
+    }
+  });
+
+  it("uploads nested folders parent-before-child across depth levels", async () => {
+    const root = makeFolder({ dirty: true, parentId: null });
+    const child = makeFolder({ dirty: true, parentId: root.id });
+    const grandchild = makeFolder({ dirty: true, parentId: child.id });
+    // Insert out of order to prove ordering comes from depth, not insertion.
+    await db.folders.bulkAdd([grandchild, root, child]);
+
+    const result = await syncDirtyWorkspace(USER);
+
+    expect(result.syncedFolderIds).toEqual(expect.arrayContaining([root.id, child.id, grandchild.id]));
+    const order = cloud.folders.map((row) => row.id);
+    expect(order.indexOf(root.id)).toBeLessThan(order.indexOf(child.id));
+    expect(order.indexOf(child.id)).toBeLessThan(order.indexOf(grandchild.id));
   });
 });
 

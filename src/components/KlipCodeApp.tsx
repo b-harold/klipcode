@@ -7,7 +7,7 @@ import { Menu } from "lucide-react";
 
 import { readWorkspace } from "@/lib/db";
 import { seedWelcomeContent } from "@/lib/seed";
-import type { ClipboardEntry } from "@/lib/types";
+import type { ClipboardEntry, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
 import { getDictionary } from "@/i18n";
 import { localeHref } from "@/lib/locale";
 import { SPACE_ROOT_ID } from "@/lib/navigation";
@@ -37,6 +37,28 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       void queryClient.invalidateQueries({
         predicate: (q) => q.queryKey[0] === "workspace",
       });
+    });
+  }
+
+  /**
+   * Patch a single snippet in the cached workspace instead of invalidating the
+   * whole query. The hot path — every debounced keystroke — would otherwise
+   * re-read and re-sort the entire IndexedDB workspace; this touches only the one
+   * record. Order is left untouched until the next full refresh (re-sorting on
+   * each keystroke would make cards jump around mid-edit anyway).
+   */
+  function patchSnippetInCache(id: string, changes: Partial<SnippetRecord>) {
+    startTransition(() => {
+      queryClient.setQueryData<WorkspaceSnapshot>(
+        ["workspace", auth.user?.id ?? "guest"],
+        (old) =>
+          old
+            ? {
+                ...old,
+                snippets: old.snippets.map((s) => (s.id === id ? { ...s, ...changes } : s)),
+              }
+            : old
+      );
     });
   }
 
@@ -107,6 +129,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     selectedSnippetId,
     setSelectedSnippetId,
     refreshWorkspace,
+    patchSnippetInCache,
     scheduleCloudSync: sync.scheduleCloudSync,
     settleLocally: sync.settleLocally,
     setSnippetStatus: sync.setSnippetStatus,
@@ -181,6 +204,23 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   ) : null;
 
   /* ── Render ───────────────────────────────────────────────────────────── */
+
+  // IndexedDB can be unavailable (Safari private mode, storage pressure). Surface
+  // it instead of silently showing an empty workspace.
+  if (workspaceQuery.isError) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-sm text-white/60">{copy.workspace.loadError}</p>
+        <button
+          type="button"
+          onClick={() => void workspaceQuery.refetch()}
+          className="rounded-md bg-white/10 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/15"
+        >
+          {copy.error.retry}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <DragProvider

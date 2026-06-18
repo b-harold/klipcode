@@ -1,3 +1,5 @@
+import type { Dictionary } from "@/i18n";
+
 const WELCOME_SNIPPET_CONTENT = `# ¡Bienvenido a KlipCode!
 
 KlipCode es una herramienta diseñada para mantener tus fragmentos de código favoritos siempre a mano,
@@ -266,4 +268,4 @@ export const es = {
     snippetName: "klipcode",
     snippetContent: WELCOME_SNIPPET_CONTENT,
   },
-} as const;
+} as const satisfies Dictionary;

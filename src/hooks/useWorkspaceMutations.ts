@@ -18,6 +18,7 @@ interface UseWorkspaceMutationsOptions {
   selectedSnippetId: string | null;
   setSelectedSnippetId: (id: string | null) => void;
   refreshWorkspace: () => void;
+  patchSnippetInCache: (id: string, changes: Partial<SnippetRecord>) => void;
   scheduleCloudSync: () => void;
   settleLocally: (snippetId: string) => void;
   setSnippetStatus: (snippetId: string, status: SyncStatus) => void;
@@ -34,6 +35,7 @@ export function useWorkspaceMutations({
   selectedSnippetId,
   setSelectedSnippetId,
   refreshWorkspace,
+  patchSnippetInCache,
   scheduleCloudSync,
   settleLocally,
   setSnippetStatus,
@@ -126,13 +128,16 @@ export function useWorkspaceMutations({
     const timer = setTimeout(async () => {
       updateTimersRef.current.delete(snippetId);
 
+      const updatedAt = new Date().toISOString();
       await db.snippets.update(snippetId, {
         ...changes,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
         dirty: true,
       });
 
-      refreshWorkspace();
+      // Patch the single record in the cache instead of invalidating (and thus
+      // re-reading the entire workspace) on every debounced keystroke.
+      patchSnippetInCache(snippetId, { ...changes, updatedAt, dirty: true });
 
       if (user && supabaseConfigured) {
         scheduleCloudSync();

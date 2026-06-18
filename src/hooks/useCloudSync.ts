@@ -157,6 +157,29 @@ export function useCloudSync({
     }
   }
 
+  /**
+   * Pull-only refresh. `runCloudSync` skips the cloud fetch when there are no
+   * local changes, so without this a session never sees edits made on another
+   * device. Triggered on reconnect / tab focus to surface remote changes.
+   */
+  async function runCloudPull() {
+    const currentUser = userRef.current;
+    if (!currentUser || !supabaseConfigured || cloudSyncInFlightRef.current) return;
+
+    cloudSyncInFlightRef.current = true;
+    try {
+      await fetchCloudWorkspace(currentUser.id);
+      refreshRef.current();
+    } catch {
+      // Best-effort: a failed pull is retried on the next focus/online event.
+    } finally {
+      cloudSyncInFlightRef.current = false;
+    }
+  }
+
+  const runCloudPullRef = useRef(runCloudPull);
+  runCloudPullRef.current = runCloudPull;
+
   function scheduleCloudSync() {
     if (!userRef.current || !supabaseConfigured) return;
 
@@ -193,7 +216,9 @@ export function useCloudSync({
     function resume() {
       if (typeof navigator !== "undefined" && navigator.onLine === false) return;
       syncErrorCountRef.current = 0;
+      // Push any pending local edits and pull remote changes made elsewhere.
       scheduleCloudSyncRef.current();
+      void runCloudPullRef.current();
     }
 
     function handleVisibilityChange() {
@@ -201,10 +226,12 @@ export function useCloudSync({
     }
 
     window.addEventListener("online", resume);
+    window.addEventListener("focus", resume);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("online", resume);
+      window.removeEventListener("focus", resume);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [supabaseConfigured]);

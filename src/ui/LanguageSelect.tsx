@@ -94,6 +94,9 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
   /* Focus search on open */
   useEffect(() => {
     if (open) setTimeout(() => searchRef.current?.focus(), 0);
+    // Intentional: clear the filter when the dropdown closes so it reopens fresh.
+    // Synchronize-on-close effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     else setSearch("");
   }, [open]);
 

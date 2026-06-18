@@ -63,7 +63,6 @@ export function FolderView({
 
   const isRootSpace = folderId === SPACE_ROOT_ID;
   const currentFolder = isRootSpace ? null : folders.find((f) => f.id === folderId);
-  if (!isRootSpace && !currentFolder) return null;
 
   const parentKey = isRootSpace ? null : folderId;
 
@@ -112,6 +111,10 @@ export function FolderView({
   // Pre-compute counts so FolderCard renders don't each filter the full lists (O(n) vs O(n*m))
   const snippetCountMap = useMemo(() => buildSnippetCountMap(snippets), [snippets]);
   const subFolderCountMap = useMemo(() => buildSubFolderCountMap(folders), [folders]);
+
+  // Bail out only after all hooks have run, so hook order stays stable across
+  // renders (a missing folder otherwise skips the useMemo calls above).
+  if (!isRootSpace && !currentFolder) return null;
 
   const isEmpty = childFolders.length === 0 && folderSnippets.length === 0;
   const folderTitle = isRootSpace ? copy.aside.mySpace : (currentFolder?.name ?? copy.aside.mySpace);

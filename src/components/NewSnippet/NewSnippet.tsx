@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Plus } from "lucide-react";
 import { Editor } from "@/components/Editor/Editor";
 import { LanguageSelect } from "@/ui/LanguageSelect";
@@ -27,12 +27,13 @@ export function NewSnippet({ copy, folders, defaultFolderId, onCreateSnippet }: 
   const [folderId, setFolderId] = useState(defaultFolderId ?? "");
   const [code, setCode] = useState("");
 
-  /* Sync pre-selected folder from aside context menu */
-  useEffect(() => {
-    if (defaultFolderId !== undefined && defaultFolderId !== null) {
-      setFolderId(defaultFolderId);
-    }
-  }, [defaultFolderId]);
+  // Sync the pre-selected folder coming from the aside context menu by adjusting
+  // state during render when the prop changes — no effect needed.
+  const [prevDefaultFolderId, setPrevDefaultFolderId] = useState(defaultFolderId);
+  if (defaultFolderId !== prevDefaultFolderId) {
+    setPrevDefaultFolderId(defaultFolderId);
+    if (defaultFolderId != null) setFolderId(defaultFolderId);
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

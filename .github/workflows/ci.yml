@@ -34,9 +34,5 @@ jobs:
       - name: Build
         run: pnpm build
 
-      # Lint is informational for now: the repo carries pre-existing
-      # react-hooks rule violations in UI components that predate this workflow.
-      # Drop `continue-on-error` once those are resolved so it becomes a gate.
       - name: Lint
         run: pnpm lint
-        continue-on-error: true

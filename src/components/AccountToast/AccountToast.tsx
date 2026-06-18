@@ -17,6 +17,10 @@ export function AccountToast({ message }: AccountToastProps) {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       if (removeTimerRef.current) clearTimeout(removeTimerRef.current);
 
+      // Intentional: mirror the incoming message into state so the toast keeps
+      // rendering the previous text through its 300ms exit fade after `message`
+      // clears. This is a synchronize-on-change effect, not a derivable value.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisibleMessage(message);
       setTimeout(() => setIsVisible(true), 10);
 

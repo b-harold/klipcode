@@ -71,6 +71,9 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
   /* Auto-expand path to selected folder when opening */
   useEffect(() => {
     if (!open || !value) return;
+    // Intentional: expand the ancestor path each time the dropdown opens so the
+    // selected folder is visible. Synchronize-on-open, not a derivable value.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpanded((prev) => {
       const next = new Set(prev);
       for (const id of ancestorIds(value, folders)) next.add(id);

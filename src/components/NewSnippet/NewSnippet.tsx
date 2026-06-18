@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { Editor } from "@/components/Editor/Editor";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { FolderSelect } from "@/ui/FolderSelect";
-import { DEFAULT_LANGUAGE, type LanguageId } from "@/lib/constants/languages";
+import { DEFAULT_LANGUAGE, detectLanguageFromTitle, type LanguageId } from "@/lib/constants/languages";
 import type { FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 
@@ -35,6 +35,15 @@ export function NewSnippet({ copy, folders, defaultFolderId, onCreateSnippet }: 
     if (defaultFolderId != null) setFolderId(defaultFolderId);
   }
 
+  // Auto-select the language when the title carries a recognizable extension
+  // (e.g. `index.html` → HTML). A manual dropdown choice still wins until the
+  // user types another recognized extension.
+  function handleTitleChange(value: string) {
+    setTitle(value);
+    const detected = detectLanguageFromTitle(value);
+    if (detected) setLanguage(detected);
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!code.trim()) return;
@@ -60,7 +69,7 @@ export function NewSnippet({ copy, folders, defaultFolderId, onCreateSnippet }: 
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => handleTitleChange(e.target.value)}
             placeholder={copy.forms.snippetTitlePlaceholder}
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/30 outline-none"
           />

@@ -26,6 +26,7 @@ import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 import { FolderView } from "@/components/FolderView/FolderView";
+import { SearchPalette } from "@/components/SearchPalette/SearchPalette";
 
 export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const copy = getDictionary(locale);
@@ -98,6 +99,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   /* ── Clipboard state ──────────────────────────────────────────────────── */
 
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<{
     id: string;
@@ -144,6 +146,19 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.authReady, auth.user]);
+
+  /* ── Command palette shortcut (⌘K / Ctrl+K) ──────────────────────────── */
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   /* ── Derived state & side-effects ─────────────────────────────────────── */
 
@@ -240,6 +255,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onSetOpen={setSidebarOpen}
         onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
         onGoHome={() => router.push(base)}
+        onOpenSearch={() => setSearchOpen(true)}
         onGoSpace={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
         onNewSnippetAt={handleNewSnippetAt}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
@@ -335,6 +351,16 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         )}
       </div>
     </div>
+
+    {searchOpen && (
+      <SearchPalette
+        snippets={snippets}
+        folders={folders}
+        copy={copy}
+        onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
+        onClose={() => setSearchOpen(false)}
+      />
+    )}
 
     {pendingDeleteFolder && (
       <ConfirmDialog

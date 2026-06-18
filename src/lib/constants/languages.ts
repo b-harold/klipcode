@@ -45,3 +45,45 @@ export const LANGUAGES = [
 export type LanguageId = (typeof LANGUAGES)[number]["id"];
 
 export const DEFAULT_LANGUAGE: LanguageId = "javascript";
+
+/**
+ * Maps a file extension (including the leading dot, lowercased) to a language id.
+ * Built from the canonical `LANGUAGES` extensions plus common alternate spellings
+ * that don't have their own entry (e.g. `.yml` → YAML, `.mjs` → JavaScript).
+ */
+const EXTENSION_TO_LANGUAGE: Record<string, LanguageId> = {
+  ...Object.fromEntries(LANGUAGES.map((l) => [l.extension, l.id] as const)),
+  ".htm": "html",
+  ".yml": "yaml",
+  ".bash": "bash",
+  ".zsh": "bash",
+  ".mjs": "javascript",
+  ".cjs": "javascript",
+  ".cc": "cpp",
+  ".cxx": "cpp",
+  ".hpp": "cpp",
+  ".hh": "cpp",
+  ".h": "c",
+  ".kts": "kotlin",
+  ".pyw": "python",
+  ".markdown": "markdown",
+};
+
+/**
+ * Infers a language id from a snippet title that looks like a filename
+ * (e.g. `script.js`, `style.css`, `Dockerfile`). Returns `null` when the title
+ * has no recognizable extension, so callers can fall back to a default.
+ */
+export function detectLanguageFromTitle(title: string): LanguageId | null {
+  const name = title.trim().toLowerCase();
+  if (!name) return null;
+
+  // Conventional extension-less filenames.
+  if (name === "dockerfile") return "dockerfile";
+
+  const dot = name.lastIndexOf(".");
+  // No dot, a leading-dot dotfile (e.g. `.env`), or a trailing dot: no extension.
+  if (dot <= 0 || dot === name.length - 1) return null;
+
+  return EXTENSION_TO_LANGUAGE[name.slice(dot)] ?? null;
+}

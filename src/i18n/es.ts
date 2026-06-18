@@ -117,6 +117,7 @@ export const es = {
     root: "Raiz",
     dropToRoot: "Mover a raíz",
     unpin: "Desfijar",
+    search: "Buscar",
   },
   contextMenu: {
     newFolder: "Nueva carpeta\u2026",
@@ -169,6 +170,15 @@ export const es = {
     codeCopied: "¡Copiado!",
     formatCode: "Formatear código",
     formatNotSupported: "Formateo no disponible para este lenguaje",
+  },
+  search: {
+    placeholder: "Buscar snippets por título o código…",
+    empty: "Escribe para buscar tus snippets",
+    noResults: "No se encontraron snippets",
+    rootFolder: "Raíz",
+    navigateHint: "para navegar",
+    selectHint: "para abrir",
+    closeHint: "para cerrar",
   },
   confirmDeleteFolder: {
     title: "Eliminar carpeta",

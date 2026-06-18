@@ -17,6 +17,7 @@ const REQUIRED_SECTIONS = [
   "folderView",
   "snippetEditor",
   "confirmDeleteFolder",
+  "search",
 ] as const;
 
 describe("i18n dictionary (es)", () => {

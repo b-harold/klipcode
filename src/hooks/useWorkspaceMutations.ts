@@ -3,7 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { db } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
 import type { ClipboardEntry, FolderRecord, SnippetRecord, SyncStatus } from "@/lib/types";
-import { DEFAULT_LANGUAGE } from "@/lib/constants/languages";
+import { DEFAULT_LANGUAGE, detectLanguageFromTitle } from "@/lib/constants/languages";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import type { Dictionary } from "@/i18n";
 
@@ -100,7 +100,9 @@ export function useWorkspaceMutations({
       ownerId: user?.id ?? null,
       folderId: folderId ?? null,
       title: title.trim() || copy.snippetCard.untitled,
-      language: DEFAULT_LANGUAGE,
+      // Infer the syntax from a filename-style title (e.g. `style.css`) so the
+      // user doesn't have to pick a language manually; fall back to the default.
+      language: detectLanguageFromTitle(title) ?? DEFAULT_LANGUAGE,
       code: "",
       isPinnedAside: false,
       isPinnedHome: false,

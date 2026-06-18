@@ -116,6 +116,7 @@ export const en = {
     root: "Root",
     dropToRoot: "Move to root",
     unpin: "Unpin",
+    search: "Search",
   },
   contextMenu: {
     newFolder: "New folder\u2026",
@@ -168,6 +169,15 @@ export const en = {
     codeCopied: "Copied!",
     formatCode: "Format code",
     formatNotSupported: "Formatting not available for this language",
+  },
+  search: {
+    placeholder: "Search snippets by title or code…",
+    empty: "Type to search your snippets",
+    noResults: "No snippets found",
+    rootFolder: "Root",
+    navigateHint: "to navigate",
+    selectHint: "to open",
+    closeHint: "to close",
   },
   confirmDeleteFolder: {
     title: "Delete folder",

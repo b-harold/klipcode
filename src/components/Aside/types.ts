@@ -12,6 +12,7 @@ export interface AsideProps {
   clipboard: ClipboardEntry | null;
   onSelectSnippet: (snippetId: string) => void;
   onGoHome: () => void;
+  onOpenSearch: () => void;
   onGoSpace: () => void;
   onNewSnippetAt: (folderId: string | null) => void;
   onCreateSnippetInline: (folderId: string | null, title: string) => Promise<void>;

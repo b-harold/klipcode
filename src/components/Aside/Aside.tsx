@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FilePlus, FolderPlus, Home, Layers } from "lucide-react";
+import { FilePlus, FolderPlus, Home, Layers, Search } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
@@ -28,6 +28,7 @@ export function Aside({
   clipboard,
   onSelectSnippet,
   onGoHome,
+  onOpenSearch,
   onGoSpace,
   onNewSnippetAt,
   onCreateSnippetInline,
@@ -193,7 +194,7 @@ export function Aside({
 
           <div className="mx-4 mb-2 border-t border-white/5" />
 
-          {/* Home */}
+          {/* Home + Search */}
           <div className="px-2">
             <button
               type="button"
@@ -202,6 +203,14 @@ export function Aside({
             >
               <Home size={14} className="shrink-0" />
               <span>{copy.aside.home}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
+            >
+              <Search size={14} className="shrink-0" />
+              <span>{copy.aside.search}</span>
             </button>
           </div>
 

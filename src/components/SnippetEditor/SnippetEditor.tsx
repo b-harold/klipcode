@@ -226,7 +226,7 @@ export function SnippetEditor({
           value={title}
           onChange={handleTitleChange}
           placeholder={editorCopy.titlePlaceholder}
-          className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-white/25 focus:outline-none"
+          className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-white/25 focus:outline-none max-sm:w-auto max-sm:min-w-[2rem] max-sm:[field-sizing:content]"
           spellCheck={false}
         />
       ),
@@ -281,6 +281,7 @@ export function SnippetEditor({
         leading={menuButton}
         actions={breadcrumbActions}
         defaultStuck
+        stackActionsOnMobile
       />
 
       {/* ── Editor ─────────────────────────────────────────────────────────── */}

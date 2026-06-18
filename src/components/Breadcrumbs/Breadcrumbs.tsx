@@ -35,6 +35,13 @@ interface BreadcrumbsProps {
    * @default false
    */
   defaultStuck?: boolean;
+  /**
+   * When `true`, on mobile the `actions` slot wraps onto its own row below the
+   * trail, and the trail becomes horizontally scrollable anchored to its end
+   * (the current/last crumb is shown first; slide left to reveal ancestors).
+   * @default false
+   */
+  stackActionsOnMobile?: boolean;
   className?: string;
 }
 
@@ -59,10 +66,22 @@ export function Breadcrumbs({
   leading,
   actions,
   defaultStuck = false,
+  stackActionsOnMobile = false,
   className,
 }: BreadcrumbsProps) {
   const navRef = useRef<HTMLElement>(null);
+  const trailRef = useRef<HTMLOListElement>(null);
   const [isStuck, setIsStuck] = useState(defaultStuck);
+
+  // Keep the trail scrolled to its end so the current (last) crumb stays visible;
+  // the user slides left to reveal ancestors. Only meaningful when the trail can
+  // overflow horizontally (mobile, with `stackActionsOnMobile`).
+  useEffect(() => {
+    if (!stackActionsOnMobile) return;
+    const trail = trailRef.current;
+    if (!trail) return;
+    trail.scrollLeft = trail.scrollWidth;
+  }, [stackActionsOnMobile, items]);
 
   useEffect(() => {
     // No dynamic detection needed when the component is always in "stuck" mode.
@@ -91,6 +110,7 @@ export function Breadcrumbs({
       className={cn(
         "sticky top-0 z-10 flex w-full items-center gap-2 px-6 py-2.5 min-h-[44px] border-b border-transparent",
         "transition-[background-color,border-color] duration-200",
+        stackActionsOnMobile && "flex-wrap sm:flex-nowrap",
         isStuck
           ? "border-white/[0.06] bg-[#0a0a0a]/90 backdrop-blur-md"
           : "bg-transparent",
@@ -100,11 +120,32 @@ export function Breadcrumbs({
       {leading && (
         <div className="flex shrink-0 items-center">{leading}</div>
       )}
-      <ol className="flex flex-1 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap">
+      <ol
+        ref={trailRef}
+        className={cn(
+          "flex flex-1 min-w-0 items-center gap-0.5 whitespace-nowrap",
+          stackActionsOnMobile
+            ? "overflow-x-auto sm:overflow-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            : "overflow-hidden"
+        )}
+      >
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
-            <li key={item.id} className="flex items-center">
+            <li
+              key={item.id}
+              className={cn(
+                "flex items-center",
+                // In scroll mode, keep natural width on mobile so the trail
+                // overflows (and scrolls) instead of truncating each crumb.
+                stackActionsOnMobile && "max-sm:shrink-0",
+                // An auto inline-start margin on the first crumb pins the whole
+                // trail to the right edge when it fits, and collapses to 0 when
+                // it overflows (then the scroll-to-end below keeps the current
+                // crumb visible). More robust than `justify-end` on a scroller.
+                stackActionsOnMobile && index === 0 && "max-sm:ms-auto"
+              )}
+            >
               {index > 0 && (
                 <ChevronRight
                   size={11}
@@ -134,7 +175,14 @@ export function Breadcrumbs({
       </ol>
 
       {actions && (
-        <div className="flex shrink-0 items-center gap-1.5">{actions}</div>
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-1.5",
+            stackActionsOnMobile && "basis-full justify-end sm:basis-auto sm:justify-normal"
+          )}
+        >
+          {actions}
+        </div>
       )}
     </nav>
   );

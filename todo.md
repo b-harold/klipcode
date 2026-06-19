@@ -41,7 +41,7 @@ Findings from a full project review (2026-06-11). Organized by area; file refere
 ## ✨ Features
 
 - [x] **Global search** — the biggest gap for a snippet manager. Search titles + code (+ language filter), ideally a ⌘K command palette. The only search today is inside the language dropdown. _(Fixed: `SearchPalette` implements full-text search over snippet titles and code with keyboard navigation (Arrow keys, Enter, Escape) and is opened via ⌘K / Ctrl+K.)_
-- [ ] **Keyboard shortcuts**: new snippet, copy current snippet, navigate list, close editor. The audience is developers; this is high-leverage.
+- [x] **Keyboard shortcuts**: new snippet, copy current snippet, navigate list, close editor. The audience is developers; this is high-leverage. _(Fixed: a central registry (`src/lib/constants/shortcuts.ts`) feeds a single window-level handler (`useGlobalShortcuts`) and a help overlay (`ShortcutsDialog`, opened with `⌘//?` or the sidebar "Keyboard shortcuts" button). Bindings — search `⌘K`, new snippet `⌘⌥N`, copy current code `⌘⌥C`, toggle sidebar `⌘B`, close editor `Esc`, and `↑/↓` roving focus over the home cards. Action shortcuts use modifier combos so they fire even while typing in the title/editor; bare-key shortcuts are suppressed in text fields. macOS shows ⌘/⌥, other platforms Ctrl/Alt.)_
 - [ ] **Export / import** (JSON download/restore). Cheap insurance for users and a migration path; could later extend to GitHub Gist sync.
 - [ ] **Tags** in addition to folders (a snippet often belongs to multiple topics).
 - [ ] **Trash / undo for deletions.** Snippet deletes are instant, permanent, and pushed to the cloud. Pairs with the soft-delete/tombstone work in Bugs.

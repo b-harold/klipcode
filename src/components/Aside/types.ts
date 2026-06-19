@@ -13,6 +13,7 @@ export interface AsideProps {
   onSelectSnippet: (snippetId: string) => void;
   onGoHome: () => void;
   onOpenSearch: () => void;
+  onOpenShortcuts: () => void;
   onGoSpace: () => void;
   onNewSnippetAt: (folderId: string | null) => void;
   onCreateSnippetInline: (folderId: string | null, title: string) => Promise<void>;

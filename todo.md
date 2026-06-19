@@ -40,7 +40,7 @@ Findings from a full project review (2026-06-11). Organized by area; file refere
 
 ## ✨ Features
 
-- [ ] **Global search** — the biggest gap for a snippet manager. Search titles + code (+ language filter), ideally a ⌘K command palette. The only search today is inside the language dropdown.
+- [x] **Global search** — the biggest gap for a snippet manager. Search titles + code (+ language filter), ideally a ⌘K command palette. The only search today is inside the language dropdown. _(Fixed: `SearchPalette` implements full-text search over snippet titles and code with keyboard navigation (Arrow keys, Enter, Escape) and is opened via ⌘K / Ctrl+K.)_
 - [ ] **Keyboard shortcuts**: new snippet, copy current snippet, navigate list, close editor. The audience is developers; this is high-leverage.
 - [ ] **Export / import** (JSON download/restore). Cheap insurance for users and a migration path; could later extend to GitHub Gist sync.
 - [ ] **Tags** in addition to folders (a snippet often belongs to multiple topics).
@@ -49,7 +49,7 @@ Findings from a full project review (2026-06-11). Organized by area; file refere
 - [ ] **Snippet duplication** action ("Duplicate" in the context menu — copy/paste already half-implements this).
 - [ ] **More OAuth providers** — GitHub-only today; Google would widen the audience.
 - [ ] **PWA manifest + installability.** The app is already offline-capable thanks to IndexedDB; a manifest and basic service worker would make it installable.
-- [ ] **Auto-detect language from file extension.** When creating a snippet and entering a title with an extension (e.g. `script.js`, `style.css`, `index.html`), automatically set the language syntax without requiring manual selection from the language dropdown.
+- [x] **Auto-detect language from file extension.** When creating a snippet and entering a title with an extension (e.g. `script.js`, `style.css`, `index.html`), automatically set the language syntax without requiring manual selection from the language dropdown. _(Fixed: `detectLanguageFromTitle` in `src/lib/constants/languages.ts` parses file extensions and `handleTitleChange` in `NewSnippet.tsx` automatically updates the language dropdown.)_
 - [ ] **Preview button for markdown and HTML.** Add a preview toggle button in the editor for `.md` and `.html` snippets to render and display the output without leaving the editor.
 
 ## 🎨 UI / UX

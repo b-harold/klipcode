@@ -20,6 +20,7 @@ import { useWorkspaceMutations } from "@/hooks/useWorkspaceMutations";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 
 import { AccountToast } from "@/components/AccountToast/AccountToast";
+import { CopyToast } from "@/components/CopyToast/CopyToast";
 import { Aside } from "@/components/Aside/Aside";
 import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
 import { DragProvider } from "@/components/DragContext";
@@ -103,6 +104,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [copyNonce, setCopyNonce] = useState(0);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<{
     id: string;
@@ -175,7 +177,10 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     onToggleHelp: () => setHelpOpen((v) => !v),
     onNewSnippet: () => handleNewSnippetAt(selectedFolderId ?? null),
     onCopyCurrent: () => {
-      if (selectedSnippet) void navigator.clipboard.writeText(selectedSnippet.code);
+      if (!selectedSnippet) return;
+      void navigator.clipboard
+        .writeText(selectedSnippet.code)
+        .then(() => setCopyNonce((n) => n + 1));
     },
     onToggleSidebar: () => setSidebarOpen((v) => !v),
     onCloseEditor: () => router.push(base),
@@ -369,6 +374,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     )}
 
     {helpOpen && <ShortcutsDialog copy={copy} onClose={() => setHelpOpen(false)} />}
+
+    <CopyToast nonce={copyNonce} message={copy.snippetEditor.codeCopied} />
 
     {pendingDeleteFolder && (
       <ConfirmDialog

@@ -18,6 +18,7 @@ const REQUIRED_SECTIONS = [
   "snippetEditor",
   "confirmDeleteFolder",
   "search",
+  "shortcuts",
 ] as const;
 
 describe("i18n dictionary (es)", () => {

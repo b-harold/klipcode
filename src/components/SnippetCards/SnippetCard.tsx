@@ -224,6 +224,7 @@ export function SnippetCard({
     <article
       role="button"
       tabIndex={0}
+      data-snippet-card=""
       draggable={enableDrag}
       onClick={onSelect}
       onKeyDown={handleKeyDown}

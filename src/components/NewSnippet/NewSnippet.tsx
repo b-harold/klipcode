@@ -1,10 +1,11 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { Editor } from "@/components/Editor/Editor";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { FolderSelect } from "@/ui/FolderSelect";
+import { ShortcutHint } from "@/ui/ShortcutHint";
 import { DEFAULT_LANGUAGE, detectLanguageFromTitle, type LanguageId } from "@/lib/constants/languages";
 import type { FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
@@ -13,6 +14,8 @@ interface NewSnippetProps {
   copy: Dictionary;
   folders: FolderRecord[];
   defaultFolderId?: string | null;
+  /** Bumped when a keyboard shortcut opens this form; focuses the title field. */
+  focusNonce?: number;
   onCreateSnippet: (data: {
     title: string;
     language: string;
@@ -21,11 +24,23 @@ interface NewSnippetProps {
   }) => void;
 }
 
-export function NewSnippet({ copy, folders, defaultFolderId, onCreateSnippet }: NewSnippetProps) {
+export function NewSnippet({ copy, folders, defaultFolderId, focusNonce = 0, onCreateSnippet }: NewSnippetProps) {
   const [title, setTitle] = useState("");
   const [language, setLanguage] = useState<LanguageId>(DEFAULT_LANGUAGE);
   const [folderId, setFolderId] = useState(defaultFolderId ?? "");
   const [code, setCode] = useState("");
+
+  // Focus the title when a shortcut requests it (nonce > 0). Tracking the last
+  // handled value covers both an in-place bump and a fresh mount after the app
+  // navigated home from the editor/folder view.
+  const titleRef = useRef<HTMLInputElement>(null);
+  const handledFocusNonce = useRef(0);
+  useEffect(() => {
+    if (focusNonce > 0 && focusNonce !== handledFocusNonce.current) {
+      handledFocusNonce.current = focusNonce;
+      titleRef.current?.focus();
+    }
+  }, [focusNonce]);
 
   // Sync the pre-selected folder coming from the aside context menu by adjusting
   // state during render when the prop changes — no effect needed.
@@ -42,6 +57,15 @@ export function NewSnippet({ copy, folders, defaultFolderId, onCreateSnippet }: 
     setTitle(value);
     const detected = detectLanguageFromTitle(value);
     if (detected) setLanguage(detected);
+  }
+
+  // ⌘/Ctrl+Enter submits from anywhere in the form (title input or editor).
+  // Mod+Enter isn't bound in CodeMirror's keymap, so the event bubbles here.
+  function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.requestSubmit();
+    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -63,10 +87,11 @@ export function NewSnippet({ copy, folders, defaultFolderId, onCreateSnippet }: 
 
   return (
     <section className="rounded-xl border border-white/[0.06] bg-surface">
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown}>
         {/* Title + Language row */}
         <div className="flex flex-col gap-3 border-b border-white/[0.06] px-4 py-3 sm:flex-row sm:items-center">
           <input
+            ref={titleRef}
             type="text"
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
@@ -110,6 +135,7 @@ export function NewSnippet({ copy, folders, defaultFolderId, onCreateSnippet }: 
           >
             <Plus size={14} strokeWidth={2.5} />
             <span>{copy.forms.submitSnippet}</span>
+            <ShortcutHint id="createSnippet" tone="dark" className="ml-0.5" />
           </button>
         </div>
       </form>

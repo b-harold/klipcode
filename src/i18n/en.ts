@@ -117,6 +117,7 @@ export const en = {
     dropToRoot: "Move to root",
     unpin: "Unpin",
     search: "Search",
+    shortcuts: "Keyboard shortcuts",
   },
   contextMenu: {
     newFolder: "New folder\u2026",
@@ -178,6 +179,24 @@ export const en = {
     navigateHint: "to navigate",
     selectHint: "to open",
     closeHint: "to close",
+  },
+  shortcuts: {
+    title: "Keyboard shortcuts",
+    sections: {
+      general: "General",
+      editor: "Editor",
+      navigation: "Navigation",
+    },
+    items: {
+      search: "Open search",
+      newSnippet: "New snippet",
+      createSnippet: "Create snippet",
+      toggleSidebar: "Toggle sidebar",
+      help: "Show keyboard shortcuts",
+      copyCurrent: "Copy current snippet code",
+      closeEditor: "Close editor",
+      navigateList: "Move between cards",
+    },
   },
   confirmDeleteFolder: {
     title: "Delete folder",

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { FilePlus, FolderPlus, Home, Layers, Search } from "lucide-react";
+import { FilePlus, FolderPlus, Home, Keyboard, Layers, Search } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
 import { Tooltip } from "@/ui/Tooltip";
+import { ShortcutHint } from "@/ui/ShortcutHint";
 
 import type { AsideProps, AsideCtxShape, MenuTarget } from "./types";
 import { sortByPinThenAlpha } from "./utils";
@@ -29,6 +30,7 @@ export function Aside({
   onSelectSnippet,
   onGoHome,
   onOpenSearch,
+  onOpenShortcuts,
   onGoSpace,
   onNewSnippetAt,
   onCreateSnippetInline,
@@ -207,10 +209,24 @@ export function Aside({
             <button
               type="button"
               onClick={onOpenSearch}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
+              className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
             >
-              <Search size={14} className="shrink-0" />
-              <span>{copy.aside.search}</span>
+              <span className="flex items-center gap-2">
+                <Search size={14} className="shrink-0" />
+                <span>{copy.aside.search}</span>
+              </span>
+              <ShortcutHint id="search" />
+            </button>
+            <button
+              type="button"
+              onClick={onOpenShortcuts}
+              className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
+            >
+              <span className="flex items-center gap-2">
+                <Keyboard size={14} className="shrink-0" />
+                <span>{copy.aside.shortcuts}</span>
+              </span>
+              <ShortcutHint id="help" />
             </button>
           </div>
 

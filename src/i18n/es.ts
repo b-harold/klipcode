@@ -118,6 +118,7 @@ export const es = {
     dropToRoot: "Mover a raíz",
     unpin: "Desfijar",
     search: "Buscar",
+    shortcuts: "Atajos de teclado",
   },
   contextMenu: {
     newFolder: "Nueva carpeta\u2026",
@@ -179,6 +180,24 @@ export const es = {
     navigateHint: "para navegar",
     selectHint: "para abrir",
     closeHint: "para cerrar",
+  },
+  shortcuts: {
+    title: "Atajos de teclado",
+    sections: {
+      general: "General",
+      editor: "Editor",
+      navigation: "Navegación",
+    },
+    items: {
+      search: "Abrir búsqueda",
+      newSnippet: "Nuevo snippet",
+      createSnippet: "Crear snippet",
+      toggleSidebar: "Alternar barra lateral",
+      help: "Mostrar atajos de teclado",
+      copyCurrent: "Copiar el código del snippet actual",
+      closeEditor: "Cerrar editor",
+      navigateList: "Moverse entre tarjetas",
+    },
   },
   confirmDeleteFolder: {
     title: "Eliminar carpeta",

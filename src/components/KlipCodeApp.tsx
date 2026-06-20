@@ -17,8 +17,10 @@ import { useResponsiveSidebar } from "@/hooks/useResponsiveSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import { useWorkspaceMutations } from "@/hooks/useWorkspaceMutations";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 
 import { AccountToast } from "@/components/AccountToast/AccountToast";
+import { CopyToast } from "@/components/CopyToast/CopyToast";
 import { Aside } from "@/components/Aside/Aside";
 import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
 import { DragProvider } from "@/components/DragContext";
@@ -27,6 +29,7 @@ import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 import { FolderView } from "@/components/FolderView/FolderView";
 import { SearchPalette } from "@/components/SearchPalette/SearchPalette";
+import { ShortcutsDialog } from "@/components/ShortcutsDialog/ShortcutsDialog";
 
 export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const copy = getDictionary(locale);
@@ -100,6 +103,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [copyNonce, setCopyNonce] = useState(0);
+  const [newSnippetFocusNonce, setNewSnippetFocusNonce] = useState(0);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<{
     id: string;
@@ -147,19 +153,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.authReady, auth.user]);
 
-  /* ── Command palette shortcut (⌘K / Ctrl+K) ──────────────────────────── */
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setSearchOpen((v) => !v);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
   /* ── Derived state & side-effects ─────────────────────────────────────── */
 
   useEffect(() => {
@@ -177,6 +170,27 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     router.push(base);
     setDefaultNewSnippetFolderId(folderId);
   }
+
+  /* ── Global keyboard shortcuts ────────────────────────────────────────── */
+
+  useGlobalShortcuts({
+    onToggleSearch: () => setSearchOpen((v) => !v),
+    onToggleHelp: () => setHelpOpen((v) => !v),
+    onNewSnippet: () => {
+      handleNewSnippetAt(selectedFolderId ?? null);
+      setNewSnippetFocusNonce((n) => n + 1);
+    },
+    onCopyCurrent: () => {
+      if (!selectedSnippet) return;
+      void navigator.clipboard
+        .writeText(selectedSnippet.code)
+        .then(() => setCopyNonce((n) => n + 1));
+    },
+    onToggleSidebar: () => setSidebarOpen((v) => !v),
+    onCloseEditor: () => router.push(base),
+    hasOpenSnippet: !!selectedSnippet,
+    overlayOpen: searchOpen || helpOpen || !!pendingDeleteFolder,
+  });
 
   async function handleDeleteFolderWithConfirm(id: string): Promise<void> {
     const folder = folders.find((f) => f.id === id);
@@ -256,6 +270,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
         onGoHome={() => router.push(base)}
         onOpenSearch={() => setSearchOpen(true)}
+        onOpenShortcuts={() => setHelpOpen(true)}
         onGoSpace={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
         onNewSnippetAt={handleNewSnippetAt}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
@@ -329,6 +344,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
                 copy={copy}
                 folders={folders}
                 defaultFolderId={defaultNewSnippetFolderId}
+                focusNonce={newSnippetFocusNonce}
                 onCreateSnippet={mutations.handleCreateSnippet}
               />
 
@@ -361,6 +377,10 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onClose={() => setSearchOpen(false)}
       />
     )}
+
+    {helpOpen && <ShortcutsDialog copy={copy} onClose={() => setHelpOpen(false)} />}
+
+    <CopyToast nonce={copyNonce} message={copy.snippetEditor.codeCopied} />
 
     {pendingDeleteFolder && (
       <ConfirmDialog

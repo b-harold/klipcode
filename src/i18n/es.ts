@@ -191,6 +191,7 @@ export const es = {
     items: {
       search: "Abrir búsqueda",
       newSnippet: "Nuevo snippet",
+      createSnippet: "Crear snippet",
       toggleSidebar: "Alternar barra lateral",
       help: "Mostrar atajos de teclado",
       copyCurrent: "Copiar el código del snippet actual",

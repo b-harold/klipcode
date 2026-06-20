@@ -190,6 +190,7 @@ export const en = {
     items: {
       search: "Open search",
       newSnippet: "New snippet",
+      createSnippet: "Create snippet",
       toggleSidebar: "Toggle sidebar",
       help: "Show keyboard shortcuts",
       copyCurrent: "Copy current snippet code",

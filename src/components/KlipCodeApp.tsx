@@ -105,6 +105,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [copyNonce, setCopyNonce] = useState(0);
+  const [newSnippetFocusNonce, setNewSnippetFocusNonce] = useState(0);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<{
     id: string;
@@ -175,7 +176,10 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   useGlobalShortcuts({
     onToggleSearch: () => setSearchOpen((v) => !v),
     onToggleHelp: () => setHelpOpen((v) => !v),
-    onNewSnippet: () => handleNewSnippetAt(selectedFolderId ?? null),
+    onNewSnippet: () => {
+      handleNewSnippetAt(selectedFolderId ?? null);
+      setNewSnippetFocusNonce((n) => n + 1);
+    },
     onCopyCurrent: () => {
       if (!selectedSnippet) return;
       void navigator.clipboard
@@ -340,6 +344,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
                 copy={copy}
                 folders={folders}
                 defaultFolderId={defaultNewSnippetFolderId}
+                focusNonce={newSnippetFocusNonce}
                 onCreateSnippet={mutations.handleCreateSnippet}
               />
 

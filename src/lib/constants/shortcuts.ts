@@ -49,6 +49,13 @@ export const SHORTCUT_SECTION_ORDER: ShortcutSection[] = [
   "navigation",
 ];
 
+/** Look up a shortcut descriptor by id (throws if the id is unknown). */
+export function getShortcut(id: ShortcutId): ShortcutDescriptor {
+  const found = SHORTCUTS.find((s) => s.id === id);
+  if (!found) throw new Error(`Unknown shortcut id: ${id}`);
+  return found;
+}
+
 /** True when running on a Mac-family platform (uses ⌘ instead of Ctrl). */
 export function isMac(): boolean {
   if (typeof navigator === "undefined") return false;

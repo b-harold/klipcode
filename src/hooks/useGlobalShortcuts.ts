@@ -46,11 +46,14 @@ export function useGlobalShortcuts(handlers: GlobalShortcutHandlers) {
           h.onToggleSidebar();
           return;
         }
-        if (key === "/") {
-          e.preventDefault();
-          h.onToggleHelp();
-          return;
-        }
+      }
+
+      // Help: ⌘/ and ⌘? — Shift state ignored so it works across layouts
+      // (Shift+/ on US, Shift+7 on a Spanish keyboard, ⌘? is the macOS Help key).
+      if (mod && !e.altKey && (key === "/" || key === "?")) {
+        e.preventDefault();
+        h.onToggleHelp();
+        return;
       }
 
       if (mod && e.altKey && !e.shiftKey) {

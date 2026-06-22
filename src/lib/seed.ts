@@ -30,6 +30,7 @@ export async function seedWelcomeContent(copy: Dictionary): Promise<boolean> {
       updatedAt: now,
       dirty: false,
       lastSyncedAt: null,
+      deletedAt: null,
     });
 
     await db.snippets.put({
@@ -45,6 +46,7 @@ export async function seedWelcomeContent(copy: Dictionary): Promise<boolean> {
       updatedAt: now,
       dirty: false,
       lastSyncedAt: null,
+      deletedAt: null,
     });
   });
 

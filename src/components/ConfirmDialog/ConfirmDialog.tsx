@@ -4,22 +4,32 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Trash2, FolderOpen, FileCode2 } from "lucide-react";
 
-import type { Dictionary } from "@/i18n";
-
 interface ConfirmDialogProps {
-  copy: Dictionary["confirmDeleteFolder"];
-  folderName: string;
-  nestedFolderCount: number;
-  snippetCount: number;
+  title: string;
+  /** Optional secondary line under the title (e.g. an item name). */
+  subtitle?: string;
+  warning: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  /** Optional counts shown in the summary box. */
+  folderCount?: number;
+  snippetCount?: number;
+  folderCountLabel?: (n: number) => string;
+  snippetCountLabel?: (n: number) => string;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
 export function ConfirmDialog({
-  copy,
-  folderName,
-  nestedFolderCount,
-  snippetCount,
+  title,
+  subtitle,
+  warning,
+  confirmLabel,
+  cancelLabel,
+  folderCount = 0,
+  snippetCount = 0,
+  folderCountLabel,
+  snippetCountLabel,
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -76,44 +86,48 @@ export function ConfirmDialog({
                 id="confirm-dialog-title"
                 className="text-[13px] font-medium leading-snug text-white/90"
               >
-                {copy.title}
+                {title}
               </h2>
-              <p
-                className="mt-0.5 text-[12px] leading-snug truncate max-w-[260px]"
-                style={{ color: "rgba(255,255,255,0.4)" }}
-                title={folderName}
-              >
-                {folderName}
-              </p>
+              {subtitle && (
+                <p
+                  className="mt-0.5 text-[12px] leading-snug truncate max-w-[260px]"
+                  style={{ color: "rgba(255,255,255,0.4)" }}
+                  title={subtitle}
+                >
+                  {subtitle}
+                </p>
+              )}
             </div>
           </div>
 
           {/* Content counts */}
-          <div
-            className="mb-4 rounded-lg px-3 py-2.5 space-y-1.5"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
-          >
-            {nestedFolderCount > 0 && (
-              <div className="flex items-center gap-2">
-                <FolderOpen size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
-                <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  {copy.containsFolders(nestedFolderCount)}
-                </span>
-              </div>
-            )}
-            {snippetCount > 0 && (
-              <div className="flex items-center gap-2">
-                <FileCode2 size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
-                <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  {copy.containsSnippets(snippetCount)}
-                </span>
-              </div>
-            )}
-          </div>
+          {((folderCount > 0 && folderCountLabel) || (snippetCount > 0 && snippetCountLabel)) && (
+            <div
+              className="mb-4 rounded-lg px-3 py-2.5 space-y-1.5"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              {folderCount > 0 && folderCountLabel && (
+                <div className="flex items-center gap-2">
+                  <FolderOpen size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
+                  <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                    {folderCountLabel(folderCount)}
+                  </span>
+                </div>
+              )}
+              {snippetCount > 0 && snippetCountLabel && (
+                <div className="flex items-center gap-2">
+                  <FileCode2 size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
+                  <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                    {snippetCountLabel(snippetCount)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Warning */}
           <p className="mb-4 text-[12px] leading-relaxed" style={{ color: "rgba(255,255,255,0.38)" }}>
-            {copy.permanentWarning}
+            {warning}
           </p>
 
           {/* Actions */}
@@ -137,7 +151,7 @@ export function ConfirmDialog({
                 (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)";
               }}
             >
-              {copy.cancel}
+              {cancelLabel}
             </button>
             <button
               type="button"
@@ -157,7 +171,7 @@ export function ConfirmDialog({
                 (e.currentTarget as HTMLButtonElement).style.color = "rgba(239,68,68,0.9)";
               }}
             >
-              {copy.confirm}
+              {confirmLabel}
             </button>
           </div>
         </div>

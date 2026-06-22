@@ -32,6 +32,14 @@ export interface AsideProps {
   onSelectFolder?: (folderId: string) => void;
   onSignIn: () => void;
   onSignOut: () => void;
+  /** Open the trash view. */
+  onOpenTrash: () => void;
+  /** Restore every trashed record (no confirmation — non-destructive). */
+  onRestoreAll: () => void;
+  /** Permanently empty the trash (opens a confirmation dialog). */
+  onEmptyTrash: () => void;
+  /** Number of items currently in the trash, for the sidebar badge. */
+  trashCount: number;
   isOpen: boolean;
   isMobile: boolean;
   onSetOpen: (open: boolean) => void;

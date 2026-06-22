@@ -116,6 +116,7 @@ export const es = {
     emptySpace: "No hay archivos todavia.",
     root: "Raiz",
     dropToRoot: "Mover a raíz",
+    dropToTrash: "Mover a la papelera",
     unpin: "Desfijar",
     search: "Buscar",
     shortcuts: "Atajos de teclado",
@@ -138,6 +139,8 @@ export const es = {
     copyContent: "Copiar contenido",
     openInNewTab: "Abrir en nueva pestaña",
     moreOptions: "Más opciones",
+    restore: "Restaurar",
+    deletePermanently: "Eliminar definitivamente",
   },
   languageSelect: {
     searchPlaceholder: "Buscar lenguaje...",
@@ -172,6 +175,7 @@ export const es = {
     codeCopied: "¡Copiado!",
     formatCode: "Formatear código",
     formatNotSupported: "Formateo no disponible para este lenguaje",
+    trashedNotice: "Este snippet está en la papelera; restáuralo para editarlo.",
   },
   search: {
     placeholder: "Buscar snippets por título o código…",
@@ -200,15 +204,18 @@ export const es = {
       navigateList: "Moverse entre tarjetas",
     },
   },
-  confirmDeleteFolder: {
-    title: "Eliminar carpeta",
-    permanentWarning: "Esta acción es permanente y no se puede deshacer.",
-    containsFolders: (n: number) =>
-      n === 1 ? "1 carpeta interna" : `${n} carpetas internas`,
-    containsSnippets: (n: number) =>
-      n === 1 ? "1 snippet" : `${n} snippets`,
+  trash: {
+    title: "Papelera",
+    empty: "La papelera está vacía.",
+    restore: "Restaurar",
+    deletePermanently: "Eliminar definitivamente",
+    restoreAll: "Restaurar todo",
+    emptyTrash: "Vaciar papelera",
+    emptyTitle: "Vaciar papelera",
+    emptyWarning: "Esto elimina definitivamente todo el contenido de la papelera. Esta acción no se puede deshacer.",
     cancel: "Cancelar",
-    confirm: "Eliminar permanentemente",
+    folderCount: (n: number) => (n === 1 ? "1 carpeta" : `${n} carpetas`),
+    snippetCount: (n: number) => (n === 1 ? "1 snippet" : `${n} snippets`),
   },
   landing: {
     nav: {

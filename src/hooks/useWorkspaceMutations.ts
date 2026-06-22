@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
-import { db } from "@/lib/db";
+import { db, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
 import type { ClipboardEntry, FolderRecord, SnippetRecord, SyncStatus } from "@/lib/types";
 import { DEFAULT_LANGUAGE, detectLanguageFromTitle } from "@/lib/constants/languages";
@@ -84,6 +84,7 @@ export function useWorkspaceMutations({
       updatedAt: timestamp,
       dirty: true,
       lastSyncedAt: null,
+      deletedAt: null,
     });
 
     setSnippetStatus(snippetId, "editing");
@@ -110,6 +111,7 @@ export function useWorkspaceMutations({
       updatedAt: timestamp,
       dirty: true,
       lastSyncedAt: null,
+      deletedAt: null,
     });
 
     setSnippetStatus(snippetId, "editing");
@@ -153,7 +155,7 @@ export function useWorkspaceMutations({
 
   async function handleDeleteSnippet(id: string) {
     // Cancel any pending debounced update so it can't write the row back after
-    // we delete it (and trigger a pointless cloud sync).
+    // we trash it (and trigger a pointless cloud sync).
     const pendingTimer = updateTimersRef.current.get(id);
     if (pendingTimer) {
       clearTimeout(pendingTimer);
@@ -161,11 +163,50 @@ export function useWorkspaceMutations({
     }
 
     const existing = await db.snippets.get(id);
+    if (!existing) return;
+
+    // Soft delete: mark it deleted and dirty so the trash state uploads as a
+    // normal field change (the cloud row is kept, with deleted_at set, so the
+    // trash syncs to other devices). It's hidden from the workspace either way.
+    const now = new Date().toISOString();
+    await db.snippets.update(id, { deletedAt: now, updatedAt: now, dirty: true });
+
+    if (selectedSnippetId === id) setSelectedSnippetId(null);
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  /** Restore a trashed snippet. With `targetFolderId` (a drag-and-drop drop), it
+   *  lands in that folder; otherwise it returns to its original folder, or to the
+   *  root if that folder is gone or still trashed. */
+  async function handleRestoreSnippet(id: string, targetFolderId?: string | null) {
+    const snippet = await db.snippets.get(id);
+    if (!snippet) return;
+
+    let folderId: string | null;
+    if (targetFolderId !== undefined) {
+      folderId = targetFolderId;
+    } else {
+      folderId = snippet.folderId;
+      if (folderId) {
+        const parent = await db.folders.get(folderId);
+        if (!parent || parent.deletedAt) folderId = null;
+      }
+    }
+
+    const now = new Date().toISOString();
+    await db.snippets.update(id, { deletedAt: null, folderId, dirty: true, updatedAt: now });
+
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  /** Permanently remove a trashed snippet: purge it locally and queue the cloud
+   *  delete (with retry via the tombstone) for records that reached the cloud. */
+  async function handlePermanentlyDeleteSnippet(id: string) {
+    const existing = await db.snippets.get(id);
     await db.snippets.delete(id);
 
-    // Only records that actually reached the cloud (`lastSyncedAt` set) need a
-    // tombstone. Queueing one and scheduling a sync lets the delete retry if the
-    // cloud call fails, instead of the row resurrecting on the next fetch.
     if (user && supabaseConfigured && existing?.lastSyncedAt != null) {
       await recordDeletions(user.id, [{ id, kind: "snippet" }]);
       scheduleCloudSync();
@@ -216,41 +257,129 @@ export function useWorkspaceMutations({
       updatedAt: timestamp,
       dirty: true,
       lastSyncedAt: null,
+      deletedAt: null,
     });
     refreshWorkspace();
     if (user && supabaseConfigured) scheduleCloudSync();
   }
 
-  async function handleDeleteFolder(id: string) {
-    const allFolders = await db.folders.toArray();
-    const toDelete = new Set<string>([id]);
-    const queue = [id];
+  /** Collect a folder id and all of its descendant folder ids. */
+  function collectFolderSubtree(rootId: string, allFolders: FolderRecord[]): Set<string> {
+    const subtree = new Set<string>([rootId]);
+    const queue = [rootId];
     while (queue.length > 0) {
       const cur = queue.shift()!;
       for (const f of allFolders) {
-        if (f.parentId === cur && !toDelete.has(f.id)) {
-          toDelete.add(f.id);
+        if (f.parentId === cur && !subtree.has(f.id)) {
+          subtree.add(f.id);
           queue.push(f.id);
         }
       }
     }
-    const allSnippets = await db.snippets.toArray();
-    const snippetsToDelete = allSnippets.filter((s) => s.folderId && toDelete.has(s.folderId));
-    const snippetIdsToDelete = snippetsToDelete.map((s) => s.id);
+    return subtree;
+  }
 
-    const foldersToDelete = allFolders.filter((f) => toDelete.has(f.id));
+  async function handleDeleteFolder(id: string) {
+    const [allFolders, allSnippets] = await Promise.all([
+      db.folders.toArray(),
+      db.snippets.toArray(),
+    ]);
+    const subtree = collectFolderSubtree(id, allFolders);
+    const snippetsInSubtree = allSnippets.filter((s) => s.folderId && subtree.has(s.folderId));
+    const foldersInSubtree = allFolders.filter((f) => subtree.has(f.id));
 
-    await Promise.all([...toDelete].map((fid) => db.folders.delete(fid)));
-    await Promise.all(snippetIdsToDelete.map((sid) => db.snippets.delete(sid)));
+    // Soft delete the whole subtree at once, marking each row dirty so the trash
+    // state syncs to the cloud. Already-trashed descendants keep their original
+    // deletion time so they don't jump to the top of the trash.
+    const now = new Date().toISOString();
+    await db.transaction("rw", [db.folders, db.snippets], async () => {
+      await db.folders.bulkPut(
+        foldersInSubtree.map((f) => ({ ...f, deletedAt: f.deletedAt ?? now, updatedAt: now, dirty: true }))
+      );
+      await db.snippets.bulkPut(
+        snippetsInSubtree.map((s) => ({ ...s, deletedAt: s.deletedAt ?? now, updatedAt: now, dirty: true }))
+      );
+    });
 
-    // Queue tombstones for the subtree records that exist in the cloud, then let
-    // the sync loop flush (and retry) them so a failed delete can't resurrect.
+    if (selectedSnippetId && snippetsInSubtree.some((s) => s.id === selectedSnippetId)) {
+      setSelectedSnippetId(null);
+    }
+
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  /** Restore a trashed folder and every trashed record beneath it. With
+   *  `targetParentId` (a drag-and-drop drop) the folder lands under that parent;
+   *  otherwise it keeps its parent, detaching to the root if that parent is gone
+   *  or still trashed. */
+  async function handleRestoreFolder(id: string, targetParentId?: string | null) {
+    const [allFolders, allSnippets] = await Promise.all([
+      db.folders.toArray(),
+      db.snippets.toArray(),
+    ]);
+    const folder = allFolders.find((f) => f.id === id);
+    if (!folder) return;
+
+    const subtree = collectFolderSubtree(id, allFolders);
+
+    let parentId: string | null;
+    if (targetParentId !== undefined && !subtree.has(targetParentId ?? "")) {
+      parentId = targetParentId;
+    } else {
+      parentId = folder.parentId;
+      if (parentId && !subtree.has(parentId)) {
+        const parent = allFolders.find((f) => f.id === parentId);
+        if (!parent || parent.deletedAt) parentId = null;
+      }
+    }
+
+    const foldersToRestore = allFolders.filter((f) => subtree.has(f.id) && f.deletedAt);
+    const snippetsToRestore = allSnippets.filter((s) => s.folderId && subtree.has(s.folderId) && s.deletedAt);
+
+    const now = new Date().toISOString();
+    await db.transaction("rw", [db.folders, db.snippets], async () => {
+      await db.folders.bulkPut(
+        foldersToRestore.map((f) => ({
+          ...f,
+          deletedAt: null,
+          dirty: true,
+          updatedAt: now,
+          parentId: f.id === id ? parentId : f.parentId,
+        }))
+      );
+      await db.snippets.bulkPut(
+        snippetsToRestore.map((s) => ({ ...s, deletedAt: null, dirty: true, updatedAt: now }))
+      );
+    });
+
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  /** Permanently remove a trashed folder and its subtree: purge locally and queue
+   *  the cloud delete for the rows that reached the cloud. */
+  async function handlePermanentlyDeleteFolder(id: string) {
+    const [allFolders, allSnippets] = await Promise.all([
+      db.folders.toArray(),
+      db.snippets.toArray(),
+    ]);
+    const subtree = collectFolderSubtree(id, allFolders);
+    const foldersInSubtree = allFolders.filter((f) => subtree.has(f.id));
+    const snippetsInSubtree = allSnippets.filter((s) => s.folderId && subtree.has(s.folderId));
+    const snippetIds = snippetsInSubtree.map((s) => s.id);
+
+    await db.transaction("rw", [db.folders, db.snippets], async () => {
+      await db.folders.bulkDelete([...subtree]);
+      await db.snippets.bulkDelete(snippetIds);
+    });
+
     if (user && supabaseConfigured) {
       const tombstones = [
-        ...foldersToDelete
+        ...foldersInSubtree
           .filter((f) => f.lastSyncedAt != null)
           .map((f) => ({ id: f.id, kind: "folder" as const })),
-        ...snippetsToDelete
+        ...snippetsInSubtree
           .filter((s) => s.lastSyncedAt != null)
           .map((s) => ({ id: s.id, kind: "snippet" as const })),
       ];
@@ -260,11 +389,82 @@ export function useWorkspaceMutations({
       }
     }
 
-    if (selectedSnippetId && snippetIdsToDelete.includes(selectedSnippetId)) {
+    if (selectedSnippetId && snippetIds.includes(selectedSnippetId)) {
       setSelectedSnippetId(null);
     }
 
     refreshWorkspace();
+  }
+
+  /* ── Trash (bulk) ─────────────────────────────────────────────────────── */
+
+  /** Permanently purge the entire trash for the current owner: remove locally and
+   *  queue the cloud delete for the rows that reached the cloud. */
+  async function handleEmptyTrash() {
+    const trash = await readTrash(user?.id ?? null);
+    const folderIds = trash.folders.map((f) => f.id);
+    const snippetIds = trash.snippets.map((s) => s.id);
+    if (folderIds.length === 0 && snippetIds.length === 0) return;
+
+    await db.transaction("rw", [db.folders, db.snippets], async () => {
+      if (folderIds.length > 0) await db.folders.bulkDelete(folderIds);
+      if (snippetIds.length > 0) await db.snippets.bulkDelete(snippetIds);
+    });
+
+    if (user && supabaseConfigured) {
+      const tombstones = [
+        ...trash.folders
+          .filter((f) => f.lastSyncedAt != null)
+          .map((f) => ({ id: f.id, kind: "folder" as const })),
+        ...trash.snippets
+          .filter((s) => s.lastSyncedAt != null)
+          .map((s) => ({ id: s.id, kind: "snippet" as const })),
+      ];
+      if (tombstones.length > 0) {
+        await recordDeletions(user.id, tombstones);
+        scheduleCloudSync();
+      }
+    }
+
+    if (selectedSnippetId && snippetIds.includes(selectedSnippetId)) {
+      setSelectedSnippetId(null);
+    }
+
+    refreshWorkspace();
+  }
+
+  /** Restore everything in the trash. References among restored records stay
+   *  valid; only references to a record that no longer exists are detached. */
+  async function handleRestoreAll() {
+    const trash = await readTrash(user?.id ?? null);
+    if (trash.folders.length === 0 && trash.snippets.length === 0) return;
+
+    const allFolderIds = new Set((await db.folders.toArray()).map((f) => f.id));
+    const now = new Date().toISOString();
+
+    await db.transaction("rw", [db.folders, db.snippets], async () => {
+      await db.folders.bulkPut(
+        trash.folders.map((f) => ({
+          ...f,
+          deletedAt: null,
+          dirty: true,
+          updatedAt: now,
+          parentId: f.parentId && allFolderIds.has(f.parentId) ? f.parentId : null,
+        }))
+      );
+      await db.snippets.bulkPut(
+        trash.snippets.map((s) => ({
+          ...s,
+          deletedAt: null,
+          dirty: true,
+          updatedAt: now,
+          folderId: s.folderId && allFolderIds.has(s.folderId) ? s.folderId : null,
+        }))
+      );
+    });
+
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
   }
 
   async function handleRenameFolder(id: string, name: string) {
@@ -406,14 +606,20 @@ export function useWorkspaceMutations({
     handleCreateSnippetInline,
     handleUpdateSnippet,
     handleDeleteSnippet,
+    handleRestoreSnippet,
+    handlePermanentlyDeleteSnippet,
     handleRenameSnippet,
     handlePinSnippet,
     handleMoveSnippet,
     handleCreateFolder,
     handleDeleteFolder,
+    handleRestoreFolder,
+    handlePermanentlyDeleteFolder,
     handleRenameFolder,
     handlePinFolder,
     handleMoveFolder,
     handlePaste,
+    handleEmptyTrash,
+    handleRestoreAll,
   };
 }

@@ -87,6 +87,7 @@ function makeSnippet(overrides: Partial<SnippetRecord> = {}): SnippetRecord {
     updatedAt: "2024-01-01T00:00:00.000Z",
     dirty: false,
     lastSyncedAt: "2024-01-01T00:00:00.000Z",
+    deletedAt: null,
     ...overrides,
   };
 }
@@ -103,6 +104,7 @@ function makeFolder(overrides: Partial<FolderRecord> = {}): FolderRecord {
     updatedAt: "2024-01-01T00:00:00.000Z",
     dirty: false,
     lastSyncedAt: "2024-01-01T00:00:00.000Z",
+    deletedAt: null,
     ...overrides,
   };
 }
@@ -117,6 +119,7 @@ function cloudFolder(folder: FolderRecord): CloudFolderRow {
     is_pinned_home: folder.isPinnedHome,
     created_at: folder.createdAt,
     updated_at: folder.updatedAt,
+    deleted_at: folder.deletedAt,
   };
 }
 
@@ -132,6 +135,7 @@ function cloudSnippet(snippet: SnippetRecord): CloudSnippetRow {
     is_pinned_home: snippet.isPinnedHome,
     created_at: snippet.createdAt,
     updated_at: snippet.updatedAt,
+    deleted_at: snippet.deletedAt,
   };
 }
 
@@ -179,6 +183,34 @@ describe("fetchCloudWorkspace() deletion reconciliation", () => {
     expect(await db.snippets.get(dirty.id)).toBeDefined();
     expect(await db.snippets.get(neverSynced.id)).toBeDefined();
     expect(await db.snippets.get(seed.id)).toBeDefined();
+  });
+
+  it("propagates a permanent delete (cloud row absent) even for a trashed record", async () => {
+    // Soft delete keeps the cloud row; an absent row means a permanent delete on
+    // another device, which must be applied locally even if it's still trashed.
+    const trashedFolder = makeFolder({ deletedAt: "2024-02-01T00:00:00.000Z" });
+    const trashedSnippet = makeSnippet({ deletedAt: "2024-02-01T00:00:00.000Z" });
+    await db.folders.add(trashedFolder);
+    await db.snippets.add(trashedSnippet);
+
+    cloud.folders = [];
+    cloud.snippets = [];
+
+    await fetchCloudWorkspace(USER);
+
+    expect(await db.folders.get(trashedFolder.id)).toBeUndefined();
+    expect(await db.snippets.get(trashedSnippet.id)).toBeUndefined();
+  });
+
+  it("syncs the trash state down: a cloud deleted_at marks the local record trashed", async () => {
+    const live = makeSnippet({ deletedAt: null });
+    await db.snippets.add(live);
+    // Same row, now soft-deleted on another device (deleted_at set, newer).
+    cloud.snippets = [cloudSnippet({ ...live, deletedAt: "2024-03-01T00:00:00.000Z", updatedAt: "2024-03-01T00:00:00.000Z" })];
+
+    await fetchCloudWorkspace(USER);
+
+    expect((await db.snippets.get(live.id))?.deletedAt).toBe("2024-03-01T00:00:00.000Z");
   });
 });
 

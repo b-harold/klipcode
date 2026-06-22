@@ -313,7 +313,6 @@ export function Editor({
     ...(gutterBackground
       ? { "--klipcode-editor-gutter-background": gutterBackground }
       : {}),
-    ...(readOnly ? { pointerEvents: "none" } : {}),
   } as CSSProperties;
 
   useEffect(() => {

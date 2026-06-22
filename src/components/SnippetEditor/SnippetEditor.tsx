@@ -13,6 +13,8 @@ import {
   Folder,
   Layers,
   Zap,
+  RotateCcw,
+  Trash2,
 } from "lucide-react";
 
 import { Editor } from "@/components/Editor/Editor";
@@ -99,6 +101,10 @@ export interface SnippetEditorProps {
   onNavigateHome?: () => void;
   onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId }) => void;
   menuButton?: React.ReactNode;
+  /** When true the snippet is in the trash: it's shown read-only with a notice
+   *  and restore / delete-permanently actions instead of the edit controls. */
+  readOnly?: boolean;
+  trashActions?: { onRestore: () => void; onDeletePermanently: () => void };
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -115,6 +121,8 @@ export function SnippetEditor({
   onNavigateHome,
   onUpdate,
   menuButton,
+  readOnly = false,
+  trashActions,
 }: SnippetEditorProps) {
   const editorCopy = copy.snippetEditor;
 
@@ -133,6 +141,7 @@ export function SnippetEditor({
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (readOnly) return;
     const next = e.target.value;
     setTitle(next);
 
@@ -143,6 +152,7 @@ export function SnippetEditor({
   }
 
   function handleCodeChange(next: string) {
+    if (readOnly) return;
     setCode(next);
 
     if (codeTimerRef.current) clearTimeout(codeTimerRef.current);
@@ -225,6 +235,7 @@ export function SnippetEditor({
           type="text"
           value={title}
           onChange={handleTitleChange}
+          readOnly={readOnly}
           placeholder={editorCopy.titlePlaceholder}
           className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-white/25 focus:outline-none max-sm:w-auto max-sm:min-w-[2rem] max-sm:[field-sizing:content]"
           spellCheck={false}
@@ -236,7 +247,45 @@ export function SnippetEditor({
 
   const isFormattable = snippet.language in PRETTIER_PARSERS;
 
-  const breadcrumbActions = (
+  const breadcrumbActions = readOnly ? (
+    <>
+      <Tooltip content={editorCopy.copyCode} placement="bottom">
+        <button
+          type="button"
+          aria-label={editorCopy.copyCode}
+          onClick={handleCopy}
+          className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+        >
+          {copied ? <Check size={13} /> : <Copy size={13} />}
+        </button>
+      </Tooltip>
+      {trashActions && (
+        <>
+          <div className="h-4 w-px bg-white/[0.08]" />
+          <Tooltip content={copy.trash.restore} placement="bottom">
+            <button
+              type="button"
+              aria-label={copy.trash.restore}
+              onClick={trashActions.onRestore}
+              className="flex items-center justify-center rounded p-1.5 text-white/45 transition-colors hover:bg-white/[0.06] hover:text-white/80"
+            >
+              <RotateCcw size={13} />
+            </button>
+          </Tooltip>
+          <Tooltip content={copy.trash.deletePermanently} placement="bottom">
+            <button
+              type="button"
+              aria-label={copy.trash.deletePermanently}
+              onClick={trashActions.onDeletePermanently}
+              className="flex items-center justify-center rounded p-1.5 text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-300"
+            >
+              <Trash2 size={13} />
+            </button>
+          </Tooltip>
+        </>
+      )}
+    </>
+  ) : (
     <>
       <LanguageSelect
         value={snippet.language as LanguageId}
@@ -284,23 +333,33 @@ export function SnippetEditor({
         stackActionsOnMobile
       />
 
+      {/* ── Trash notice ─────────────────────────────────────────────────── */}
+      {readOnly && (
+        <div className="flex items-center gap-2 border-b border-red-500/15 bg-red-500/[0.06] px-6 py-2 text-[12px] text-red-300/80">
+          <Trash2 size={13} className="shrink-0" />
+          <span>{editorCopy.trashedNotice}</span>
+        </div>
+      )}
+
       {/* ── Editor ─────────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">
         <Editor
           value={code}
           onChange={handleCodeChange}
           language={snippet.language}
-          readOnly={false}
+          readOnly={readOnly}
           height="100%"
           fontSize={14}
           gutterBackground="var(--background)"
         />
       </div>
 
-      {/* ── Sync status — fixed bottom-right corner ───────────────────────── */}
-      <div className="fixed bottom-4 right-4 z-50 rounded-full border border-white/[0.08] bg-[#0a0a0a]/80 px-3 py-1.5 backdrop-blur-sm">
-        <SyncIndicator status={syncStatus} copy={editorCopy} />
-      </div>
+      {/* ── Sync status — fixed bottom-right corner (hidden for trashed) ──── */}
+      {!readOnly && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-full border border-white/[0.08] bg-[#0a0a0a]/80 px-3 py-1.5 backdrop-blur-sm">
+          <SyncIndicator status={syncStatus} copy={editorCopy} />
+        </div>
+      )}
     </div>
   );
 }

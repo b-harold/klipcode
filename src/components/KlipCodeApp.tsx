@@ -1,16 +1,16 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Menu } from "lucide-react";
 
-import { readWorkspace } from "@/lib/db";
+import { readTrash, readWorkspace } from "@/lib/db";
 import { seedWelcomeContent } from "@/lib/seed";
 import type { ClipboardEntry, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
 import { getDictionary } from "@/i18n";
 import { localeHref } from "@/lib/locale";
-import { SPACE_ROOT_ID } from "@/lib/navigation";
+import { SPACE_ROOT_ID, TRASH_ROOT_ID } from "@/lib/navigation";
 import { Tooltip } from "@/ui/Tooltip";
 
 import { useResponsiveSidebar } from "@/hooks/useResponsiveSidebar";
@@ -28,6 +28,7 @@ import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 import { FolderView } from "@/components/FolderView/FolderView";
+import { TrashView } from "@/components/TrashView/TrashView";
 import { SearchPalette } from "@/components/SearchPalette/SearchPalette";
 import { ShortcutsDialog } from "@/components/ShortcutsDialog/ShortcutsDialog";
 
@@ -39,7 +40,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   function refreshWorkspace() {
     startTransition(() => {
       void queryClient.invalidateQueries({
-        predicate: (q) => q.queryKey[0] === "workspace",
+        predicate: (q) => q.queryKey[0] === "workspace" || q.queryKey[0] === "trash",
       });
     });
   }
@@ -107,12 +108,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const [copyNonce, setCopyNonce] = useState(0);
   const [newSnippetFocusNonce, setNewSnippetFocusNonce] = useState(0);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
-  const [pendingDeleteFolder, setPendingDeleteFolder] = useState<{
-    id: string;
-    name: string;
-    nestedFolderCount: number;
-    snippetCount: number;
-  } | null>(null);
+  const [pendingEmptyTrash, setPendingEmptyTrash] = useState(false);
 
   /* ── Workspace data ───────────────────────────────────────────────────── */
 
@@ -121,8 +117,23 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     queryFn: () => readWorkspace(auth.user?.id ?? null),
   });
 
-  const folders = workspaceQuery.data?.folders ?? [];
-  const snippets = workspaceQuery.data?.snippets ?? [];
+  const folders = useMemo(() => workspaceQuery.data?.folders ?? [], [workspaceQuery.data]);
+  const snippets = useMemo(() => workspaceQuery.data?.snippets ?? [], [workspaceQuery.data]);
+
+  const trashQuery = useQuery({
+    queryKey: ["trash", auth.user?.id ?? "guest"],
+    queryFn: () => readTrash(auth.user?.id ?? null),
+  });
+
+  const trashedFolders = useMemo(() => trashQuery.data?.folders ?? [], [trashQuery.data]);
+  const trashedSnippets = useMemo(() => trashQuery.data?.snippets ?? [], [trashQuery.data]);
+  const trashCount = trashedFolders.length + trashedSnippets.length;
+
+  // The trash reuses the `?folder=` param: the root sentinel, or a trashed folder
+  // id when drilling into a deleted subtree.
+  const isTrashView =
+    !!selectedFolderId &&
+    (selectedFolderId === TRASH_ROOT_ID || trashedFolders.some((f) => f.id === selectedFolderId));
 
   /* ── Mutations ────────────────────────────────────────────────────────── */
 
@@ -156,15 +167,20 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   /* ── Derived state & side-effects ─────────────────────────────────────── */
 
   useEffect(() => {
-    if (!workspaceQuery.isSuccess) return;
-    if (selectedFolderId && selectedFolderId !== SPACE_ROOT_ID && !folders.find((f) => f.id === selectedFolderId)) {
-      router.replace(base);
-    }
-  }, [folders, selectedFolderId, workspaceQuery.isSuccess, router]);
+    if (!workspaceQuery.isSuccess || !trashQuery.isSuccess) return;
+    if (!selectedFolderId || selectedFolderId === SPACE_ROOT_ID || selectedFolderId === TRASH_ROOT_ID) return;
+    const exists =
+      folders.some((f) => f.id === selectedFolderId) || trashedFolders.some((f) => f.id === selectedFolderId);
+    if (!exists) router.replace(base);
+  }, [folders, trashedFolders, selectedFolderId, workspaceQuery.isSuccess, trashQuery.isSuccess, router, base]);
 
   const selectedSnippet = selectedSnippetId
-    ? (snippets.find((s) => s.id === selectedSnippetId) ?? null)
+    ? (snippets.find((s) => s.id === selectedSnippetId) ??
+        trashedSnippets.find((s) => s.id === selectedSnippetId) ??
+        null)
     : null;
+  // A trashed snippet opens read-only with restore / delete-permanently actions.
+  const selectedSnippetTrashed = !!selectedSnippet?.deletedAt;
 
   function handleNewSnippetAt(folderId: string | null) {
     router.push(base);
@@ -189,35 +205,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     onToggleSidebar: () => setSidebarOpen((v) => !v),
     onCloseEditor: () => router.push(base),
     hasOpenSnippet: !!selectedSnippet,
-    overlayOpen: searchOpen || helpOpen || !!pendingDeleteFolder,
+    overlayOpen: searchOpen || helpOpen || pendingEmptyTrash,
   });
-
-  async function handleDeleteFolderWithConfirm(id: string): Promise<void> {
-    const folder = folders.find((f) => f.id === id);
-    if (!folder) return;
-
-    const folderSet = new Set<string>([id]);
-    const queue = [id];
-    while (queue.length > 0) {
-      const cur = queue.shift()!;
-      for (const f of folders) {
-        if (f.parentId === cur && !folderSet.has(f.id)) {
-          folderSet.add(f.id);
-          queue.push(f.id);
-        }
-      }
-    }
-
-    const nestedFolderCount = folderSet.size - 1;
-    const snippetCount = snippets.filter((s) => s.folderId && folderSet.has(s.folderId)).length;
-
-    if (nestedFolderCount === 0 && snippetCount === 0) {
-      await mutations.handleDeleteFolder(id);
-      return;
-    }
-
-    setPendingDeleteFolder({ id, name: folder.name, nestedFolderCount, snippetCount });
-  }
 
   const menuButton = !sidebarOpen ? (
     <Tooltip content={copy.aside.open} placement="bottom">
@@ -256,6 +245,14 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       folders={folders}
       onMoveFolder={mutations.handleMoveFolder}
       onMoveSnippet={mutations.handleMoveSnippet}
+      onTrashItem={(item) => {
+        if (item.type === "folder") void mutations.handleDeleteFolder(item.id);
+        else void mutations.handleDeleteSnippet(item.id);
+      }}
+      onRestoreItem={(item, targetFolderId) => {
+        if (item.type === "folder") void mutations.handleRestoreFolder(item.id, targetFolderId);
+        else void mutations.handleRestoreSnippet(item.id, targetFolderId);
+      }}
     >
     <div className="flex h-screen overflow-hidden">
       <Aside
@@ -275,7 +272,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onNewSnippetAt={handleNewSnippetAt}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
         onCreateFolder={mutations.handleCreateFolder}
-        onDeleteFolder={handleDeleteFolderWithConfirm}
+        onDeleteFolder={mutations.handleDeleteFolder}
         onDeleteSnippet={mutations.handleDeleteSnippet}
         onRenameFolder={mutations.handleRenameFolder}
         onRenameSnippet={mutations.handleRenameSnippet}
@@ -289,6 +286,10 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onSignIn={auth.handleGitHubSignIn}
         onSignOut={auth.handleSignOut}
         onSelectFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
+        onOpenTrash={() => router.push(`${base}?folder=${TRASH_ROOT_ID}`)}
+        onRestoreAll={() => void mutations.handleRestoreAll()}
+        onEmptyTrash={() => setPendingEmptyTrash(true)}
+        trashCount={trashCount}
       />
 
       <div className="relative flex flex-1 flex-col overflow-hidden">
@@ -302,13 +303,42 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
               folders={folders}
               copy={copy}
               syncStatus={sync.snippetStatuses[selectedSnippet.id] ?? "idle"}
-              onClose={() => router.push(base)}
+              onClose={() => router.push(selectedSnippetTrashed ? `${base}?folder=${TRASH_ROOT_ID}` : base)}
               onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
-              onNavigateHome={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
+              onNavigateHome={() =>
+                router.push(`${base}?folder=${selectedSnippetTrashed ? TRASH_ROOT_ID : SPACE_ROOT_ID}`)
+              }
               onUpdate={mutations.handleUpdateSnippet}
               menuButton={menuButton}
+              readOnly={selectedSnippetTrashed}
+              trashActions={
+                selectedSnippetTrashed
+                  ? {
+                      onRestore: () => void mutations.handleRestoreSnippet(selectedSnippet.id),
+                      onDeletePermanently: () =>
+                        void mutations.handlePermanentlyDeleteSnippet(selectedSnippet.id),
+                    }
+                  : undefined
+              }
             />
           </div>
+        ) : isTrashView ? (
+          <TrashView
+            folderId={selectedFolderId!}
+            folders={trashedFolders}
+            snippets={trashedSnippets}
+            copy={copy}
+            onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
+            onNavigateTrashRoot={() => router.push(`${base}?folder=${TRASH_ROOT_ID}`)}
+            onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
+            onRestoreSnippet={(id) => void mutations.handleRestoreSnippet(id)}
+            onPermanentlyDeleteSnippet={(id) => void mutations.handlePermanentlyDeleteSnippet(id)}
+            onRestoreFolder={(id) => void mutations.handleRestoreFolder(id)}
+            onPermanentlyDeleteFolder={(id) => void mutations.handlePermanentlyDeleteFolder(id)}
+            onRestoreAll={() => void mutations.handleRestoreAll()}
+            onEmptyTrash={() => setPendingEmptyTrash(true)}
+            menuButton={menuButton}
+          />
         ) : selectedFolderId ? (
           <FolderView
             folderId={selectedFolderId}
@@ -325,7 +355,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             onRenameSnippet={mutations.handleRenameSnippet}
             onCutSnippet={(id) => setClipboard({ type: "cut", itemType: "snippet", id })}
             onCopySnippet={(id) => setClipboard({ type: "copy", itemType: "snippet", id })}
-            onDeleteFolder={handleDeleteFolderWithConfirm}
+            onDeleteFolder={mutations.handleDeleteFolder}
             onRenameFolder={mutations.handleRenameFolder}
             onCutFolder={(id) => setClipboard({ type: "cut", itemType: "folder", id })}
             onCopyFolder={(id) => setClipboard({ type: "copy", itemType: "folder", id })}
@@ -382,16 +412,21 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
     <CopyToast nonce={copyNonce} message={copy.snippetEditor.codeCopied} />
 
-    {pendingDeleteFolder && (
+    {pendingEmptyTrash && (
       <ConfirmDialog
-        copy={copy.confirmDeleteFolder}
-        folderName={pendingDeleteFolder.name}
-        nestedFolderCount={pendingDeleteFolder.nestedFolderCount}
-        snippetCount={pendingDeleteFolder.snippetCount}
-        onCancel={() => setPendingDeleteFolder(null)}
+        title={copy.trash.emptyTitle}
+        warning={copy.trash.emptyWarning}
+        confirmLabel={copy.trash.emptyTrash}
+        cancelLabel={copy.trash.cancel}
+        folderCount={trashedFolders.length}
+        snippetCount={trashedSnippets.length}
+        folderCountLabel={copy.trash.folderCount}
+        snippetCountLabel={copy.trash.snippetCount}
+        onCancel={() => setPendingEmptyTrash(false)}
         onConfirm={() => {
-          void mutations.handleDeleteFolder(pendingDeleteFolder.id);
-          setPendingDeleteFolder(null);
+          void mutations.handleEmptyTrash();
+          setPendingEmptyTrash(false);
+          if (isTrashView) router.push(`${base}?folder=${TRASH_ROOT_ID}`);
         }}
       />
     )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
+import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, RotateCcw, Scissors, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import { LANGUAGES } from "@/lib/constants/languages";
@@ -40,6 +40,10 @@ interface SnippetCardProps {
   hasPaste?: boolean;
   className?: string;
   enableDrag?: boolean;
+  /** When set, the card renders in trash mode: the menu offers restore /
+   *  delete-permanently instead of the normal actions, and it can be dragged onto
+   *  the tree to restore. It stays clickable (opens read-only in the editor). */
+  trashActions?: { onRestore: () => void; onDeletePermanently: () => void };
 }
 
 export function SnippetCard({
@@ -61,6 +65,7 @@ export function SnippetCard({
   hasPaste,
   className,
   enableDrag,
+  trashActions,
 }: SnippetCardProps) {
   const [copied, setCopied] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -68,14 +73,31 @@ export function SnippetCard({
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const drag = useDragCtx();
-  const isDraggingThis = enableDrag && drag.dragging?.id === snippet.id && drag.dragging.type === "snippet";
+  const isTrash = !!trashActions;
+  // Draggable when the page opts in (enableDrag) or when in the trash, where the
+  // drag restores the snippet onto the tree.
+  const canDrag = enableDrag || isTrash;
 
-  const hasMenu = !!(onOpenInNewTab || onPinAside || onPinHome || onRename || onDelete || onCut || onCopy);
+  const drag = useDragCtx();
+  const isDraggingThis = canDrag && drag.dragging?.id === snippet.id && drag.dragging.type === "snippet";
 
   const cm = copy.contextMenu;
+  const hasMenu = isTrash || !!(onOpenInNewTab || onPinAside || onPinHome || onRename || onDelete || onCut || onCopy);
 
-  const menuGroups: ContextMenuGroup[] = hasMenu
+  const menuGroups: ContextMenuGroup[] = isTrash
+    ? [
+        {
+          items: [{
+            id: "copy-content",
+            label: cm.copyContent,
+            Icon: Copy,
+            onClick: () => void navigator.clipboard.writeText(snippet.code ?? ""),
+          }],
+        },
+        { items: [{ id: "restore", label: cm.restore, Icon: RotateCcw, onClick: () => trashActions!.onRestore() }] },
+        { items: [{ id: "delete-permanently", label: cm.deletePermanently, Icon: Trash2, variant: "destructive" as const, onClick: () => trashActions!.onDeletePermanently() }] },
+      ]
+    : hasMenu
     ? [
         {
           items: [
@@ -225,18 +247,18 @@ export function SnippetCard({
       role="button"
       tabIndex={0}
       data-snippet-card=""
-      draggable={enableDrag}
+      draggable={canDrag}
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
-      onDragStart={enableDrag ? (e) => {
-        drag.startDrag("snippet", snippet.id);
+      onDragStart={canDrag ? (e) => {
+        drag.startDrag("snippet", snippet.id, isTrash ? "trash" : "workspace");
         e.dataTransfer.effectAllowed = "move";
       } : undefined}
-      onDragEnd={enableDrag ? () => drag.endDrag() : undefined}
+      onDragEnd={canDrag ? () => drag.endDrag() : undefined}
       className={cn(
         "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
-        enableDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "cursor-grab active:cursor-grabbing"),
+        canDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "cursor-grab active:cursor-grabbing"),
         className,
       )}
     >

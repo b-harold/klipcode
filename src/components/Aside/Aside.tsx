@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FilePlus, FolderPlus, Home, Keyboard, Layers, Search, Trash2 } from "lucide-react";
+import { FilePlus, FolderPlus, Home, Keyboard, Layers, RotateCcw, Search, Trash2 } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
@@ -49,6 +49,10 @@ export function Aside({
   onSelectFolder,
   onSignIn,
   onSignOut,
+  onOpenTrash,
+  onRestoreAll,
+  onEmptyTrash,
+  trashCount,
   isOpen,
   isMobile,
   onSetOpen,
@@ -63,6 +67,7 @@ export function Aside({
     string | null | undefined
   >(undefined);
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
+  const [trashMenu, setTrashMenu] = useState<{ x: number; y: number } | null>(null);
   const drag = useDragCtx();
 
   /* ── Context menu groups ────────────────────────────────────────────────── */
@@ -152,6 +157,37 @@ export function Aside({
           y={menuTarget.y}
           groups={buildMenuGroups(menuTarget)}
           onClose={() => setMenuTarget(null)}
+        />
+      )}
+
+      {trashMenu && (
+        <ContextMenu
+          x={trashMenu.x}
+          y={trashMenu.y}
+          groups={[
+            {
+              items: [
+                {
+                  id: "restore-all",
+                  label: copy.trash.restoreAll,
+                  Icon: RotateCcw,
+                  onClick: onRestoreAll,
+                },
+              ],
+            },
+            {
+              items: [
+                {
+                  id: "empty-trash",
+                  label: copy.trash.emptyTrash,
+                  Icon: Trash2,
+                  variant: "destructive" as const,
+                  onClick: onEmptyTrash,
+                },
+              ],
+            },
+          ]}
+          onClose={() => setTrashMenu(null)}
         />
       )}
 
@@ -314,10 +350,65 @@ export function Aside({
           <div className="shrink-0 px-2 pb-4 pt-2">
             <button
               type="button"
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
+              onClick={onOpenTrash}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setTrashMenu({ x: e.clientX, y: e.clientY });
+              }}
+              onDragOver={(e) => {
+                // dragover fires continuously while the cursor is over the button,
+                // so it's the source of truth for the hover state — no child
+                // enter/leave flicker (children are pointer-events-none anyway).
+                if (drag.dragging?.origin !== "workspace") return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (drag.dragOverId !== "trash-button") drag.enterDropTarget("trash-button");
+              }}
+              onDragLeave={(e) => {
+                // Only clear when the cursor truly leaves the button (relatedTarget
+                // outside it), and only if we're still the active target so we don't
+                // clobber a sibling target that just took over.
+                if (
+                  drag.dragOverId === "trash-button" &&
+                  !e.currentTarget.contains(e.relatedTarget as Node | null)
+                ) {
+                  drag.clearDropTarget();
+                }
+              }}
+              onDrop={(e) => {
+                if (drag.dragging?.origin !== "workspace") return;
+                e.preventDefault();
+                drag.dropOnTrash();
+              }}
+              className={[
+                // Always carry a 1px (transparent) border so toggling to the
+                // dashed drop-zone border only changes color, never width — an
+                // animated 0→1px width renders dashes as a solid line mid-tween.
+                "flex w-full items-center rounded-md border border-transparent px-3 py-2 transition-colors duration-150",
+                drag.dragging?.origin === "workspace"
+                  ? "justify-center gap-1.5 border-dashed text-[11px] select-none " +
+                    (drag.dragOverId === "trash-button"
+                      ? "border-red-500/50 bg-red-500/10 text-red-300"
+                      : "border-white/10 text-white/30")
+                  : "gap-2 text-[13px] text-muted hover:bg-white/4 hover:text-foreground",
+              ].join(" ")}
             >
-              <Trash2 size={14} className="shrink-0" />
-              <span>{copy.aside.trash}</span>
+              {drag.dragging?.origin === "workspace" ? (
+                <>
+                  <Trash2 size={12} className="pointer-events-none shrink-0" />
+                  <span className="pointer-events-none">{copy.aside.dropToTrash}</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 size={14} className="pointer-events-none shrink-0" />
+                  <span className="pointer-events-none flex-1 text-left">{copy.aside.trash}</span>
+                  {trashCount > 0 && (
+                    <span className="pointer-events-none shrink-0 rounded-full bg-white/8 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-white/45">
+                      {trashCount}
+                    </span>
+                  )}
+                </>
+              )}
             </button>
             <button
               type="button"

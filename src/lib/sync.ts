@@ -36,6 +36,7 @@ function mapFolderToCloud(folder: FolderRecord, userId: string) {
     is_pinned_home: folder.isPinnedHome,
     created_at: folder.createdAt,
     updated_at: folder.updatedAt,
+    deleted_at: folder.deletedAt,
   };
 }
 
@@ -51,6 +52,7 @@ function mapSnippetToCloud(snippet: SnippetRecord, userId: string) {
     is_pinned_home: snippet.isPinnedHome,
     created_at: snippet.createdAt,
     updated_at: snippet.updatedAt,
+    deleted_at: snippet.deletedAt,
   };
 }
 
@@ -66,6 +68,7 @@ function mapFolderToLocal(folder: CloudFolderRow): FolderRecord {
     updatedAt: folder.updated_at,
     dirty: false,
     lastSyncedAt: folder.updated_at,
+    deletedAt: folder.deleted_at,
   };
 }
 
@@ -83,6 +86,7 @@ function mapSnippetToLocal(snippet: CloudSnippetRow): SnippetRecord {
     updatedAt: snippet.updated_at,
     dirty: false,
     lastSyncedAt: snippet.updated_at,
+    deletedAt: snippet.deleted_at,
   };
 }
 
@@ -236,12 +240,12 @@ export async function fetchCloudWorkspace(userId: string) {
     await Promise.all([
       supabase
         .from("folders")
-        .select("id, owner_id, name, parent_id, is_pinned_aside, is_pinned_home, created_at, updated_at")
+        .select("id, owner_id, name, parent_id, is_pinned_aside, is_pinned_home, created_at, updated_at, deleted_at")
         .eq("owner_id", userId),
       supabase
         .from("snippets")
         .select(
-          "id, owner_id, folder_id, title, code, language, is_pinned_aside, is_pinned_home, created_at, updated_at"
+          "id, owner_id, folder_id, title, code, language, is_pinned_aside, is_pinned_home, created_at, updated_at, deleted_at"
         )
         .eq("owner_id", userId),
     ]);
@@ -327,6 +331,9 @@ export async function fetchCloudWorkspace(userId: string) {
  * is set) but is now absent from the cloud was deleted on another device, so we
  * remove it locally. Dirty records (unsynced local edits), never-uploaded
  * placeholders, and shared/seeded records (`ownerId === null`) are left intact.
+ * Trashed records are NOT special-cased: a soft delete keeps the cloud row (with
+ * `deleted_at` set), so it stays present here; only a permanent delete removes the
+ * cloud row, and that deletion must propagate even if the record is in the trash.
  */
 async function reconcileDeletions(
   userId: string,

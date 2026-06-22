@@ -266,4 +266,17 @@ create index if not exists idx_folders_owner_pinned_home on public.folders (owne
 create index if not exists idx_snippets_owner_pinned on public.snippets (owner_id, is_pinned_aside);
 create index if not exists idx_snippets_owner_pinned_home on public.snippets (owner_id, is_pinned_home);
 
+-- Papelera sincronizada: marca de borrado suave. NULL = registro vivo; con valor
+-- = está en la papelera. El cliente sincroniza este campo como uno más (no se
+-- borra la fila al enviar a la papelera). El borrado definitivo / vaciar papelera
+-- sí elimina la fila. No hay purga automática: el usuario vacía cuando quiere.
+alter table public.folders
+  add column if not exists deleted_at timestamptz;
+
+alter table public.snippets
+  add column if not exists deleted_at timestamptz;
+
+create index if not exists idx_folders_owner_deleted_at on public.folders (owner_id, deleted_at);
+create index if not exists idx_snippets_owner_deleted_at on public.snippets (owner_id, deleted_at);
+
 commit;

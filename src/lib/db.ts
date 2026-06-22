@@ -115,6 +115,25 @@ class KlipCodeDatabase extends Dexie {
       snippets: "id, ownerId, folderId, dirty, updatedAt, isPinnedAside, isPinnedHome",
       tombstones: "id, ownerId",
     });
+
+    // v6 adds the soft-delete `deletedAt` field (local trash). Backfill existing
+    // rows to `null` so they're treated as live.
+    this.version(6)
+      .stores({
+        folders: "id, ownerId, parentId, dirty, updatedAt, isPinnedAside, isPinnedHome, deletedAt",
+        snippets: "id, ownerId, folderId, dirty, updatedAt, isPinnedAside, isPinnedHome, deletedAt",
+        tombstones: "id, ownerId",
+      })
+      .upgrade((tx) => {
+        return Promise.all([
+          tx.table<FolderRecord>("folders").toCollection().modify((folder) => {
+            folder.deletedAt = null;
+          }),
+          tx.table<SnippetRecord>("snippets").toCollection().modify((snippet) => {
+            snippet.deletedAt = null;
+          }),
+        ]);
+      });
   }
 }
 
@@ -157,21 +176,59 @@ export async function readWorkspace(
   ]);
 
   return {
-    folders: folders.filter((folder) => matchesOwner(folder.ownerId, currentUserId)).sort(sortFolders),
+    folders: folders
+      .filter((folder) => matchesOwner(folder.ownerId, currentUserId) && !folder.deletedAt)
+      .sort(sortFolders),
     snippets: snippets
-      .filter((snippet) => matchesOwner(snippet.ownerId, currentUserId))
+      .filter((snippet) => matchesOwner(snippet.ownerId, currentUserId) && !snippet.deletedAt)
       .sort(sortSnippets),
+  };
+}
+
+/**
+ * Read the trashed (soft-deleted) records for the current owner, newest deletion
+ * first. The trash is device-local: it holds rows whose `deletedAt` is set, which
+ * `readWorkspace` excludes from the normal workspace.
+ */
+export async function readTrash(
+  currentUserId: string | null
+): Promise<WorkspaceSnapshot> {
+  const [folders, snippets] = await Promise.all([
+    db.folders.toArray(),
+    db.snippets.toArray(),
+  ]);
+
+  const byDeletedAtDesc = <T extends { deletedAt: string | null }>(left: T, right: T) =>
+    (right.deletedAt ?? "").localeCompare(left.deletedAt ?? "");
+
+  return {
+    folders: folders
+      .filter((folder) => matchesOwner(folder.ownerId, currentUserId) && !!folder.deletedAt)
+      .sort(byDeletedAtDesc),
+    snippets: snippets
+      .filter((snippet) => matchesOwner(snippet.ownerId, currentUserId) && !!snippet.deletedAt)
+      .sort(byDeletedAtDesc),
   };
 }
 
 export async function getDirtyWorkspace(
   currentUserId: string
 ): Promise<WorkspaceSnapshot> {
-  const snapshot = await readWorkspace(currentUserId);
+  // Reads directly (not via readWorkspace) so trashed records are included: a
+  // soft delete sets `dirty` + `deletedAt` and must be uploaded so the trash
+  // syncs to the cloud and other devices.
+  const [folders, snippets] = await Promise.all([
+    db.folders.toArray(),
+    db.snippets.toArray(),
+  ]);
 
   return {
-    folders: snapshot.folders.filter((folder) => folder.dirty),
-    snippets: snapshot.snippets.filter((snippet) => snippet.dirty),
+    folders: folders
+      .filter((folder) => folder.dirty && matchesOwner(folder.ownerId, currentUserId))
+      .sort(sortFolders),
+    snippets: snippets
+      .filter((snippet) => snippet.dirty && matchesOwner(snippet.ownerId, currentUserId))
+      .sort(sortSnippets),
   };
 }
 

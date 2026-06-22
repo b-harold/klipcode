@@ -17,6 +17,14 @@ export interface FolderRecord {
   updatedAt: string;
   dirty: boolean;
   lastSyncedAt: string | null;
+  /**
+   * When set, the record lives in the local trash (soft-deleted) and is hidden
+   * from the normal workspace. The cloud has no `deleted_at` column, so trash is
+   * device-local: a trashed record's cloud row is removed like a hard delete, and
+   * `deletedAt` keeps a local copy that can be restored or purged. `null` means
+   * the record is live.
+   */
+  deletedAt: string | null;
 }
 
 export interface SnippetRecord {
@@ -32,6 +40,8 @@ export interface SnippetRecord {
   updatedAt: string;
   dirty: boolean;
   lastSyncedAt: string | null;
+  /** See {@link FolderRecord.deletedAt}. */
+  deletedAt: string | null;
 }
 
 /**
@@ -67,6 +77,7 @@ export interface CloudFolderRow {
   is_pinned_home: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface CloudSnippetRow {
@@ -80,6 +91,7 @@ export interface CloudSnippetRow {
   is_pinned_home: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface ClipboardEntry {

@@ -115,6 +115,7 @@ export const en = {
     emptySpace: "No files yet.",
     root: "Root",
     dropToRoot: "Move to root",
+    dropToTrash: "Move to trash",
     unpin: "Unpin",
     search: "Search",
     shortcuts: "Keyboard shortcuts",
@@ -137,6 +138,8 @@ export const en = {
     copyContent: "Copy content",
     openInNewTab: "Open in new tab",
     moreOptions: "More options",
+    restore: "Restore",
+    deletePermanently: "Delete permanently",
   },
   languageSelect: {
     searchPlaceholder: "Search language...",
@@ -171,6 +174,7 @@ export const en = {
     codeCopied: "Copied!",
     formatCode: "Format code",
     formatNotSupported: "Formatting not available for this language",
+    trashedNotice: "This snippet is in the trash — restore it to edit.",
   },
   search: {
     placeholder: "Search snippets by title or code…",
@@ -199,15 +203,18 @@ export const en = {
       navigateList: "Move between cards",
     },
   },
-  confirmDeleteFolder: {
-    title: "Delete folder",
-    permanentWarning: "This action is permanent and cannot be undone.",
-    containsFolders: (n: number) =>
-      n === 1 ? "1 inner folder" : `${n} inner folders`,
-    containsSnippets: (n: number) =>
-      n === 1 ? "1 snippet" : `${n} snippets`,
+  trash: {
+    title: "Trash",
+    empty: "The trash is empty.",
+    restore: "Restore",
+    deletePermanently: "Delete permanently",
+    restoreAll: "Restore all",
+    emptyTrash: "Empty trash",
+    emptyTitle: "Empty trash",
+    emptyWarning: "This permanently deletes everything in the trash. This action cannot be undone.",
     cancel: "Cancel",
-    confirm: "Delete permanently",
+    folderCount: (n: number) => (n === 1 ? "1 folder" : `${n} folders`),
+    snippetCount: (n: number) => (n === 1 ? "1 snippet" : `${n} snippets`),
   },
   landing: {
     nav: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
+import { Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, RotateCcw, Scissors, Trash2 } from "lucide-react";
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/utils";
@@ -71,6 +71,9 @@ export interface FolderCardProps {
   onCopy?: () => void;
   onPaste?: () => void;
   hasPaste?: boolean;
+  /** When set, the card renders in trash mode: drag is disabled and the menu
+   *  offers restore / delete-permanently instead of the normal actions. */
+  trashActions?: { onRestore: () => void; onDeletePermanently: () => void };
 }
 
 /* ─────────────────── Component ──────────────────────────────────────────── */
@@ -89,26 +92,36 @@ export function FolderCard({
   onCopy,
   onPaste,
   hasPaste,
+  trashActions,
 }: FolderCardProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
 
+  const isTrash = !!trashActions;
+
   const drag = useDragCtx();
   const isDraggingThis = drag.dragging?.id === folder.id && drag.dragging.type === "folder";
-  const isDropTarget = drag.dragOverId === folder.id && drag.canDropOnFolder(folder.id);
+  // Trashed folders are draggable (to restore onto the tree) but never drop
+  // targets themselves.
+  const isDropTarget = !isTrash && drag.dragOverId === folder.id && drag.canDropOnFolder(folder.id);
 
-  const hasMenu = !!(onOpenInNewTab || onPinAside || onRename || onDelete || onCut || onCopy);
   const cm = copy.contextMenu;
+  const hasMenu = isTrash || !!(onOpenInNewTab || onPinAside || onRename || onDelete || onCut || onCopy);
 
   const startRenaming = () => {
     setRenameValue(folder.name);
     setIsRenaming(true);
   };
 
-  const menuGroups = hasMenu
-    ? buildMenuGroups(folder, cm, { onOpenInNewTab, onPinAside, onRename, onDelete, onCut, onCopy, onPaste, hasPaste }, startRenaming)
-    : [];
+  const menuGroups: ContextMenuGroup[] = isTrash
+    ? [
+        { items: [{ id: "restore", label: cm.restore, Icon: RotateCcw, onClick: () => trashActions!.onRestore() }] },
+        { items: [{ id: "delete-permanently", label: cm.deletePermanently, Icon: Trash2, variant: "destructive" as const, onClick: () => trashActions!.onDeletePermanently() }] },
+      ]
+    : hasMenu
+      ? buildMenuGroups(folder, cm, { onOpenInNewTab, onPinAside, onRename, onDelete, onCut, onCopy, onPaste, hasPaste }, startRenaming)
+      : [];
 
   const meta = [
     snippetCount > 0 ? `${snippetCount} ${copy.folderView.snippetLabel}` : null,
@@ -159,21 +172,21 @@ export function FolderCard({
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
       onDragStart={(e) => {
-        drag.startDrag("folder", folder.id);
+        drag.startDrag("folder", folder.id, isTrash ? "trash" : "workspace");
         e.dataTransfer.effectAllowed = "move";
       }}
       onDragEnd={() => drag.endDrag()}
-      onDragEnter={(e) => {
+      onDragEnter={isTrash ? undefined : (e) => {
         e.preventDefault();
         e.stopPropagation();
         drag.enterDropTarget(folder.id);
       }}
-      onDragOver={(e) => {
+      onDragOver={isTrash ? undefined : (e) => {
         e.preventDefault();
         e.stopPropagation();
         e.dataTransfer.dropEffect = drag.canDropOnFolder(folder.id) ? "move" : "none";
       }}
-      onDrop={(e) => {
+      onDrop={isTrash ? undefined : (e) => {
         e.preventDefault();
         e.stopPropagation();
         drag.dropOnFolder(folder.id);

@@ -16,7 +16,7 @@ const REQUIRED_SECTIONS = [
   "pinnedToHome",
   "folderView",
   "snippetEditor",
-  "confirmDeleteFolder",
+  "trash",
   "search",
   "shortcuts",
 ] as const;
@@ -34,8 +34,8 @@ describe("i18n dictionary (es)", () => {
     }
   });
 
-  it("confirmDeleteFolder.containsFolders is a pluralisation function", () => {
-    const fn = es.confirmDeleteFolder.containsFolders;
+  it("trash.folderCount is a pluralisation function", () => {
+    const fn = es.trash.folderCount;
     expect(typeof fn).toBe("function");
     expect(fn(1)).toContain("1");
     expect(fn(3)).toContain("3");
@@ -43,8 +43,8 @@ describe("i18n dictionary (es)", () => {
     expect(fn(1)).not.toBe(fn(2));
   });
 
-  it("confirmDeleteFolder.containsSnippets is a pluralisation function", () => {
-    const fn = es.confirmDeleteFolder.containsSnippets;
+  it("trash.snippetCount is a pluralisation function", () => {
+    const fn = es.trash.snippetCount;
     expect(typeof fn).toBe("function");
     expect(fn(1)).toContain("1");
     expect(fn(5)).toContain("5");

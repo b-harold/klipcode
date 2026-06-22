@@ -151,6 +151,10 @@ export const en = {
   pinnedToHome: {
     title: "Pinned to home",
   },
+  recentSnippets: {
+    title: "Recently edited",
+    empty: "You don't have any snippets yet. Create your first one above.",
+  },
   folderView: {
     breadcrumbLabel: "Folder navigation",
     subFolders: "Folders",

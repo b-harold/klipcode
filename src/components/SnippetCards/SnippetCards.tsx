@@ -1,6 +1,7 @@
 "use client";
 
-import { Pin } from "lucide-react";
+import { Clock, Pin } from "lucide-react";
+import type { ReactNode } from "react";
 
 import type { Dictionary } from "@/i18n";
 import type { ClipboardEntry, FolderRecord, SnippetRecord } from "@/lib/types";
@@ -55,11 +56,48 @@ export interface SnippetCardsProps {
   onPaste?: (targetFolderId: string | null) => Promise<void>;
 }
 
-export function SnippetCards({
+export function SnippetCards(props: SnippetCardsProps) {
+  const { snippets, copy } = props;
+
+  const pinnedSnippets = sortByUpdatedAtDesc(snippets.filter((s) => s.isPinnedHome));
+  const recentSnippets = sortByUpdatedAtDesc(snippets).slice(0, 6);
+
+  return (
+    <div className="flex flex-col gap-8">
+      {pinnedSnippets.length > 0 && (
+        <SnippetCardsSection
+          {...props}
+          title={copy.pinnedToHome.title}
+          icon={<Pin size={16} className="text-muted" />}
+          snippets={pinnedSnippets}
+        />
+      )}
+
+      <SnippetCardsSection
+        {...props}
+        title={copy.recentSnippets.title}
+        icon={<Clock size={16} className="text-muted" />}
+        snippets={recentSnippets}
+        emptyMessage={copy.recentSnippets.empty}
+      />
+    </div>
+  );
+}
+
+interface SnippetCardsSectionProps extends SnippetCardsProps {
+  title: string;
+  icon: ReactNode;
+  emptyMessage?: string;
+}
+
+function SnippetCardsSection({
+  title,
+  icon,
   snippets,
   folders,
   copy,
   clipboard,
+  emptyMessage,
   onSelectSnippet,
   onNavigateFolder,
   onPinSnippet,
@@ -68,63 +106,65 @@ export function SnippetCards({
   onCutSnippet,
   onCopySnippet,
   onPaste,
-}: SnippetCardsProps) {
-  const pinnedSnippets = sortByUpdatedAtDesc(snippets.filter((s) => s.isPinnedHome));
-
-  if (pinnedSnippets.length === 0) return null;
-
+}: SnippetCardsSectionProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">
-        <Pin size={16} className="text-muted" />
-        <h2 className="text-sm font-medium text-muted">{copy.pinnedToHome.title}</h2>
+        {icon}
+        <h2 className="text-sm font-medium text-muted">{title}</h2>
       </div>
 
-      <div
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-        onKeyDown={handleGridArrowNav}
-      >
-        {pinnedSnippets.map((snippet) => (
-          <SnippetCard
-            key={snippet.id}
-            snippet={snippet}
-            folderName={getFolderName(snippet.folderId, folders)}
-            copy={copy}
-            onSelect={() => onSelectSnippet(snippet.id)}
-            onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
-            onNavigateFolder={
-              snippet.folderId && onNavigateFolder
-                ? () => onNavigateFolder(snippet.folderId!)
-                : undefined
-            }
-            onUnpinHome={
-              onPinSnippet ? () => void onPinSnippet(snippet.id, "home", false) : undefined
-            }
-            onPinAside={
-              onPinSnippet
-                ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned)
-                : undefined
-            }
-            onPinHome={
-              onPinSnippet
-                ? (pinned) => void onPinSnippet(snippet.id, "home", pinned)
-                : undefined
-            }
-            onRename={
-              onRenameSnippet
-                ? (title) => void onRenameSnippet(snippet.id, title)
-                : undefined
-            }
-            onDelete={onDeleteSnippet ? () => void onDeleteSnippet(snippet.id) : undefined}
-            onCut={onCutSnippet ? () => onCutSnippet(snippet.id) : undefined}
-            onCopy={onCopySnippet ? () => onCopySnippet(snippet.id) : undefined}
-            onPaste={onPaste ? () => void onPaste(snippet.folderId) : undefined}
-            hasPaste={!!clipboard}
-            enableDrag
-            className="w-full shrink"
-          />
-        ))}
-      </div>
+      {snippets.length === 0 ? (
+        emptyMessage ? <p className="text-sm text-white/30">{emptyMessage}</p> : null
+      ) : (
+        <div
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+          onKeyDown={handleGridArrowNav}
+        >
+          {snippets.map((snippet) => (
+            <SnippetCard
+              key={snippet.id}
+              snippet={snippet}
+              folderName={getFolderName(snippet.folderId, folders)}
+              copy={copy}
+              onSelect={() => onSelectSnippet(snippet.id)}
+              onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
+              onNavigateFolder={
+                snippet.folderId && onNavigateFolder
+                  ? () => onNavigateFolder(snippet.folderId!)
+                  : undefined
+              }
+              onUnpinHome={
+                snippet.isPinnedHome && onPinSnippet
+                  ? () => void onPinSnippet(snippet.id, "home", false)
+                  : undefined
+              }
+              onPinAside={
+                onPinSnippet
+                  ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned)
+                  : undefined
+              }
+              onPinHome={
+                onPinSnippet
+                  ? (pinned) => void onPinSnippet(snippet.id, "home", pinned)
+                  : undefined
+              }
+              onRename={
+                onRenameSnippet
+                  ? (title) => void onRenameSnippet(snippet.id, title)
+                  : undefined
+              }
+              onDelete={onDeleteSnippet ? () => void onDeleteSnippet(snippet.id) : undefined}
+              onCut={onCutSnippet ? () => onCutSnippet(snippet.id) : undefined}
+              onCopy={onCopySnippet ? () => onCopySnippet(snippet.id) : undefined}
+              onPaste={onPaste ? () => void onPaste(snippet.folderId) : undefined}
+              hasPaste={!!clipboard}
+              enableDrag
+              className="w-full shrink"
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

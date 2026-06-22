@@ -152,6 +152,10 @@ export const es = {
   pinnedToHome: {
     title: "Fijados en inicio",
   },
+  recentSnippets: {
+    title: "Editados recientemente",
+    empty: "Aún no tienes snippets. Crea tu primero arriba.",
+  },
   folderView: {
     breadcrumbLabel: "Navegación de carpetas",
     subFolders: "Carpetas",

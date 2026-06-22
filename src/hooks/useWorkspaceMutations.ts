@@ -4,6 +4,7 @@ import { db, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
 import type { ClipboardEntry, FolderRecord, SnippetRecord, SyncStatus } from "@/lib/types";
 import { DEFAULT_LANGUAGE, detectLanguageFromTitle } from "@/lib/constants/languages";
+import { resolveSnippetRename } from "@/lib/utils";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import type { Dictionary } from "@/i18n";
 
@@ -216,8 +217,14 @@ export function useWorkspaceMutations({
     refreshWorkspace();
   }
 
-  async function handleRenameSnippet(id: string, title: string) {
-    await db.snippets.update(id, { title, updatedAt: new Date().toISOString(), dirty: true });
+  async function handleRenameSnippet(id: string, value: string) {
+    const snippet = snippets.find((s) => s.id === id);
+    if (!snippet) return;
+    // The rename field carries the full filename (with extension), so resolve it
+    // back into a stored title + language: a recognized extension changes the
+    // language, an unknown one keeps the previous extension. See resolveSnippetRename.
+    const { title, language } = resolveSnippetRename(value, snippet.language);
+    await db.snippets.update(id, { title, language, updatedAt: new Date().toISOString(), dirty: true });
     refreshWorkspace();
     if (user && supabaseConfigured) scheduleCloudSync();
   }

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from
 import { LANGUAGES } from "@/lib/constants/languages";
 import type { Dictionary } from "@/i18n";
 import type { SnippetRecord } from "@/lib/types";
-import { cn, getSnippetDisplayName } from "@/lib/utils";
+import { cn, getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
@@ -135,7 +135,7 @@ export function SnippetCard({
                     label: cm.rename,
                     Icon: PenLine,
                     onClick: () => {
-                      setRenameValue(snippet.title ?? "");
+                      setRenameValue(getSnippetFileName(snippet.title, snippet.language));
                       setIsRenaming(true);
                     },
                   },

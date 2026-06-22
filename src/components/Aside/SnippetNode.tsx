@@ -3,7 +3,7 @@
 import { FileCode2, Pin, PinOff } from "lucide-react";
 import { LANGUAGES } from "@/lib/constants/languages";
 import type { SnippetRecord } from "@/lib/types";
-import { getSnippetDisplayName } from "@/lib/utils";
+import { getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
@@ -48,7 +48,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
       <FileCode2 size={13} className="shrink-0 text-white/20" />
       <input
         autoFocus
-        defaultValue={snippet.title ?? ""}
+        defaultValue={getSnippetFileName(snippet.title, snippet.language)}
         onBlur={(e) => ctx.submitSnippetRename(snippet.id, e.target.value)}
         onKeyDown={(e) => {
           e.stopPropagation();

@@ -118,6 +118,7 @@ export const en = {
     unpin: "Unpin",
     search: "Search",
     shortcuts: "Keyboard shortcuts",
+    trash: "Trash",
   },
   contextMenu: {
     newFolder: "New folder\u2026",

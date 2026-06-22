@@ -119,6 +119,7 @@ export const es = {
     unpin: "Desfijar",
     search: "Buscar",
     shortcuts: "Atajos de teclado",
+    trash: "Papelera",
   },
   contextMenu: {
     newFolder: "Nueva carpeta\u2026",

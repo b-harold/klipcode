@@ -17,8 +17,12 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
 
   const paddingLeft = 10 + depth * STEP + 19;
   const isDraggingThis = ctx.dragging?.id === snippet.id;
+  const isSelected = ctx.selectedSnippetId === snippet.id;
   const sharedRowClass = [
-    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-all duration-100 hover:bg-white/[0.04] hover:text-foreground",
+    "group relative mr-1 flex items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] transition-all duration-100",
+    isSelected
+      ? "bg-white/[0.08] text-foreground"
+      : "text-muted hover:bg-white/[0.04] hover:text-foreground",
     isDraggingThis ? "opacity-40" : "",
   ].filter(Boolean).join(" ");
 

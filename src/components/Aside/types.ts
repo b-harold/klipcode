@@ -40,6 +40,10 @@ export interface AsideProps {
   onEmptyTrash: () => void;
   /** Number of items currently in the trash, for the sidebar badge. */
   trashCount: number;
+  /** Id of the snippet currently open in the main view, for highlighting in the tree. */
+  selectedSnippetId: string | null;
+  /** Id of the folder currently open in the main view, for highlighting in the tree. */
+  selectedFolderId: string | null;
   isOpen: boolean;
   isMobile: boolean;
   onSetOpen: (open: boolean) => void;
@@ -74,6 +78,10 @@ export interface AsideCtxShape {
   submitCreateSnippet: (folderId: string | null, title: string) => void;
   selectSnippet: (id: string) => void;
   selectFolder: (id: string) => void;
+  /** Id of the snippet currently open in the main view, for highlighting. */
+  selectedSnippetId: string | null;
+  /** Id of the folder currently open in the main view, for highlighting. */
+  selectedFolderId: string | null;
   pinFolder: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   pinSnippet: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   /* ── Drag & Drop ── */

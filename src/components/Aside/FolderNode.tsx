@@ -63,8 +63,12 @@ export function FolderNode({
   const paddingLeft = 10 + depth * STEP;
   const isDraggingThis = ctx.dragging?.id === folder.id;
   const isDropTarget = ctx.dragOverId === folder.id && ctx.canDropOnFolder(folder.id);
+  const isSelected = ctx.selectedFolderId === folder.id;
   const sharedRowClass = [
-    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-all duration-100 hover:bg-white/[0.04] hover:text-foreground",
+    "group relative mr-1 flex items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] transition-all duration-100",
+    isSelected
+      ? "bg-white/[0.08] text-foreground"
+      : "text-muted hover:bg-white/[0.04] hover:text-foreground",
     isDraggingThis ? "opacity-40" : "",
     isDropTarget ? "bg-white/[0.07] text-foreground ring-1 ring-inset ring-white/[0.18]" : "",
   ].filter(Boolean).join(" ");

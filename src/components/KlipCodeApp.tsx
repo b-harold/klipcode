@@ -290,6 +290,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onRestoreAll={() => void mutations.handleRestoreAll()}
         onEmptyTrash={() => setPendingEmptyTrash(true)}
         trashCount={trashCount}
+        selectedSnippetId={selectedSnippetId}
+        selectedFolderId={selectedFolderId}
       />
 
       <div className="relative flex flex-1 flex-col overflow-hidden">

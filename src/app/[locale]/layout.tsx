@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { getDictionary } from "@/i18n";
 import { isLocale, localeHref } from "@/lib/locale";
 
@@ -68,7 +69,10 @@ export default async function LocaleLayout({
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="h-full bg-background text-foreground">{children}</body>
+      <body className="h-full bg-background text-foreground">
+        {children}
+        <ServiceWorkerRegistration />
+      </body>
     </html>
   );
 }

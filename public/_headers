@@ -3,6 +3,11 @@
 /_next/static/*
   Cache-Control: public,max-age=31536000,immutable
 
+# The service worker must be revalidated so updates roll out promptly instead
+# of being pinned by a stale HTTP cache.
+/sw.js
+  Cache-Control: public,max-age=0,must-revalidate
+
 # Security headers for every route. These apply to the deployed app only
 # (Cloudflare static assets), so local `pnpm dev` is unaffected.
 #

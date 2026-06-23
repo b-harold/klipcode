@@ -8,6 +8,9 @@
   --surface: #111111;
   --surface-hover: #1a1a1a;
   --accent: #ffffff;
+  /* Text selection highlight (brand purple). Tweak freely. */
+  --selection-background: rgba(132, 0, 255, 0.4);
+  --selection-foreground: #ffffff;
 }
 
 @theme inline {
@@ -69,6 +72,29 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
+}
+
+/* ─── Custom text selection (everywhere EXCEPT the code editor) ──────────────
+   CodeMirror draws its own selection layer, so it isn't affected by the native
+   ::selection background. But the native ::selection still recolors the code's
+   text, which looks wrong — so we neutralize ::selection inside .cm-editor and
+   let CodeMirror's theme handle it. */
+::selection {
+  background-color: var(--selection-background);
+  color: var(--selection-foreground);
+}
+
+/* Code editor: keep CodeMirror's own selection layer and each token's syntax
+   color (currentColor preserves it; inherit would flatten the highlighting). */
+.cm-editor ::selection {
+  background-color: transparent;
+  color: currentColor;
+}
+
+/* Solid white buttons: keep their dark text legible instead of forcing white. */
+.bg-white::selection,
+.bg-white ::selection {
+  color: currentColor;
 }
 
 /* Scrollbar */

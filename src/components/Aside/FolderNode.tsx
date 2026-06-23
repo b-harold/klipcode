@@ -107,7 +107,7 @@ export function FolderNode({
         </div>
       ) : (
         <div
-          className={sharedRowClass}
+          className={`${sharedRowClass} cursor-pointer`}
           style={{ paddingLeft }}
           role="button"
           tabIndex={0}
@@ -162,7 +162,7 @@ export function FolderNode({
               e.dataTransfer.effectAllowed = "move";
             }}
             onDragEnd={() => ctx.endDrag()}
-            className="flex min-w-0 flex-1 items-center gap-1.5 text-left cursor-grab active:cursor-grabbing"
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left active:cursor-grabbing"
           >
             {isOpen && hasChildren ? (
               <FolderOpen size={13} className="shrink-0 text-white/25" />

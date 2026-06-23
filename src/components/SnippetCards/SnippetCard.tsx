@@ -257,8 +257,8 @@ export function SnippetCard({
       } : undefined}
       onDragEnd={canDrag ? () => drag.endDrag() : undefined}
       className={cn(
-        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
-        canDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "cursor-grab active:cursor-grabbing"),
+        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 cursor-pointer",
+        canDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "active:cursor-grabbing"),
         className,
       )}
     >

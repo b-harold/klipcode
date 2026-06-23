@@ -71,7 +71,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
         }
       }}
       onContextMenu={openContextMenu}
-      className={sharedRowClass}
+      className={`${sharedRowClass} cursor-pointer`}
       style={{ paddingLeft }}
     >
       <span
@@ -82,7 +82,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
           e.dataTransfer.effectAllowed = "move";
         }}
         onDragEnd={() => ctx.endDrag()}
-        className="flex min-w-0 flex-1 items-center gap-1.5 cursor-grab active:cursor-grabbing"
+        className="flex min-w-0 flex-1 items-center gap-1.5 active:cursor-grabbing"
       >
         <FileCode2 size={13} className="shrink-0 text-white/20" />
         <TruncateTooltip text={displayName} className="flex-1 truncate leading-none" />

@@ -192,10 +192,10 @@ export function FolderCard({
         drag.dropOnFolder(folder.id);
       }}
       className={cn(
-        "group flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+        "group flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 cursor-pointer",
         isDraggingThis
           ? "opacity-40 cursor-grabbing"
-          : "cursor-grab active:cursor-grabbing",
+          : "active:cursor-grabbing",
         isDropTarget
           ? "border-white/30 bg-white/[0.06] ring-1 ring-inset ring-white/20"
           : "border-white/[0.06] hover:border-white/[0.12] hover:bg-surface-hover",

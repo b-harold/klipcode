@@ -3,12 +3,12 @@
 import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, RotateCcw, Scissors, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 
-import { LANGUAGES } from "@/lib/constants/languages";
 import type { Dictionary } from "@/i18n";
 import type { SnippetRecord } from "@/lib/types";
 import { cn, getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 
 function buildPreviewLines(code: string) {
@@ -263,7 +263,8 @@ export function SnippetCard({
       )}
     >
       <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-3.5">
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <LanguageIcon language={snippet.language} size={15} className="shrink-0" />
           {isRenaming ? (
             <input
               autoFocus
@@ -276,10 +277,10 @@ export function SnippetCard({
                 if (e.key === "Escape") setIsRenaming(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded bg-white/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+              className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
             />
           ) : (
-            <TruncateTooltip text={displayName} className="block truncate text-sm font-medium text-foreground" placement="bottom" />
+            <TruncateTooltip text={displayName} className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" placement="bottom" />
           )}
         </div>
 

@@ -45,6 +45,24 @@ async function loadExtension(language: string): Promise<Extension[]> {
       extensions = [javascript({ jsx: true })];
       break;
     }
+    case "svelte": {
+      const { svelte } = await import("@replit/codemirror-lang-svelte");
+      extensions = [svelte()];
+      break;
+    }
+    case "vue": {
+      const { vue } = await import("@codemirror/lang-vue");
+      extensions = [vue()];
+      break;
+    }
+    case "astro": {
+      // No maintained CodeMirror 6 grammar for Astro; HTML covers the markup and
+      // embedded <script>/<style>. The TS frontmatter (between ---) isn't parsed
+      // as TypeScript, which is an accepted limitation.
+      const { html } = await import("@codemirror/lang-html");
+      extensions = [html()];
+      break;
+    }
     case "html": {
       const { html } = await import("@codemirror/lang-html");
       extensions = [html()];

@@ -65,7 +65,7 @@ export const LANGUAGE_COLORS: Record<string, string> = {
   json: "#cbd5e1",
   markdown: "#79b8ff",
   sql: "#e38c00",
-  bash: "#4eaa25",
+  bash: "#e6e6e6",
   go: "#00add8",
   rust: "#dea584",
   java: "#e0793b",

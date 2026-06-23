@@ -1,9 +1,9 @@
 "use client";
 
-import { FileCode2, Pin, PinOff } from "lucide-react";
-import { LANGUAGES } from "@/lib/constants/languages";
+import { Pin, PinOff } from "lucide-react";
 import type { SnippetRecord } from "@/lib/types";
 import { getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
+import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
@@ -45,7 +45,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
       style={{ paddingLeft }}
       onContextMenu={openContextMenu}
     >
-      <FileCode2 size={13} className="shrink-0 text-white/20" />
+      <LanguageIcon language={snippet.language} size={13} className="shrink-0" />
       <input
         autoFocus
         defaultValue={getSnippetFileName(snippet.title, snippet.language)}
@@ -84,7 +84,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
         onDragEnd={() => ctx.endDrag()}
         className="flex min-w-0 flex-1 items-center gap-1.5 active:cursor-grabbing"
       >
-        <FileCode2 size={13} className="shrink-0 text-white/20" />
+        <LanguageIcon language={snippet.language} size={13} className="shrink-0" />
         <TruncateTooltip text={displayName} className="flex-1 truncate leading-none" />
       </span>
       <ItemActions onMore={openMoreMenu} label={ctx.copy.contextMenu.moreOptions} />

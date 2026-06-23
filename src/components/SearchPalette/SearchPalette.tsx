@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CornerDownLeft, FileCode2, Search } from "lucide-react";
+import { CornerDownLeft, Search } from "lucide-react";
 
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
 import { getSnippetDisplayName } from "@/lib/utils";
+import { LanguageIcon } from "@/ui/LanguageIcon";
 import type { Dictionary } from "@/i18n";
 
 interface SearchPaletteProps {
@@ -189,9 +190,10 @@ export function SearchPalette({
                     isActive ? "bg-white/[0.08]" : "hover:bg-white/[0.04]",
                   ].join(" ")}
                 >
-                  <FileCode2
+                  <LanguageIcon
+                    language={result.snippet.language}
                     size={15}
-                    className={`shrink-0 ${isActive ? "text-white/70" : "text-white/35"}`}
+                    className={`shrink-0 transition-opacity ${isActive ? "opacity-100" : "opacity-70"}`}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2">

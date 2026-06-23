@@ -4,46 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { LANGUAGES, type LanguageId } from "@/lib/constants/languages";
+import { LanguageIcon } from "@/ui/LanguageIcon";
 import type { Dictionary } from "@/i18n";
-
-/* Brand-aligned language colors */
-const LANG_COLORS: Record<string, string> = {
-  typescript: "#3178c6",
-  tsx:        "#3178c6",
-  javascript: "#f0db4f",
-  jsx:        "#61dafb",
-  html:       "#e34c26",
-  css:        "#563d7c",
-  python:     "#3572a5",
-  json:       "#8b9198",
-  markdown:   "#083fa1",
-  sql:        "#e38c00",
-  bash:       "#4eaa25",
-  go:         "#00add8",
-  rust:       "#dea584",
-  java:       "#b07219",
-  cpp:        "#f34b7d",
-  c:          "#a8a8a8",
-  csharp:     "#178600",
-  php:        "#787cb4",
-  ruby:       "#701516",
-  swift:      "#fa7343",
-  kotlin:     "#a97bff",
-  yaml:       "#cb171e",
-  toml:       "#9c4221",
-  xml:        "#0060ac",
-  scss:       "#cc6699",
-  dart:       "#00b4ab",
-  scala:      "#dc322f",
-  groovy:     "#e69f56",
-  lua:        "#000080",
-  haskell:    "#5e5086",
-  erlang:     "#b83998",
-  r:          "#198ce7",
-  powershell: "#5391fe",
-  dockerfile: "#0db7ed",
-  plaintext:  "#858585",
-};
 
 interface LanguageSelectProps {
   value: LanguageId;
@@ -135,11 +97,7 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
             : "border-white/[0.08] text-muted hover:border-white/15 hover:text-foreground",
         ].join(" ")}
       >
-        {/* Color dot */}
-        <span
-          className="h-[7px] w-[7px] shrink-0 rounded-full"
-          style={{ backgroundColor: LANG_COLORS[value] ?? "#858585" }}
-        />
+        <LanguageIcon language={value} size={13} className="shrink-0" />
         <span className="leading-none">{selectedLang?.label ?? value}</span>
         <ChevronDown
           size={11}
@@ -198,10 +156,7 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
                           : "text-white/60 hover:bg-white/[0.06] hover:text-white/90",
                       ].join(" ")}
                     >
-                      <span
-                        className="h-[7px] w-[7px] shrink-0 rounded-full"
-                        style={{ backgroundColor: LANG_COLORS[lang.id] ?? "#858585" }}
-                      />
+                      <LanguageIcon language={lang.id} size={14} className="shrink-0" />
                       <span className="flex-1">{lang.label}</span>
                       <span className="shrink-0 font-mono text-[11px] text-white/25">
                         {lang.extension}

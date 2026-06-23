@@ -9,7 +9,6 @@ import {
   Loader2,
   CircleCheck,
   Pencil,
-  FileCode2,
   Folder,
   FolderOpen,
   Layers,
@@ -21,6 +20,7 @@ import {
 import { Editor } from "@/components/Editor/Editor";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 import { LanguageSelect } from "@/ui/LanguageSelect";
+import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip } from "@/ui/Tooltip";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
@@ -243,7 +243,7 @@ export function SnippetEditor({
     })),
     {
       id: snippet.id,
-      icon: <FileCode2 size={12} className="shrink-0 text-white/40" aria-hidden="true" />,
+      icon: <LanguageIcon language={snippet.language} size={12} className="shrink-0" />,
       label: (
         <input
           type="text"

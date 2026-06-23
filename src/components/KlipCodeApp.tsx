@@ -1,7 +1,7 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Menu } from "lucide-react";
 
@@ -87,17 +87,32 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
   /* ── URL-based navigation ─────────────────────────────────────────────── */
 
-  const router = useRouter();
   const searchParams = useSearchParams();
   const base = localeHref(locale, "/app");
+
+  /**
+   * View switches (?snippet= / ?folder=) only change the URL search params, which
+   * are client-side state — the /app route never reads searchParams on the server.
+   * Using router.push for them runs a full Next navigation and refetches the RSC
+   * payload on every click (a network round-trip in production — the lag). The
+   * native History API updates the URL and stays in sync with useSearchParams
+   * without any server work, so view switches are instant. This is Next.js'
+   * documented "shallow routing on the client".
+   */
+  const navigate = useCallback((url: string) => {
+    window.history.pushState(null, "", url);
+  }, []);
+  const navigateReplace = useCallback((url: string) => {
+    window.history.replaceState(null, "", url);
+  }, []);
 
   const selectedSnippetId = searchParams.get("snippet");
   const selectedFolderId = searchParams.get("folder");
 
   /** Used by useWorkspaceMutations which needs a (id: string | null) => void setter. */
   function setSelectedSnippetId(id: string | null) {
-    if (id !== null) router.push(`${base}?snippet=${id}`);
-    else router.push(base);
+    if (id !== null) navigate(`${base}?snippet=${id}`);
+    else navigate(base);
   }
 
   /* ── Clipboard state ──────────────────────────────────────────────────── */
@@ -171,8 +186,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     if (!selectedFolderId || selectedFolderId === SPACE_ROOT_ID || selectedFolderId === TRASH_ROOT_ID) return;
     const exists =
       folders.some((f) => f.id === selectedFolderId) || trashedFolders.some((f) => f.id === selectedFolderId);
-    if (!exists) router.replace(base);
-  }, [folders, trashedFolders, selectedFolderId, workspaceQuery.isSuccess, trashQuery.isSuccess, router, base]);
+    if (!exists) navigateReplace(base);
+  }, [folders, trashedFolders, selectedFolderId, workspaceQuery.isSuccess, trashQuery.isSuccess, navigateReplace, base]);
 
   const selectedSnippet = selectedSnippetId
     ? (snippets.find((s) => s.id === selectedSnippetId) ??
@@ -183,7 +198,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const selectedSnippetTrashed = !!selectedSnippet?.deletedAt;
 
   function handleNewSnippetAt(folderId: string | null) {
-    router.push(base);
+    navigate(base);
     setDefaultNewSnippetFolderId(folderId);
   }
 
@@ -203,7 +218,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         .then(() => setCopyNonce((n) => n + 1));
     },
     onToggleSidebar: () => setSidebarOpen((v) => !v),
-    onCloseEditor: () => router.push(base),
+    onCloseEditor: () => navigate(base),
     hasOpenSnippet: !!selectedSnippet,
     overlayOpen: searchOpen || helpOpen || pendingEmptyTrash,
   });
@@ -264,11 +279,11 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         isOpen={sidebarOpen}
         isMobile={isMobile}
         onSetOpen={setSidebarOpen}
-        onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
-        onGoHome={() => router.push(base)}
+        onSelectSnippet={(id) => navigate(`${base}?snippet=${id}`)}
+        onGoHome={() => navigate(base)}
         onOpenSearch={() => setSearchOpen(true)}
         onOpenShortcuts={() => setHelpOpen(true)}
-        onGoSpace={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
+        onGoSpace={() => navigate(`${base}?folder=${SPACE_ROOT_ID}`)}
         onNewSnippetAt={handleNewSnippetAt}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
         onCreateFolder={mutations.handleCreateFolder}
@@ -285,8 +300,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onMoveSnippet={mutations.handleMoveSnippet}
         onSignIn={auth.handleGitHubSignIn}
         onSignOut={auth.handleSignOut}
-        onSelectFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
-        onOpenTrash={() => router.push(`${base}?folder=${TRASH_ROOT_ID}`)}
+        onSelectFolder={(folderId) => navigate(`${base}?folder=${folderId}`)}
+        onOpenTrash={() => navigate(`${base}?folder=${TRASH_ROOT_ID}`)}
         onRestoreAll={() => void mutations.handleRestoreAll()}
         onEmptyTrash={() => setPendingEmptyTrash(true)}
         trashCount={trashCount}
@@ -307,10 +322,10 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
               folders={selectedSnippetTrashed ? trashedFolders : folders}
               copy={copy}
               syncStatus={sync.snippetStatuses[selectedSnippet.id] ?? "idle"}
-              onClose={() => router.push(selectedSnippetTrashed ? `${base}?folder=${TRASH_ROOT_ID}` : base)}
-              onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
+              onClose={() => navigate(selectedSnippetTrashed ? `${base}?folder=${TRASH_ROOT_ID}` : base)}
+              onNavigateFolder={(folderId) => navigate(`${base}?folder=${folderId}`)}
               onNavigateHome={() =>
-                router.push(`${base}?folder=${selectedSnippetTrashed ? TRASH_ROOT_ID : SPACE_ROOT_ID}`)
+                navigate(`${base}?folder=${selectedSnippetTrashed ? TRASH_ROOT_ID : SPACE_ROOT_ID}`)
               }
               onUpdate={mutations.handleUpdateSnippet}
               menuButton={menuButton}
@@ -332,9 +347,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             folders={trashedFolders}
             snippets={trashedSnippets}
             copy={copy}
-            onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
-            onNavigateTrashRoot={() => router.push(`${base}?folder=${TRASH_ROOT_ID}`)}
-            onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
+            onNavigateFolder={(folderId) => navigate(`${base}?folder=${folderId}`)}
+            onNavigateTrashRoot={() => navigate(`${base}?folder=${TRASH_ROOT_ID}`)}
+            onSelectSnippet={(id) => navigate(`${base}?snippet=${id}`)}
             onRestoreSnippet={(id) => void mutations.handleRestoreSnippet(id)}
             onPermanentlyDeleteSnippet={(id) => void mutations.handlePermanentlyDeleteSnippet(id)}
             onRestoreFolder={(id) => void mutations.handleRestoreFolder(id)}
@@ -350,9 +365,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             snippets={snippets}
             copy={copy}
             clipboard={clipboard}
-            onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
-            onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
-            onNavigateHome={() => router.push(`${base}?folder=${SPACE_ROOT_ID}`)}
+            onSelectSnippet={(id) => navigate(`${base}?snippet=${id}`)}
+            onNavigateFolder={(folderId) => navigate(`${base}?folder=${folderId}`)}
+            onNavigateHome={() => navigate(`${base}?folder=${SPACE_ROOT_ID}`)}
             onPinSnippet={mutations.handlePinSnippet}
             onPinFolder={mutations.handlePinFolder}
             onDeleteSnippet={mutations.handleDeleteSnippet}
@@ -387,8 +402,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
                 folders={folders}
                 copy={copy}
                 clipboard={clipboard}
-                onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
-                onNavigateFolder={(folderId) => router.push(`${base}?folder=${folderId}`)}
+                onSelectSnippet={(id) => navigate(`${base}?snippet=${id}`)}
+                onNavigateFolder={(folderId) => navigate(`${base}?folder=${folderId}`)}
                 onPinSnippet={mutations.handlePinSnippet}
                 onDeleteSnippet={mutations.handleDeleteSnippet}
                 onRenameSnippet={mutations.handleRenameSnippet}
@@ -407,7 +422,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         snippets={snippets}
         folders={folders}
         copy={copy}
-        onSelectSnippet={(id) => router.push(`${base}?snippet=${id}`)}
+        onSelectSnippet={(id) => navigate(`${base}?snippet=${id}`)}
         onClose={() => setSearchOpen(false)}
       />
     )}
@@ -430,7 +445,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onConfirm={() => {
           void mutations.handleEmptyTrash();
           setPendingEmptyTrash(false);
-          if (isTrashView) router.push(`${base}?folder=${TRASH_ROOT_ID}`);
+          if (isTrashView) navigate(`${base}?folder=${TRASH_ROOT_ID}`);
         }}
       />
     )}

@@ -302,7 +302,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             <SnippetEditor
               key={selectedSnippet.id}
               snippet={selectedSnippet}
-              folders={folders}
+              // A trashed snippet's ancestors live only in the trashed set; pass
+              // those so its breadcrumb resolves the (also trashed) folder path.
+              folders={selectedSnippetTrashed ? trashedFolders : folders}
               copy={copy}
               syncStatus={sync.snippetStatuses[selectedSnippet.id] ?? "idle"}
               onClose={() => router.push(selectedSnippetTrashed ? `${base}?folder=${TRASH_ROOT_ID}` : base)}

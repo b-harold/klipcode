@@ -11,6 +11,7 @@ import {
   Pencil,
   FileCode2,
   Folder,
+  FolderOpen,
   Layers,
   Zap,
   RotateCcw,
@@ -212,19 +213,32 @@ export function SnippetEditor({
   }
 
   // ── Folder path for breadcrumb ───────────────────────────────────────────
+  // For a trashed snippet `folders` is the trashed set, so the path resolves to
+  // its (also trashed) ancestor folders and the root crumb points at the trash.
   const folderPath = snippet.folderId ? getFolderPath(snippet.folderId, folders) : [];
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    {
-      id: "root",
-      label: copy.aside.mySpace,
-      icon: <Layers size={12} aria-hidden="true" />,
-      onClick: onNavigateHome ? onNavigateHome : onClose,
-    },
+    readOnly
+      ? {
+          id: "root",
+          label: copy.trash.title,
+          icon: <Trash2 size={12} aria-hidden="true" />,
+          onClick: onNavigateHome ? onNavigateHome : onClose,
+        }
+      : {
+          id: "root",
+          label: copy.aside.mySpace,
+          icon: <Layers size={12} aria-hidden="true" />,
+          onClick: onNavigateHome ? onNavigateHome : onClose,
+        },
     ...folderPath.map<BreadcrumbItem>((f) => ({
       id: f.id,
       label: f.name,
-      icon: <Folder size={12} aria-hidden="true" />,
+      icon: readOnly ? (
+        <FolderOpen size={12} aria-hidden="true" />
+      ) : (
+        <Folder size={12} aria-hidden="true" />
+      ),
       onClick: onNavigateFolder ? () => onNavigateFolder(f.id) : onClose,
     })),
     {

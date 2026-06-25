@@ -308,8 +308,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onCut={setClipboard}
         onCopy={(entry) => setClipboard({ ...entry, type: "copy" })}
         onPaste={mutations.handlePaste}
-        onMoveFolder={mutations.handleMoveFolder}
-        onMoveSnippet={mutations.handleMoveSnippet}
         onSignIn={auth.handleGitHubSignIn}
         onSignOut={auth.handleSignOut}
         signingIn={auth.signingIn}

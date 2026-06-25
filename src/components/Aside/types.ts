@@ -27,8 +27,6 @@ export interface AsideProps {
   onCut: (entry: ClipboardEntry) => void;
   onCopy: (entry: ClipboardEntry) => void;
   onPaste: (targetFolderId: string | null) => Promise<void>;
-  onMoveFolder: (id: string, newParentId: string | null) => Promise<void>;
-  onMoveSnippet: (id: string, newFolderId: string | null) => Promise<void>;
   onSelectFolder?: (folderId: string) => void;
   onSignIn: () => void;
   onSignOut: () => void;

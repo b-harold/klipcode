@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ChevronsLeft, LogIn, LogOut } from "lucide-react";
 import type { Dictionary } from "@/i18n";
 import type { User } from "@supabase/supabase-js";
@@ -29,9 +30,11 @@ export function AsideHeader({
         {user ? (
           <div className="flex min-w-0 flex-1 items-center gap-2.5 p-1">
             <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10">
-              <img
+              <Image
                 src={user.user_metadata.avatar_url}
                 alt={user.user_metadata.full_name || user.email || "Avatar"}
+                width={24}
+                height={24}
                 className="h-full w-full object-cover"
               />
             </div>

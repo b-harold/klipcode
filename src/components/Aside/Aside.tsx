@@ -44,8 +44,6 @@ export function Aside({
   onCut,
   onCopy,
   onPaste,
-  onMoveFolder,
-  onMoveSnippet,
   onSelectFolder,
   onSignIn,
   onSignOut,

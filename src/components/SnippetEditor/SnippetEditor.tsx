@@ -127,27 +127,14 @@ export function SnippetEditor({
   const editorCopy = copy.snippetEditor;
 
   // Local state — initialised from snippet once (key={snippet.id} resets on swap)
-  const [title, setTitle] = useState(snippet.title);
   const [code, setCode] = useState(snippet.code);
   const [copied, setCopied] = useState(false);
   const [formatting, setFormatting] = useState(false);
 
   // Per-field debounce timers
-  const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
-
-  function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (readOnly) return;
-    const next = e.target.value;
-    setTitle(next);
-
-    if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
-    titleTimerRef.current = setTimeout(() => {
-      onUpdate(snippet.id, { title: next });
-    }, DEBOUNCE_MS);
-  }
 
   function handleCodeChange(next: string) {
     if (readOnly) return;
@@ -241,18 +228,12 @@ export function SnippetEditor({
     {
       id: snippet.id,
       icon: <LanguageIcon language={snippet.language} size={12} className="shrink-0" />,
-      label: (
-        <input
-          type="text"
-          value={title}
-          onChange={handleTitleChange}
-          readOnly={readOnly}
-          placeholder={editorCopy.titlePlaceholder}
-          className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-white/25 focus:outline-none max-sm:w-auto max-sm:min-w-[2rem] max-sm:[field-sizing:content]"
-          spellCheck={false}
-        />
+      label: snippet.title.trim() ? (
+        snippet.title
+      ) : (
+        <span className="text-white/25">{editorCopy.titlePlaceholder}</span>
       ),
-      // No onClick — editable title is the "current" item
+      // No onClick — the current snippet title is the static "current" crumb
     },
   ];
 

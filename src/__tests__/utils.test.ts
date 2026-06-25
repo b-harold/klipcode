@@ -128,4 +128,18 @@ describe("resolveSnippetRename()", () => {
       language: "plaintext",
     });
   });
+
+  it("lowercases an uppercase recognized extension (no duplication)", () => {
+    expect(resolveSnippetRename("hola.MD", "javascript")).toEqual({
+      title: "hola.md",
+      language: "markdown",
+    });
+  });
+
+  it("preserves the base name's casing while lowercasing the extension", () => {
+    expect(resolveSnippetRename("README.MD", "javascript")).toEqual({
+      title: "README.md",
+      language: "markdown",
+    });
+  });
 });

@@ -4,7 +4,7 @@ import { db, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
 import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord, SyncStatus } from "@/lib/types";
 import { isDescendantOrSelf } from "@/components/Aside/utils";
-import { DEFAULT_LANGUAGE, detectLanguageFromTitle } from "@/lib/constants/languages";
+import { DEFAULT_LANGUAGE, detectLanguageFromTitle, normalizeTitleExtension } from "@/lib/constants/languages";
 import { resolveSnippetRename } from "@/lib/utils";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import type { Dictionary } from "@/i18n";
@@ -102,7 +102,7 @@ export function useWorkspaceMutations({
       id: snippetId,
       ownerId: user?.id ?? null,
       folderId: folderId ?? null,
-      title: title.trim() || copy.snippetCard.untitled,
+      title: normalizeTitleExtension(title) || copy.snippetCard.untitled,
       // Infer the syntax from a filename-style title (e.g. `style.css`) so the
       // user doesn't have to pick a language manually; fall back to the default.
       language: detectLanguageFromTitle(title) ?? DEFAULT_LANGUAGE,

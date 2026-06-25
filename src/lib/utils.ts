@@ -1,6 +1,12 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { DEFAULT_LANGUAGE, LANGUAGES, detectLanguageFromTitle, type LanguageId } from "@/lib/constants/languages";
+import {
+  DEFAULT_LANGUAGE,
+  LANGUAGES,
+  detectLanguageFromTitle,
+  normalizeTitleExtension,
+  type LanguageId,
+} from "@/lib/constants/languages";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -40,7 +46,7 @@ export function resolveSnippetRename(
 ): { title: string; language: LanguageId } {
   const trimmed = value.trim();
   const detected = detectLanguageFromTitle(trimmed);
-  if (detected) return { title: trimmed, language: detected };
+  if (detected) return { title: normalizeTitleExtension(trimmed), language: detected };
 
   const prevExt = LANGUAGES.find((l) => l.id === currentLanguage)?.extension ?? "";
   const title = prevExt && !trimmed.endsWith(prevExt) ? `${trimmed}${prevExt}` : trimmed;

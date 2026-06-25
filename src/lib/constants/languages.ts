@@ -90,3 +90,19 @@ export function detectLanguageFromTitle(title: string): LanguageId | null {
 
   return EXTENSION_TO_LANGUAGE[name.slice(dot)] ?? null;
 }
+
+/**
+ * Lowercases a title's trailing extension when it maps to a known language
+ * (e.g. `hola.MD` → `hola.md`), so the stored title matches the canonical
+ * casing the rest of the app expects when comparing/appending extensions.
+ * Titles without a recognized extension are returned trimmed but otherwise
+ * unchanged (the base name keeps its original casing).
+ */
+export function normalizeTitleExtension(title: string): string {
+  const trimmed = title.trim();
+  if (!detectLanguageFromTitle(trimmed)) return trimmed;
+  const dot = trimmed.lastIndexOf(".");
+  // `dot <= 0` covers extension-less filenames like `Dockerfile`.
+  if (dot <= 0) return trimmed;
+  return trimmed.slice(0, dot) + trimmed.slice(dot).toLowerCase();
+}

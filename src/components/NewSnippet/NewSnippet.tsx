@@ -6,7 +6,7 @@ import { Editor } from "@/components/Editor/Editor";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { FolderSelect } from "@/ui/FolderSelect";
 import { ShortcutHint } from "@/ui/ShortcutHint";
-import { DEFAULT_LANGUAGE, detectLanguageFromTitle, type LanguageId } from "@/lib/constants/languages";
+import { DEFAULT_LANGUAGE, detectLanguageFromTitle, normalizeTitleExtension, type LanguageId } from "@/lib/constants/languages";
 import type { FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 
@@ -73,7 +73,7 @@ export function NewSnippet({ copy, folders, defaultFolderId, focusNonce = 0, onC
     if (!code.trim()) return;
 
     onCreateSnippet({
-      title: title.trim(),
+      title: normalizeTitleExtension(title),
       language,
       folderId,
       code,

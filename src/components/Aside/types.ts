@@ -32,6 +32,10 @@ export interface AsideProps {
   onSelectFolder?: (folderId: string) => void;
   onSignIn: () => void;
   onSignOut: () => void;
+  /** Sign-in is redirecting to GitHub. */
+  signingIn: boolean;
+  /** Sign-out is clearing the session and local data. */
+  signingOut: boolean;
   /** Open the trash view. */
   onOpenTrash: () => void;
   /** Restore every trashed record (no confirmation — non-destructive). */

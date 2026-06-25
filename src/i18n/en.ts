@@ -58,6 +58,8 @@ export const en = {
     cloudSyncRunning: "Syncing changes to the cloud.",
     syncFailed: "Could not sync with the cloud.",
     signedInAs: "User",
+    signingIn: "Signing in…",
+    signingOut: "Signing out…",
   },
   forms: {
     folderTitle: "New folder",

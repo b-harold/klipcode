@@ -49,6 +49,8 @@ export function Aside({
   onSelectFolder,
   onSignIn,
   onSignOut,
+  signingIn,
+  signingOut,
   onOpenTrash,
   onRestoreAll,
   onEmptyTrash,
@@ -229,6 +231,8 @@ export function Aside({
           <AsideHeader
             user={user}
             copy={copy}
+            signingIn={signingIn}
+            signingOut={signingOut}
             onSignIn={onSignIn}
             onSignOut={onSignOut}
             onCollapse={() => onSetOpen(false)}

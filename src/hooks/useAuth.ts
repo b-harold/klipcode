@@ -17,6 +17,10 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
 
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  // Pending flags for the auth actions, which round-trip to GitHub/Supabase and
+  // can leave the UI looking frozen otherwise (sign-in redirects off-page).
+  const [signingIn, setSigningIn] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [accountMessage, setAccountMessage] = useState<string>(
     supabaseConfigured ? copy.auth.localMode : copy.auth.notConfigured
   );
@@ -100,26 +104,40 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
   ]);
 
   async function handleGitHubSignIn() {
-    if (!supabase) return;
+    if (!supabase || signingIn) return;
+
+    // Stays true through the off-page redirect to GitHub; only an error (which
+    // keeps us on the page) clears it so the button can be retried.
+    setSigningIn(true);
+    setAccountMessage(copy.auth.signingIn);
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
       options: { redirectTo: window.location.href },
     });
 
-    if (error) setAccountMessage(copy.auth.syncFailed);
+    if (error) {
+      setSigningIn(false);
+      setAccountMessage(copy.auth.syncFailed);
+    }
   }
 
   async function handleSignOut() {
-    if (!supabase) return;
-    const signedOutUserId = user?.id ?? null;
-    await supabase.auth.signOut();
-    // Wipe this account's local data so it isn't readable on a shared machine.
-    // Synced data comes back from the cloud on the next sign-in.
-    if (signedOutUserId) await clearOwnedData(signedOutUserId);
-    setUser(null);
-    setAccountMessage(supabaseConfigured ? copy.auth.localMode : copy.auth.notConfigured);
-    refreshRef.current();
+    if (!supabase || signingOut) return;
+    setSigningOut(true);
+    setAccountMessage(copy.auth.signingOut);
+    try {
+      const signedOutUserId = user?.id ?? null;
+      await supabase.auth.signOut();
+      // Wipe this account's local data so it isn't readable on a shared machine.
+      // Synced data comes back from the cloud on the next sign-in.
+      if (signedOutUserId) await clearOwnedData(signedOutUserId);
+      setUser(null);
+      setAccountMessage(supabaseConfigured ? copy.auth.localMode : copy.auth.notConfigured);
+      refreshRef.current();
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   return {
@@ -129,6 +147,8 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
     setAccountMessage,
     supabase,
     supabaseConfigured,
+    signingIn,
+    signingOut,
     handleGitHubSignIn,
     handleSignOut,
   };

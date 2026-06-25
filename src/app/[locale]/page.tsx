@@ -4,6 +4,7 @@ import { getDictionary } from "@/i18n";
 import { HeroPerspective } from "@/components/HeroPerspective";
 import { LandingHeader } from "@/components/LandingHeader";
 import { LocaleSwitchLink } from "@/components/LocaleSwitchLink";
+import { AppCtaLink } from "@/components/AppCtaLink";
 import { isLocale, localeHref, type Locale } from "@/lib/locale";
 import { Logo } from "@/ui/Logo";
 import { GitHubIcon } from "@/components/Aside/GitHubIcon";
@@ -54,14 +55,6 @@ function IconCode() {
   return (
     <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
-    </svg>
-  );
-}
-
-function IconArrowRight() {
-  return (
-    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
     </svg>
   );
 }
@@ -119,13 +112,12 @@ export default async function LandingPage({
               {altLocale.toUpperCase()}
             </LocaleSwitchLink>
 
-            <Link
+            <AppCtaLink
               href={appHref}
               className="group hidden items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-medium text-[#0a0a0a] transition-all hover:bg-white/90 active:scale-[0.97] md:flex"
             >
               {l.nav.openApp}
-              <IconArrowRight />
-            </Link>
+            </AppCtaLink>
           </div>
       </LandingHeader>
 
@@ -155,13 +147,12 @@ export default async function LandingPage({
         </p>
 
         <div className="landing-fade-in landing-delay-2 mt-10 flex flex-col items-center gap-3">
-          <Link
+          <AppCtaLink
             href={appHref}
             className="group inline-flex items-center gap-2.5 rounded-full bg-white px-7 py-3 text-sm font-semibold text-[#0a0a0a] shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_2px_20px_rgba(255,255,255,0.1)] transition-all hover:shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_2px_30px_rgba(255,255,255,0.15)] active:scale-[0.97]"
           >
             {l.hero.cta}
-            <IconArrowRight />
-          </Link>
+          </AppCtaLink>
           <span className="text-xs text-muted/70">{l.hero.ctaHint}</span>
         </div>
 
@@ -308,13 +299,12 @@ export default async function LandingPage({
             {l.cta.title}
           </h2>
           <p className="mt-5 text-muted leading-relaxed">{l.cta.subtitle}</p>
-          <Link
+          <AppCtaLink
             href={appHref}
             className="mt-8 inline-flex items-center gap-2.5 rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-[#0a0a0a] shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_2px_20px_rgba(255,255,255,0.1)] transition-all hover:shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_2px_30px_rgba(255,255,255,0.15)] active:scale-[0.97]"
           >
             {l.cta.button}
-            <IconArrowRight />
-          </Link>
+          </AppCtaLink>
         </div>
       </section>
 

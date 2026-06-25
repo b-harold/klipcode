@@ -4,16 +4,21 @@ import { ChevronsLeft, LogIn, LogOut } from "lucide-react";
 import type { Dictionary } from "@/i18n";
 import type { User } from "@supabase/supabase-js";
 import { Tooltip } from "@/ui/Tooltip";
+import { Spinner } from "@/ui/Spinner";
 
 export function AsideHeader({
   user,
   copy,
+  signingIn,
+  signingOut,
   onSignIn,
   onSignOut,
   onCollapse,
 }: {
   user: User | null;
   copy: Dictionary;
+  signingIn: boolean;
+  signingOut: boolean;
   onSignIn: () => void;
   onSignOut: () => void;
   onCollapse: () => void;
@@ -35,24 +40,32 @@ export function AsideHeader({
                 {user.user_metadata.full_name || user.email?.split("@")[0]}
               </span>
             </div>
-            <Tooltip content={copy.auth.signOut} placement="bottom">
+            <Tooltip content={signingOut ? copy.auth.signingOut : copy.auth.signOut} placement="bottom">
               <button
                 onClick={onSignOut}
-                className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/10 hover:text-white/60"
-                aria-label={copy.auth.signOut}
+                disabled={signingOut}
+                className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/10 hover:text-white/60 disabled:cursor-default disabled:hover:bg-transparent"
+                aria-label={signingOut ? copy.auth.signingOut : copy.auth.signOut}
+                aria-busy={signingOut}
               >
-                <LogOut size={12} />
+                {signingOut ? <Spinner size={12} /> : <LogOut size={12} />}
               </button>
             </Tooltip>
           </div>
         ) : (
           <button
             onClick={onSignIn}
-            className="group flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2 text-left transition-colors hover:text-foreground"
+            disabled={signingIn}
+            className="group flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2 text-left transition-colors hover:text-foreground disabled:cursor-default"
+            aria-busy={signingIn}
           >
-            <LogIn size={15} className="shrink-0 text-white/60 group-hover:text-white" />
+            {signingIn ? (
+              <Spinner size={15} className="shrink-0 text-white/80" />
+            ) : (
+              <LogIn size={15} className="shrink-0 text-white/60 group-hover:text-white" />
+            )}
             <span className="truncate text-[12px] font-medium text-foreground/80 group-hover:text-foreground">
-              {copy.auth.signIn}
+              {signingIn ? copy.auth.signingIn : copy.auth.signIn}
             </span>
           </button>
         )}

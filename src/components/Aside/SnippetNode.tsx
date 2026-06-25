@@ -16,13 +16,18 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
   const displayName = getSnippetDisplayName(snippet.title, snippet.language, ctx.copy.snippetCard.untitled);
 
   const paddingLeft = 10 + depth * STEP + 19;
-  const isDraggingThis = ctx.dragging?.id === snippet.id;
-  const isSelected = ctx.selectedSnippetId === snippet.id;
+  const isDraggingThis = ctx.isDraggingItem(snippet.id);
+  // The active row (open in the main view) gets a bordered highlight; rows that
+  // are only part of a multi-selection get a borderless fill.
+  const isActive = ctx.selectedSnippetId === snippet.id;
+  const isMultiSelected = ctx.isItemSelected(snippet.id) && !isActive;
   const sharedRowClass = [
     "group relative mr-1 flex items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] transition-all duration-100",
-    isSelected
-      ? "bg-white/[0.08] text-foreground"
-      : "text-muted hover:bg-white/[0.04] hover:text-foreground",
+    isActive
+      ? "bg-white/[0.08] text-foreground ring-1 ring-inset ring-white/25"
+      : isMultiSelected
+        ? "bg-white/[0.08] text-foreground"
+        : "text-muted hover:bg-white/[0.04] hover:text-foreground",
     isDraggingThis ? "opacity-40" : "",
   ].filter(Boolean).join(" ");
 
@@ -63,11 +68,13 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
     <div
       role="button"
       tabIndex={0}
-      onClick={() => ctx.selectSnippet(snippet.id)}
+      data-tree-id={snippet.id}
+      data-tree-type="snippet"
+      onClick={(e) => ctx.activateItem(e, { id: snippet.id, type: "snippet" })}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          ctx.selectSnippet(snippet.id);
+          ctx.activateItem(e, { id: snippet.id, type: "snippet" });
         }
       }}
       onContextMenu={openContextMenu}

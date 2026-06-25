@@ -94,8 +94,21 @@ export interface CloudSnippetRow {
   deleted_at: string | null;
 }
 
-export interface ClipboardEntry {
-  type: "cut" | "copy";
+/** A workspace item identified by its kind. Shared by multi-selection, batch
+ *  mutations and multi-item drag. */
+export interface SelectedItem {
+  type: "folder" | "snippet";
+  id: string;
+}
+
+export interface ClipboardItem {
   itemType: "folder" | "snippet";
   id: string;
+}
+
+/** The internal cut/copy buffer. Carries one or more items so a multi-selection
+ *  can be cut/copied and pasted as a batch. */
+export interface ClipboardEntry {
+  type: "cut" | "copy";
+  items: ClipboardItem[];
 }

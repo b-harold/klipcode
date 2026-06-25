@@ -5,11 +5,13 @@ import { FilePlus, FolderPlus, Home, Keyboard, Layers, RotateCcw, Search, Trash2
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { isEditableTarget } from "@/lib/constants/shortcuts";
 import { Tooltip } from "@/ui/Tooltip";
 import { ShortcutHint } from "@/ui/ShortcutHint";
 
 import type { AsideProps, AsideCtxShape, MenuTarget } from "./types";
 import { sortByPinThenAlpha } from "./utils";
+import { useTreeSelection } from "./useTreeSelection";
 import { AsideCtx } from "./AsideContext";
 import { AsideHeader } from "./AsideHeader";
 import { FolderNode } from "./FolderNode";
@@ -36,6 +38,7 @@ export function Aside({
   onCreateFolder,
   onDeleteFolder,
   onDeleteSnippet,
+  onDeleteMany,
   onRenameFolder,
   onRenameSnippet,
   onPinFolder,
@@ -70,6 +73,68 @@ export function Aside({
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
   const [trashMenu, setTrashMenu] = useState<{ x: number; y: number } | null>(null);
   const drag = useDragCtx();
+
+  /* ── Multi-selection ────────────────────────────────────────────────────── */
+
+  const {
+    selectedIds,
+    containerRef: treeContainerRef,
+    activateItem,
+    selectAll,
+    clear: clearSelection,
+    isItemSelected,
+    getSelectedItems,
+    pasteTargetFolderId,
+  } = useTreeSelection({
+    folders,
+    snippets,
+    selectSnippet: onSelectSnippet,
+    selectFolder: (id) => onSelectFolder?.(id),
+  });
+
+  async function handleBatchDelete() {
+    const items = getSelectedItems();
+    if (items.length === 0) return;
+    clearSelection();
+    await onDeleteMany(items);
+  }
+
+  function handleTreeKeyDown(e: React.KeyboardEvent) {
+    // Never hijack the rename / inline-create inputs that live inside the tree.
+    if (isEditableTarget(e.target)) return;
+    const mod = e.metaKey || e.ctrlKey;
+    const key = e.key.toLowerCase();
+
+    if (mod && key === "a") {
+      e.preventDefault();
+      selectAll();
+      return;
+    }
+
+    if (selectedIds.size === 0) return;
+
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      void handleBatchDelete();
+      return;
+    }
+    if (mod && key === "c") {
+      e.preventDefault();
+      onCopy({ type: "copy", items: getSelectedItems().map((i) => ({ itemType: i.type, id: i.id })) });
+      return;
+    }
+    if (mod && key === "x") {
+      e.preventDefault();
+      onCut({ type: "cut", items: getSelectedItems().map((i) => ({ itemType: i.type, id: i.id })) });
+      return;
+    }
+    if (mod && key === "v") {
+      e.preventDefault();
+      void onPaste(pasteTargetFolderId());
+      return;
+    }
+    if (e.key === "Escape") clearSelection();
+  }
 
   /* ── Context menu groups ────────────────────────────────────────────────── */
 
@@ -124,13 +189,28 @@ export function Aside({
     },
     selectSnippet: onSelectSnippet,
     selectFolder: (id: string) => onSelectFolder?.(id),
+    activateItem,
+    isItemSelected,
+    isDraggingItem: (id: string) => {
+      const d = drag.dragging;
+      if (!d) return false;
+      return d.id === id || Boolean(d.items?.some((it) => it.id === id));
+    },
     selectedSnippetId,
     selectedFolderId,
     pinFolder: onPinFolder,
     pinSnippet: onPinSnippet,
     dragging: drag.dragging,
     dragOverId: drag.dragOverId,
-    startDrag: drag.startDrag,
+    startDrag: (type, id) => {
+      // Dragging any item that belongs to the active multi-selection drags the
+      // whole set; otherwise it's a plain single-item drag.
+      if (isItemSelected(id) && selectedIds.size > 1) {
+        drag.startDrag(type, id, "workspace", getSelectedItems());
+      } else {
+        drag.startDrag(type, id);
+      }
+    },
     endDrag: drag.endDrag,
     enterDropTarget: drag.enterDropTarget,
     dropOnTarget: drag.dropOnFolder,
@@ -222,6 +302,7 @@ export function Aside({
           ]
             .filter(Boolean)
             .join(" ")}
+          onKeyDown={handleTreeKeyDown}
         >
           <AsideHeader
             user={user}
@@ -299,7 +380,12 @@ export function Aside({
 
             {/* Tree */}
             <div
+              ref={treeContainerRef}
               className="flex-1 overflow-y-auto pb-4"
+              onClick={(e) => {
+                // Clicking empty space below/around the rows clears the selection.
+                if (e.target === e.currentTarget) clearSelection();
+              }}
               onContextMenu={(e) => {
                 e.preventDefault();
                 setMenuTarget({ type: "root", x: e.clientX, y: e.clientY });

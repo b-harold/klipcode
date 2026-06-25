@@ -1,4 +1,5 @@
-import type { FolderRecord, SnippetRecord, ClipboardEntry } from "@/lib/types";
+import type { MouseEvent as ReactMouseEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { FolderRecord, SnippetRecord, ClipboardEntry, SelectedItem } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import type { User } from "@supabase/supabase-js";
 
@@ -19,6 +20,8 @@ export interface AsideProps {
   onCreateFolder: (parentId: string | null, name: string) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;
   onDeleteSnippet: (id: string) => Promise<void>;
+  /** Soft-delete a whole multi-selection at once (batch delete). */
+  onDeleteMany: (items: SelectedItem[]) => Promise<void>;
   onRenameFolder: (id: string, name: string) => Promise<void>;
   onRenameSnippet: (id: string, title: string) => Promise<void>;
   onPinFolder: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
@@ -79,6 +82,13 @@ export interface AsideCtxShape {
   submitCreateSnippet: (folderId: string | null, title: string) => void;
   selectSnippet: (id: string) => void;
   selectFolder: (id: string) => void;
+  /** Click/keyboard activation of a tree row, resolving Shift/⌘/Ctrl modifiers
+   *  into the right multi-selection behaviour. */
+  activateItem: (e: ReactMouseEvent | ReactKeyboardEvent, item: SelectedItem) => void;
+  /** Whether a row is part of the current multi-selection. */
+  isItemSelected: (id: string) => boolean;
+  /** Whether a row is currently being dragged (single or as part of a batch). */
+  isDraggingItem: (id: string) => boolean;
   /** Id of the snippet currently open in the main view, for highlighting. */
   selectedSnippetId: string | null;
   /** Id of the folder currently open in the main view, for highlighting. */

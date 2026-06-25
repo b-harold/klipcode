@@ -61,14 +61,19 @@ export function FolderNode({
   }
 
   const paddingLeft = 10 + depth * STEP;
-  const isDraggingThis = ctx.dragging?.id === folder.id;
+  const isDraggingThis = ctx.isDraggingItem(folder.id);
   const isDropTarget = ctx.dragOverId === folder.id && ctx.canDropOnFolder(folder.id);
-  const isSelected = ctx.selectedFolderId === folder.id;
+  // The active row (open in the main view) gets a bordered highlight; rows that
+  // are only part of a multi-selection get a borderless fill.
+  const isActive = ctx.selectedFolderId === folder.id;
+  const isMultiSelected = ctx.isItemSelected(folder.id) && !isActive;
   const sharedRowClass = [
     "group relative mr-1 flex items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] transition-all duration-100",
-    isSelected
-      ? "bg-white/[0.08] text-foreground"
-      : "text-muted hover:bg-white/[0.04] hover:text-foreground",
+    isActive
+      ? "bg-white/[0.08] text-foreground ring-1 ring-inset ring-white/25"
+      : isMultiSelected
+        ? "bg-white/[0.08] text-foreground"
+        : "text-muted hover:bg-white/[0.04] hover:text-foreground",
     isDraggingThis ? "opacity-40" : "",
     isDropTarget ? "bg-white/[0.07] text-foreground ring-1 ring-inset ring-white/[0.18]" : "",
   ].filter(Boolean).join(" ");
@@ -111,12 +116,14 @@ export function FolderNode({
           style={{ paddingLeft }}
           role="button"
           tabIndex={0}
-          onClick={() => ctx.selectFolder(folder.id)}
+          data-tree-id={folder.id}
+          data-tree-type="folder"
+          onClick={(e) => ctx.activateItem(e, { id: folder.id, type: "folder" })}
           onKeyDown={(e) => {
             if (e.target !== e.currentTarget) return;
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              ctx.selectFolder(folder.id);
+              ctx.activateItem(e, { id: folder.id, type: "folder" });
             }
           }}
           onContextMenu={openContextMenu}

@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
 import { db, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
-import type { ClipboardEntry, FolderRecord, SnippetRecord, SyncStatus } from "@/lib/types";
+import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord, SyncStatus } from "@/lib/types";
+import { isDescendantOrSelf } from "@/components/Aside/utils";
 import { DEFAULT_LANGUAGE, detectLanguageFromTitle } from "@/lib/constants/languages";
 import { resolveSnippetRename } from "@/lib/utils";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
@@ -571,39 +572,145 @@ export function useWorkspaceMutations({
   }
 
   async function handlePaste(targetFolderId: string | null) {
-    if (!clipboard) return;
+    if (!clipboard || clipboard.items.length === 0) return;
     const timestamp = new Date().toISOString();
+    const isCut = clipboard.type === "cut";
 
-    if (clipboard.itemType === "snippet") {
-      const snippet = await db.snippets.get(clipboard.id);
-      if (!snippet) return;
-
-      if (clipboard.type === "cut") {
-        await db.snippets.update(clipboard.id, { folderId: targetFolderId, updatedAt: timestamp, dirty: true });
-        setClipboard(null);
+    // Process each buffered item in order. Cut moves the original; copy clones it
+    // (folders deep-copied with the whole subtree under fresh ids).
+    for (const item of clipboard.items) {
+      if (item.itemType === "snippet") {
+        const snippet = await db.snippets.get(item.id);
+        if (!snippet) continue;
+        if (isCut) {
+          await db.snippets.update(item.id, { folderId: targetFolderId, updatedAt: timestamp, dirty: true });
+        } else {
+          await db.snippets.put({
+            ...snippet,
+            id: crypto.randomUUID(),
+            folderId: targetFolderId,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            dirty: true,
+            lastSyncedAt: null,
+          });
+        }
       } else {
-        await db.snippets.put({
-          ...snippet,
-          id: crypto.randomUUID(),
-          folderId: targetFolderId,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-          dirty: true,
-          lastSyncedAt: null,
-        });
-      }
-    } else {
-      const folder = await db.folders.get(clipboard.id);
-      if (!folder) return;
-
-      if (clipboard.type === "cut") {
-        await db.folders.update(clipboard.id, { parentId: targetFolderId, updatedAt: timestamp, dirty: true });
-        setClipboard(null);
-      } else {
-        await duplicateFolderTree(clipboard.id, targetFolderId, timestamp);
+        const folder = await db.folders.get(item.id);
+        if (!folder) continue;
+        // A cut folder can't be pasted into itself or its own subtree.
+        if (isCut) {
+          if (targetFolderId !== null && isDescendantOrSelf(folders, item.id, targetFolderId)) continue;
+          await db.folders.update(item.id, { parentId: targetFolderId, updatedAt: timestamp, dirty: true });
+        } else {
+          await duplicateFolderTree(item.id, targetFolderId, timestamp);
+        }
       }
     }
 
+    if (isCut) setClipboard(null);
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  /* ── Batch operations (multi-selection in the sidebar) ────────────────── */
+
+  /** Soft-delete every selected item at once. Items that live inside a selected
+   *  folder are covered by that folder's subtree delete, so they're not deleted
+   *  twice (which would reset their trash timestamp). */
+  async function handleDeleteMany(items: SelectedItem[]) {
+    if (items.length === 0) return;
+    const [allFolders, allSnippets] = await Promise.all([
+      db.folders.toArray(),
+      db.snippets.toArray(),
+    ]);
+
+    const selectedFolderIds = items.filter((i) => i.type === "folder").map((i) => i.id);
+    const folderUnion = new Set<string>();
+    for (const fid of selectedFolderIds) {
+      for (const id of collectFolderSubtree(fid, allFolders)) folderUnion.add(id);
+    }
+
+    const snippetIdsToTrash = new Set<string>(
+      items.filter((i) => i.type === "snippet").map((i) => i.id)
+    );
+    for (const s of allSnippets) {
+      if (s.folderId && folderUnion.has(s.folderId)) snippetIdsToTrash.add(s.id);
+    }
+
+    const foldersToTrash = allFolders.filter((f) => folderUnion.has(f.id));
+    const snippetsToTrash = allSnippets.filter((s) => snippetIdsToTrash.has(s.id));
+    if (foldersToTrash.length === 0 && snippetsToTrash.length === 0) return;
+
+    // Cancel any pending debounced updates so they can't resurrect a trashed row.
+    for (const s of snippetsToTrash) {
+      const timer = updateTimersRef.current.get(s.id);
+      if (timer) {
+        clearTimeout(timer);
+        updateTimersRef.current.delete(s.id);
+      }
+    }
+
+    const now = new Date().toISOString();
+    await db.transaction("rw", [db.folders, db.snippets], async () => {
+      if (foldersToTrash.length > 0) {
+        await db.folders.bulkPut(
+          foldersToTrash.map((f) => ({ ...f, deletedAt: f.deletedAt ?? now, updatedAt: now, dirty: true }))
+        );
+      }
+      if (snippetsToTrash.length > 0) {
+        await db.snippets.bulkPut(
+          snippetsToTrash.map((s) => ({ ...s, deletedAt: s.deletedAt ?? now, updatedAt: now, dirty: true }))
+        );
+      }
+    });
+
+    if (selectedSnippetId && snippetIdsToTrash.has(selectedSnippetId)) setSelectedSnippetId(null);
+
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  /** Move every selected item into `targetFolderId`. Items already inside a
+   *  selected folder move with it (skipped here), and cycle-forming folder moves
+   *  are ignored. */
+  async function handleMoveMany(items: SelectedItem[], targetFolderId: string | null) {
+    if (items.length === 0) return;
+    const allFolders = await db.folders.toArray();
+
+    const selectedFolderIds = items.filter((i) => i.type === "folder").map((i) => i.id);
+    // Descendant folders of a selected folder travel with their ancestor.
+    const covered = new Set<string>();
+    for (const fid of selectedFolderIds) {
+      for (const id of collectFolderSubtree(fid, allFolders)) {
+        if (id !== fid) covered.add(id);
+      }
+    }
+
+    const now = new Date().toISOString();
+    let changed = false;
+    await db.transaction("rw", [db.folders, db.snippets], async () => {
+      for (const item of items) {
+        if (item.type === "folder") {
+          if (covered.has(item.id)) continue;
+          if (targetFolderId !== null && isDescendantOrSelf(allFolders, item.id, targetFolderId)) continue;
+          const folder = allFolders.find((f) => f.id === item.id);
+          if (!folder || folder.parentId === targetFolderId) continue;
+          await db.folders.update(item.id, { parentId: targetFolderId, updatedAt: now, dirty: true });
+          changed = true;
+        } else {
+          const snippet = await db.snippets.get(item.id);
+          if (!snippet) continue;
+          // Skip snippets that live inside a selected folder — they move with it.
+          if (snippet.folderId && (covered.has(snippet.folderId) || selectedFolderIds.includes(snippet.folderId))) continue;
+          if (snippet.folderId === targetFolderId) continue;
+          await db.snippets.update(item.id, { folderId: targetFolderId, updatedAt: now, dirty: true });
+          changed = true;
+        }
+      }
+    });
+
+    if (!changed) return;
     refreshWorkspace();
     if (user && supabaseConfigured) scheduleCloudSync();
   }
@@ -626,6 +733,8 @@ export function useWorkspaceMutations({
     handlePinFolder,
     handleMoveFolder,
     handlePaste,
+    handleDeleteMany,
+    handleMoveMany,
     handleEmptyTrash,
     handleRestoreAll,
   };

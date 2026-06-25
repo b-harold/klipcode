@@ -130,8 +130,8 @@ export function useContextMenuGroups({
           },
           {
             items: [
-              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  itemType: "folder", id }) },
-              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", itemType: "folder", id }) },
+              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: [{ itemType: "folder", id }] }) },
+              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: [{ itemType: "folder", id }] }) },
               ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(id) }] : []),
             ],
           },
@@ -187,8 +187,8 @@ export function useContextMenuGroups({
           },
           {
             items: [
-              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  itemType: "snippet", id }) },
-              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", itemType: "snippet", id }) },
+              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: [{ itemType: "snippet", id }] }) },
+              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: [{ itemType: "snippet", id }] }) },
               ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(snippet.folderId) }] : []),
             ],
           },

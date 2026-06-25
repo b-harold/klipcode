@@ -272,10 +272,12 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       folders={folders}
       onMoveFolder={mutations.handleMoveFolder}
       onMoveSnippet={mutations.handleMoveSnippet}
+      onMoveMany={mutations.handleMoveMany}
       onTrashItem={(item) => {
         if (item.type === "folder") void mutations.handleDeleteFolder(item.id);
         else void mutations.handleDeleteSnippet(item.id);
       }}
+      onTrashMany={(items) => void mutations.handleDeleteMany(items)}
       onRestoreItem={(item, targetFolderId) => {
         if (item.type === "folder") void mutations.handleRestoreFolder(item.id, targetFolderId);
         else void mutations.handleRestoreSnippet(item.id, targetFolderId);
@@ -300,6 +302,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onCreateFolder={mutations.handleCreateFolder}
         onDeleteFolder={mutations.handleDeleteFolder}
         onDeleteSnippet={mutations.handleDeleteSnippet}
+        onDeleteMany={mutations.handleDeleteMany}
         onRenameFolder={mutations.handleRenameFolder}
         onRenameSnippet={mutations.handleRenameSnippet}
         onPinFolder={mutations.handlePinFolder}
@@ -383,12 +386,12 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             onPinFolder={mutations.handlePinFolder}
             onDeleteSnippet={mutations.handleDeleteSnippet}
             onRenameSnippet={mutations.handleRenameSnippet}
-            onCutSnippet={(id) => setClipboard({ type: "cut", itemType: "snippet", id })}
-            onCopySnippet={(id) => setClipboard({ type: "copy", itemType: "snippet", id })}
+            onCutSnippet={(id) => setClipboard({ type: "cut", items: [{ itemType: "snippet", id }] })}
+            onCopySnippet={(id) => setClipboard({ type: "copy", items: [{ itemType: "snippet", id }] })}
             onDeleteFolder={mutations.handleDeleteFolder}
             onRenameFolder={mutations.handleRenameFolder}
-            onCutFolder={(id) => setClipboard({ type: "cut", itemType: "folder", id })}
-            onCopyFolder={(id) => setClipboard({ type: "copy", itemType: "folder", id })}
+            onCutFolder={(id) => setClipboard({ type: "cut", items: [{ itemType: "folder", id }] })}
+            onCopyFolder={(id) => setClipboard({ type: "copy", items: [{ itemType: "folder", id }] })}
             onPaste={mutations.handlePaste}
             menuButton={menuButton}
           />
@@ -418,8 +421,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
                 onPinSnippet={mutations.handlePinSnippet}
                 onDeleteSnippet={mutations.handleDeleteSnippet}
                 onRenameSnippet={mutations.handleRenameSnippet}
-                onCutSnippet={(id) => setClipboard({ type: "cut", itemType: "snippet", id })}
-                onCopySnippet={(id) => setClipboard({ type: "copy", itemType: "snippet", id })}
+                onCutSnippet={(id) => setClipboard({ type: "cut", items: [{ itemType: "snippet", id }] })}
+                onCopySnippet={(id) => setClipboard({ type: "copy", items: [{ itemType: "snippet", id }] })}
                 onPaste={mutations.handlePaste}
               />
             </div>

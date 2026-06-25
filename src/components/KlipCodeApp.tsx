@@ -296,7 +296,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onOpenSearch={() => setSearchOpen(true)}
         onOpenShortcuts={() => setHelpOpen(true)}
         onGoSpace={() => navigate(`${base}?folder=${SPACE_ROOT_ID}`)}
-        onNewSnippetAt={handleNewSnippetAt}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
         onCreateFolder={mutations.handleCreateFolder}
         onDeleteFolder={mutations.handleDeleteFolder}

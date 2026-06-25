@@ -21,8 +21,6 @@ interface UseContextMenuGroupsArgs {
   clipboard: ClipboardEntry | null;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
-  onGoHome: () => void;
-  onNewSnippetAt: (folderId: string | null) => void;
   onPaste: (targetFolderId: string | null) => Promise<void>;
   onPinFolder: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   onPinSnippet: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
@@ -40,8 +38,6 @@ export function useContextMenuGroups({
   clipboard,
   folders,
   snippets,
-  onGoHome,
-  onNewSnippetAt,
   onPaste,
   onPinFolder,
   onPinSnippet,
@@ -210,6 +206,6 @@ export function useContextMenuGroups({
 
       return [];
     },
-    [clipboard, copy.contextMenu, folders, snippets, onGoHome, onNewSnippetAt, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onCut, onCopy, setRenamingId, setCreatingFolderParentId, setCreatingSnippetFolderId],
+    [clipboard, copy.contextMenu, folders, snippets, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onCut, onCopy, setRenamingId, setCreatingFolderParentId, setCreatingSnippetFolderId],
   );
 }

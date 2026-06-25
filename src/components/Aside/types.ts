@@ -15,7 +15,6 @@ export interface AsideProps {
   onOpenSearch: () => void;
   onOpenShortcuts: () => void;
   onGoSpace: () => void;
-  onNewSnippetAt: (folderId: string | null) => void;
   onCreateSnippetInline: (folderId: string | null, title: string) => Promise<void>;
   onCreateFolder: (parentId: string | null, name: string) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;

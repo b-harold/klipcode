@@ -83,6 +83,7 @@ export function Aside({
     selectAll,
     clear: clearSelection,
     isItemSelected,
+    selectForMenu,
     getSelectedItems,
     pasteTargetFolderId,
   } = useTreeSelection({
@@ -148,11 +149,15 @@ export function Aside({
     onPinSnippet,
     onDeleteFolder,
     onDeleteSnippet,
+    onDeleteMany,
     onCut,
     onCopy,
     setRenamingId,
     setCreatingFolderParentId,
     setCreatingSnippetFolderId,
+    selectedIds,
+    getSelectedItems,
+    clearSelection,
   });
 
   /* ── Context value ──────────────────────────────────────────────────────── */
@@ -191,6 +196,7 @@ export function Aside({
     selectFolder: (id: string) => onSelectFolder?.(id),
     activateItem,
     isItemSelected,
+    selectForMenu,
     isDraggingItem: (id: string) => {
       const d = drag.dragging;
       if (!d) return false;

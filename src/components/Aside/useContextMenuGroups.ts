@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
-import type { FolderRecord, SnippetRecord, ClipboardEntry } from "@/lib/types";
+import type { FolderRecord, SnippetRecord, ClipboardEntry, SelectedItem } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import type { MenuTarget } from "./types";
 
@@ -26,11 +26,20 @@ interface UseContextMenuGroupsArgs {
   onPinSnippet: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;
   onDeleteSnippet: (id: string) => Promise<void>;
+  /** Soft-delete the whole multi-selection at once. */
+  onDeleteMany: (items: SelectedItem[]) => Promise<void>;
   onCut: (entry: ClipboardEntry) => void;
   onCopy: (entry: ClipboardEntry) => void;
   setRenamingId: (id: string | null) => void;
   setCreatingFolderParentId: (id: string | null | undefined) => void;
   setCreatingSnippetFolderId: (id: string | null | undefined) => void;
+  /** Ids in the current multi-selection — drives whether a row's menu acts on the
+   *  whole set or just that row. */
+  selectedIds: ReadonlySet<string>;
+  /** The current multi-selection as typed items, for batch actions. */
+  getSelectedItems: () => SelectedItem[];
+  /** Drop the multi-selection (after a batch delete clears the acted-on rows). */
+  clearSelection: () => void;
 }
 
 export function useContextMenuGroups({
@@ -43,16 +52,33 @@ export function useContextMenuGroups({
   onPinSnippet,
   onDeleteFolder,
   onDeleteSnippet,
+  onDeleteMany,
   onCut,
   onCopy,
   setRenamingId,
   setCreatingFolderParentId,
   setCreatingSnippetFolderId,
+  selectedIds,
+  getSelectedItems,
+  clearSelection,
 }: UseContextMenuGroupsArgs) {
   return useCallback(
     (target: MenuTarget): ContextMenuGroup[] => {
       const { type, id } = target;
       const cm = copy.contextMenu;
+
+      /* When the right-clicked row is part of a multi-selection, the
+       * delete / cut / copy actions operate on the whole set — matching the
+       * keyboard shortcuts and drag-move. (selectForMenu has already collapsed
+       * the selection to this row if it was clicked from outside the set.) */
+      const batchActive = !!id && selectedIds.has(id) && selectedIds.size > 1;
+      const clipboardItems = (fallback: SelectedItem) =>
+        (batchActive ? getSelectedItems() : [fallback]).map((i) => ({ itemType: i.type, id: i.id }));
+      const deleteSelection = () => {
+        const items = getSelectedItems();
+        clearSelection();
+        void onDeleteMany(items);
+      };
 
       if (type === "root") {
         return [
@@ -130,8 +156,8 @@ export function useContextMenuGroups({
           },
           {
             items: [
-              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: [{ itemType: "folder", id }] }) },
-              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: [{ itemType: "folder", id }] }) },
+              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: clipboardItems({ id, type: "folder" }) }) },
+              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: clipboardItems({ id, type: "folder" }) }) },
               ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(id) }] : []),
             ],
           },
@@ -141,7 +167,7 @@ export function useContextMenuGroups({
               label: cm.delete,
               Icon: Trash2,
               variant: "destructive" as const,
-              onClick: () => void onDeleteFolder(id),
+              onClick: batchActive ? deleteSelection : () => void onDeleteFolder(id),
             }],
           },
         ];
@@ -187,8 +213,8 @@ export function useContextMenuGroups({
           },
           {
             items: [
-              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: [{ itemType: "snippet", id }] }) },
-              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: [{ itemType: "snippet", id }] }) },
+              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: clipboardItems({ id, type: "snippet" }) }) },
+              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: clipboardItems({ id, type: "snippet" }) }) },
               ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(snippet.folderId) }] : []),
             ],
           },
@@ -198,7 +224,7 @@ export function useContextMenuGroups({
               label: cm.delete,
               Icon: Trash2,
               variant: "destructive" as const,
-              onClick: () => void onDeleteSnippet(id),
+              onClick: batchActive ? deleteSelection : () => void onDeleteSnippet(id),
             }],
           },
         ];
@@ -206,6 +232,6 @@ export function useContextMenuGroups({
 
       return [];
     },
-    [clipboard, copy.contextMenu, folders, snippets, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onCut, onCopy, setRenamingId, setCreatingFolderParentId, setCreatingSnippetFolderId],
+    [clipboard, copy.contextMenu, folders, snippets, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onDeleteMany, onCut, onCopy, setRenamingId, setCreatingFolderParentId, setCreatingSnippetFolderId, selectedIds, getSelectedItems, clearSelection],
   );
 }

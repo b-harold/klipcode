@@ -34,12 +34,14 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
   function openContextMenu(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    ctx.selectForMenu(snippet.id);
     ctx.openMenu({ type: "snippet", id: snippet.id, x: e.clientX, y: e.clientY });
   }
 
   function openMoreMenu(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    ctx.selectForMenu(snippet.id);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     ctx.openMenu({ type: "snippet", id: snippet.id, x: rect.left, y: rect.bottom + 4 });
   }

@@ -50,12 +50,14 @@ export function FolderNode({
   function openContextMenu(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    ctx.selectForMenu(folder.id);
     ctx.openMenu({ type: "folder", id: folder.id, x: e.clientX, y: e.clientY });
   }
 
   function openMoreMenu(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    ctx.selectForMenu(folder.id);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     ctx.openMenu({ type: "folder", id: folder.id, x: rect.left, y: rect.bottom + 4 });
   }

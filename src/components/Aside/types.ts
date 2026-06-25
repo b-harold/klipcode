@@ -87,6 +87,10 @@ export interface AsideCtxShape {
   activateItem: (e: ReactMouseEvent | ReactKeyboardEvent, item: SelectedItem) => void;
   /** Whether a row is part of the current multi-selection. */
   isItemSelected: (id: string) => boolean;
+  /** Prime the selection before opening a row's context / "more" menu so its
+   *  batch actions cover the right set (keep multi-selection if the row is in it,
+   *  otherwise collapse to just that row). */
+  selectForMenu: (id: string) => void;
   /** Whether a row is currently being dragged (single or as part of a batch). */
   isDraggingItem: (id: string) => boolean;
   /** Id of the snippet currently open in the main view, for highlighting. */

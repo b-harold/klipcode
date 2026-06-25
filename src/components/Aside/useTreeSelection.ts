@@ -104,6 +104,17 @@ export function useTreeSelection({
 
   const isItemSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds]);
 
+  /**
+   * Prime the selection for a right-click / "more" menu on `id`. Right-clicking a
+   * row that's already part of the multi-selection keeps the whole set (so the
+   * menu's batch actions cover it); right-clicking outside the selection collapses
+   * it to just that row, so the highlighted items always match what the menu acts on.
+   */
+  const selectForMenu = useCallback((id: string) => {
+    setSelectedIds((prev) => (prev.has(id) ? prev : new Set([id])));
+    anchorRef.current = id;
+  }, []);
+
   const getSelectedItems = useCallback(
     (): SelectedItem[] => [...selectedIds].map((id) => ({ id, type: resolveType(id) })),
     [selectedIds, resolveType],
@@ -125,6 +136,7 @@ export function useTreeSelection({
     selectAll,
     clear,
     isItemSelected,
+    selectForMenu,
     getSelectedItems,
     pasteTargetFolderId,
   };

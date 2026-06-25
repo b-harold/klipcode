@@ -63,8 +63,8 @@ export const en = {
   },
   forms: {
     folderTitle: "New folder",
-    folderName: "Folder name",
-    snippetNamePlaceholder: "Snippet name",
+    folderName: "Folder name or path",
+    snippetNamePlaceholder: "Name or path, e.g. scripts/index.js",
     folderParent: "Parent folder",
     folderPinned: "Pinned",
     snippetTitle: "New snippet",

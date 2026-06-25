@@ -9,6 +9,12 @@ import { resolveSnippetRename } from "@/lib/utils";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import type { Dictionary } from "@/i18n";
 
+/** Split a VS Code-style "/"-separated path into trimmed, non-empty segments,
+ *  e.g. `"scripts/index.js"` → `["scripts", "index.js"]`. */
+function splitPath(input: string): string[] {
+  return input.split("/").map((segment) => segment.trim()).filter(Boolean);
+}
+
 interface UseWorkspaceMutationsOptions {
   copy: Dictionary;
   user: User | null;
@@ -94,9 +100,52 @@ export function useWorkspaceMutations({
     syncAfterMutation(snippetId);
   }
 
-  async function handleCreateSnippetInline(folderId: string | null, title: string) {
+  /** Resolve a "/"-separated chain of folder names under `startParentId`,
+   *  reusing any live folder that already matches and creating the rest (VS Code
+   *  style). Returns the id of the deepest folder, or `startParentId` for an
+   *  empty path. */
+  async function ensureFolderPath(
+    segments: string[],
+    startParentId: string | null,
+    timestamp: string
+  ): Promise<string | null> {
+    const newFolders: FolderRecord[] = [];
+    let parentId = startParentId;
+    for (const name of segments) {
+      const existing =
+        folders.find((f) => f.parentId === parentId && f.name === name && !f.deletedAt) ??
+        newFolders.find((f) => f.parentId === parentId && f.name === name);
+      if (existing) {
+        parentId = existing.id;
+        continue;
+      }
+      const folder: FolderRecord = {
+        id: crypto.randomUUID(),
+        ownerId: user?.id ?? null,
+        name,
+        parentId,
+        isPinnedAside: false,
+        isPinnedHome: false,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        dirty: true,
+        lastSyncedAt: null,
+        deletedAt: null,
+      };
+      newFolders.push(folder);
+      parentId = folder.id;
+    }
+    if (newFolders.length > 0) await db.folders.bulkPut(newFolders);
+    return parentId;
+  }
+
+  /** Create a single empty snippet from a filename-style title, then select it. */
+  async function createSnippetRecord(
+    folderId: string | null,
+    title: string,
+    timestamp: string
+  ) {
     const snippetId = crypto.randomUUID();
-    const timestamp = new Date().toISOString();
 
     await db.snippets.put({
       id: snippetId,
@@ -120,6 +169,34 @@ export function useWorkspaceMutations({
     refreshWorkspace();
     setSelectedSnippetId(snippetId);
     syncAfterMutation(snippetId);
+  }
+
+  async function handleCreateSnippetInline(folderId: string | null, title: string) {
+    const timestamp = new Date().toISOString();
+    const start = folderId ?? null;
+
+    // VS Code-style path: `scripts/index.js` creates the `scripts` folder (and
+    // any missing intermediates) then the file inside it. A trailing slash
+    // (`scripts/js/`) means the whole path is folders, with no file created.
+    const hasTrailingSlash = /\/\s*$/.test(title);
+    const segments = splitPath(title);
+
+    if (hasTrailingSlash || segments.length > 1) {
+      const fileSegment = hasTrailingSlash ? null : segments[segments.length - 1];
+      const folderSegments = hasTrailingSlash ? segments : segments.slice(0, -1);
+      const parentId = await ensureFolderPath(folderSegments, start, timestamp);
+
+      if (!fileSegment) {
+        refreshWorkspace();
+        if (user && supabaseConfigured) scheduleCloudSync();
+        return;
+      }
+
+      await createSnippetRecord(parentId, fileSegment, timestamp);
+      return;
+    }
+
+    await createSnippetRecord(start, title, timestamp);
   }
 
   async function handleUpdateSnippet(
@@ -252,21 +329,12 @@ export function useWorkspaceMutations({
   /* ── Folder CRUD ──────────────────────────────────────────────────────── */
 
   async function handleCreateFolder(parentId: string | null, name: string) {
-    const id = crypto.randomUUID();
+    // A "/"-separated name creates a nested chain (VS Code style): `scripts/js`
+    // makes `scripts` then `js` inside it, reusing any folder that already exists.
+    const segments = splitPath(name);
+    if (segments.length === 0) return;
     const timestamp = new Date().toISOString();
-    await db.folders.put({
-      id,
-      ownerId: user?.id ?? null,
-      name,
-      parentId,
-      isPinnedAside: false,
-      isPinnedHome: false,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      dirty: true,
-      lastSyncedAt: null,
-      deletedAt: null,
-    });
+    await ensureFolderPath(segments, parentId ?? null, timestamp);
     refreshWorkspace();
     if (user && supabaseConfigured) scheduleCloudSync();
   }

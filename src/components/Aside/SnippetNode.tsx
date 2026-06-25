@@ -1,13 +1,57 @@
 "use client";
 
+import { useState } from "react";
 import { Pin, PinOff } from "lucide-react";
 import type { SnippetRecord } from "@/lib/types";
-import { getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
+import { getSnippetDisplayName, getSnippetFileName, resolveSnippetRename } from "@/lib/utils";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
 import { STEP } from "./utils";
+
+/**
+ * The inline rename input for a snippet row. Controlled so the filename's
+ * extension can be resolved to a language on every keystroke — mirroring
+ * {@link resolveSnippetRename}'s logic — and the leading icon updates live as
+ * the user types (e.g. typing `.css` flips it to the CSS glyph immediately).
+ */
+function RenameRow({
+  snippet,
+  className,
+  paddingLeft,
+  onContextMenu,
+  onSubmit,
+  onCancel,
+}: {
+  snippet: SnippetRecord;
+  className: string;
+  paddingLeft: number;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onSubmit: (value: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(() => getSnippetFileName(snippet.title, snippet.language));
+  const previewLanguage = resolveSnippetRename(value, snippet.language).language;
+
+  return (
+    <div className={className} style={{ paddingLeft }} onContextMenu={onContextMenu}>
+      <LanguageIcon language={previewLanguage} size={13} className="shrink-0" />
+      <input
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={(e) => onSubmit(e.target.value)}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === "Enter") onSubmit((e.target as HTMLInputElement).value);
+          if (e.key === "Escape") onCancel();
+        }}
+        className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+      />
+    </div>
+  );
+}
 
 export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth: number }) {
   const ctx = useAsideCtx();
@@ -47,25 +91,14 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
   }
 
   return isRenaming ? (
-    <div
+    <RenameRow
+      snippet={snippet}
       className={sharedRowClass}
-      style={{ paddingLeft }}
+      paddingLeft={paddingLeft}
       onContextMenu={openContextMenu}
-    >
-      <LanguageIcon language={snippet.language} size={13} className="shrink-0" />
-      <input
-        autoFocus
-        defaultValue={getSnippetFileName(snippet.title, snippet.language)}
-        onBlur={(e) => ctx.submitSnippetRename(snippet.id, e.target.value)}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-          if (e.key === "Enter")
-            ctx.submitSnippetRename(snippet.id, (e.target as HTMLInputElement).value);
-          if (e.key === "Escape") ctx.cancelRename();
-        }}
-        className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
-      />
-    </div>
+      onSubmit={(value) => ctx.submitSnippetRename(snippet.id, value)}
+      onCancel={ctx.cancelRename}
+    />
   ) : (
     <div
       role="button"

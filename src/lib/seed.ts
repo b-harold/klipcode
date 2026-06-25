@@ -1,18 +1,81 @@
 import { db } from "@/lib/db";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type { Dictionary } from "@/i18n";
 
 const SEEDED_KEY = "klipcode.seeded";
 
 /**
+ * Whether the user already has a workspace — locally (IndexedDB) or in the cloud
+ * (Supabase, when signed in). Used to avoid seeding welcome content on top of
+ * real data: e.g. a fresh device that's about to claim an account which already
+ * has snippets, or a returning user whose `klipcode.seeded` flag was cleared.
+ */
+async function hasExistingContent(): Promise<boolean> {
+  const [localFolders, localSnippets] = await Promise.all([
+    db.folders.count(),
+    db.snippets.count(),
+  ]);
+
+  if (localFolders > 0 || localSnippets > 0) {
+    return true;
+  }
+
+  const supabase = getSupabaseBrowserClient();
+
+  if (!supabase) {
+    return false;
+  }
+
+  // Only the signed-in user's own rows count; an anonymous visitor has no cloud
+  // workspace to protect. A network/Supabase failure shouldn't block first-visit
+  // seeding, so a thrown error is treated as "no known cloud content".
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const userId = session?.user?.id;
+    if (!userId) {
+      return false;
+    }
+
+    const [{ count: cloudFolders }, { count: cloudSnippets }] = await Promise.all([
+      supabase
+        .from("folders")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", userId)
+        .limit(1),
+      supabase
+        .from("snippets")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", userId)
+        .limit(1),
+    ]);
+
+    return (cloudFolders ?? 0) > 0 || (cloudSnippets ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Seeds the local IndexedDB with a welcome folder and snippet on first visit.
- * Returns true if seeding actually happened, false if already seeded.
+ * Returns true if seeding actually happened, false if already seeded or skipped
+ * because a workspace already exists.
  */
 export async function seedWelcomeContent(copy: Dictionary): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (localStorage.getItem(SEEDED_KEY)) return false;
 
-  // Set flag first to prevent duplicate concurrent calls
+  // Set flag first to prevent duplicate concurrent calls.
   localStorage.setItem(SEEDED_KEY, "1");
+
+  // Never seed welcome files when the user already has content saved (locally or
+  // in the cloud) — they'd otherwise pollute a real workspace and, once claimed
+  // by an account, sync up to every device.
+  if (await hasExistingContent()) {
+    return false;
+  }
 
   const now = new Date().toISOString();
   const folderId = crypto.randomUUID();

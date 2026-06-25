@@ -20,7 +20,7 @@ de forma rápida y sencilla, en todos tus dispositivos.
 1. **Crea tu primer snippet:** Utiliza el creador de la página de inicio o el botón
    de la barra lateral para añadir este código JSX en la raíz con el título \`Componente\`:
 
-\`\`\`
+\`\`\`jsx
 const Greet = ({ name }) => {
   return (
     <div className="user-card">

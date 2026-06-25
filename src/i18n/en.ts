@@ -18,7 +18,7 @@ quickly and easily, across all your devices.
 1. **Create your first snippet:** Use the creator on the home page or the button
    in the sidebar to add this JSX code at the root level with the title \`Component\`:
 
-\`\`\`
+\`\`\`jsx
 const Greet = ({ name }) => {
   return (
     <div className="user-card">

@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { Plus } from "lucide-react";
 import { Editor } from "@/components/Editor/Editor";
 import { LanguageSelect } from "@/ui/LanguageSelect";
@@ -34,6 +35,7 @@ export function NewSnippet({ copy, folders, defaultFolderId, focusNonce = 0, onC
   // handled value covers both an in-place bump and a fresh mount after the app
   // navigated home from the editor/folder view.
   const titleRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<ReactCodeMirrorRef>(null);
   const handledFocusNonce = useRef(0);
   useEffect(() => {
     if (focusNonce > 0 && focusNonce !== handledFocusNonce.current) {
@@ -57,6 +59,15 @@ export function NewSnippet({ copy, folders, defaultFolderId, focusNonce = 0, onC
     setTitle(value);
     const detected = detectLanguageFromTitle(value);
     if (detected) setLanguage(detected);
+  }
+
+  // Enter in the title hands focus to the editor so you can type the code right
+  // away. Mod+Enter is left alone so the form-level submit shortcut still fires.
+  function handleTitleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter" && !event.metaKey && !event.ctrlKey) {
+      event.preventDefault();
+      editorRef.current?.view?.focus();
+    }
   }
 
   // ⌘/Ctrl+Enter submits from anywhere in the form (title input or editor).
@@ -95,6 +106,7 @@ export function NewSnippet({ copy, folders, defaultFolderId, focusNonce = 0, onC
             type="text"
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
+            onKeyDown={handleTitleKeyDown}
             placeholder={copy.forms.snippetTitlePlaceholder}
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/30 outline-none"
           />
@@ -108,6 +120,7 @@ export function NewSnippet({ copy, folders, defaultFolderId, focusNonce = 0, onC
         {/* Editor */}
         <div className="min-h-[200px]">
           <Editor
+            editorRef={editorRef}
             value={code}
             onChange={setCode}
             language={language}

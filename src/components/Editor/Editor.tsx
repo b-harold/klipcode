@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, type CSSProperties } from "react";
-import CodeMirror from "@uiw/react-codemirror";
+import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
 import {
   foldGutter,
@@ -394,6 +394,8 @@ export interface EditorProps {
   placeholder?: string;
   fontSize?: number;
   gutterBackground?: string;
+  /** Exposes the underlying CodeMirror instance (e.g. to imperatively focus it). */
+  editorRef?: React.Ref<ReactCodeMirrorRef>;
 }
 
 export function Editor({
@@ -405,6 +407,7 @@ export function Editor({
   placeholder,
   fontSize = 13,
   gutterBackground,
+  editorRef,
 }: EditorProps) {
   const [extensions, setExtensions] = useState<Extension[]>([]);
 
@@ -429,6 +432,7 @@ export function Editor({
 
   return (
     <CodeMirror
+      ref={editorRef}
       value={value}
       onChange={onChange}
       theme={language === "markdown" ? vscodeDarkMarkdown : vscodeDark}

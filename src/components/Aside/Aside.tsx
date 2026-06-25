@@ -213,7 +213,7 @@ export function Aside({
       >
         <aside
           className={[
-            "flex h-screen w-60 shrink-0 flex-col border-r border-white/6 bg-surface",
+            "flex h-dvh w-60 shrink-0 flex-col border-r border-white/6 bg-surface",
             isMobile
               ? `fixed inset-y-0 left-0 z-50 shadow-2xl transition-transform duration-300 ease-in-out ${
                   isOpen ? "translate-x-0" : "-translate-x-full"

@@ -3,8 +3,14 @@
 import { useState, useEffect, type CSSProperties } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
-import { foldGutter } from "@codemirror/language";
+import {
+  foldGutter,
+  LanguageSupport,
+  LanguageDescription,
+  type Language,
+} from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
+import { vscodeDarkMarkdown, markdownMarkTags } from "./markdownTheme";
 
 // Custom fold gutter with VS Code-style SVG markers (our own classes so CSS can target them)
 const customFoldGutter = foldGutter({
@@ -84,8 +90,18 @@ async function loadExtension(language: string): Promise<Extension[]> {
       break;
     }
     case "markdown": {
-      const { markdown } = await import("@codemirror/lang-markdown");
-      extensions = [markdown()];
+      const { markdown, markdownLanguage } = await import(
+        "@codemirror/lang-markdown"
+      );
+      // GFM base (strikethrough, tables, task lists), our per-mark re-tagging,
+      // and per-language highlighting inside fenced code blocks.
+      extensions = [
+        markdown({
+          base: markdownLanguage,
+          extensions: markdownMarkTags,
+          codeLanguages: markdownCodeLanguages,
+        }),
+      ];
       break;
     }
     case "sql": {
@@ -274,6 +290,72 @@ async function loadExtension(language: string): Promise<Extension[]> {
   return extensions;
 }
 
+// Languages offered for syntax highlighting inside Markdown fenced code blocks,
+// mapped to the loaders above. `name`/`alias` are matched against the fence info
+// string (```ts, ```py, ```sh …); only grammars we actually bundle are listed,
+// so nothing references an uninstalled package. Markdown itself is omitted to
+// avoid Markdown-in-Markdown recursion.
+const FENCE_LANGUAGES: ReadonlyArray<{
+  name: string;
+  alias: readonly string[];
+  key: string;
+}> = [
+  { name: "JavaScript", alias: ["js", "node", "cjs", "mjs"], key: "javascript" },
+  { name: "TypeScript", alias: ["ts"], key: "typescript" },
+  { name: "JSX", alias: [], key: "jsx" },
+  { name: "TSX", alias: [], key: "tsx" },
+  { name: "Svelte", alias: [], key: "svelte" },
+  { name: "Vue", alias: [], key: "vue" },
+  { name: "Astro", alias: [], key: "astro" },
+  { name: "HTML", alias: ["htm"], key: "html" },
+  { name: "CSS", alias: [], key: "css" },
+  { name: "SCSS", alias: ["sass"], key: "scss" },
+  { name: "Python", alias: ["py"], key: "python" },
+  { name: "JSON", alias: ["jsonc"], key: "json" },
+  { name: "SQL", alias: [], key: "sql" },
+  { name: "Java", alias: [], key: "java" },
+  { name: "C", alias: [], key: "c" },
+  { name: "C++", alias: ["cpp"], key: "cpp" },
+  { name: "C#", alias: ["csharp", "cs"], key: "csharp" },
+  { name: "PHP", alias: [], key: "php" },
+  { name: "XML", alias: [], key: "xml" },
+  { name: "Bash", alias: ["sh", "shell", "zsh"], key: "bash" },
+  { name: "YAML", alias: ["yml"], key: "yaml" },
+  { name: "Go", alias: ["golang"], key: "go" },
+  { name: "Rust", alias: ["rs"], key: "rust" },
+  { name: "Ruby", alias: ["rb"], key: "ruby" },
+  { name: "Swift", alias: [], key: "swift" },
+  { name: "Kotlin", alias: ["kt"], key: "kotlin" },
+  { name: "Dart", alias: [], key: "dart" },
+  { name: "Scala", alias: [], key: "scala" },
+  { name: "Groovy", alias: [], key: "groovy" },
+  { name: "Lua", alias: [], key: "lua" },
+  { name: "Haskell", alias: ["hs"], key: "haskell" },
+  { name: "Erlang", alias: [], key: "erlang" },
+  { name: "R", alias: [], key: "r" },
+  { name: "PowerShell", alias: ["ps1", "pwsh"], key: "powershell" },
+  { name: "TOML", alias: [], key: "toml" },
+  { name: "Dockerfile", alias: ["docker"], key: "dockerfile" },
+];
+
+// loadExtension returns the language as either a LanguageSupport (lang-* packages)
+// or a bare Language (StreamLanguage legacy modes); the nested code parser needs a
+// LanguageSupport, so wrap the latter.
+function toLanguageSupport(exts: Extension[]): LanguageSupport {
+  const lang = exts[0];
+  return lang instanceof LanguageSupport
+    ? lang
+    : new LanguageSupport(lang as Language);
+}
+
+const markdownCodeLanguages = FENCE_LANGUAGES.map(({ name, alias, key }) =>
+  LanguageDescription.of({
+    name,
+    alias: [...alias],
+    load: async () => toLanguageSupport(await loadExtension(key)),
+  }),
+);
+
 const EDIT_SETUP = {
   lineNumbers: true,
   highlightActiveLineGutter: true,
@@ -349,7 +431,7 @@ export function Editor({
     <CodeMirror
       value={value}
       onChange={onChange}
-      theme={vscodeDark}
+      theme={language === "markdown" ? vscodeDarkMarkdown : vscodeDark}
       extensions={readOnly ? extensions : [...extensions, customFoldGutter]}
       editable={!readOnly}
       readOnly={readOnly}

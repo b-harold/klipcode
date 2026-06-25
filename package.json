@@ -32,6 +32,7 @@
     "@codemirror/language": "^6.12.3",
     "@codemirror/legacy-modes": "^6.5.2",
     "@codemirror/state": "^6.6.0",
+    "@lezer/highlight": "^1.2.3",
     "@opennextjs/cloudflare": "^1.19.0",
     "@replit/codemirror-lang-svelte": "^6.0.0",
     "@supabase/supabase-js": "^2.100.0",

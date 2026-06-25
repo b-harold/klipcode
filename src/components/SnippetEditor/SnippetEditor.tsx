@@ -25,7 +25,6 @@ import { Tooltip } from "@/ui/Tooltip";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
-import { LANGUAGES } from "@/lib/constants/languages";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import { getFolderPath } from "@/components/FolderView/utils";
 
@@ -136,8 +135,6 @@ export function SnippetEditor({
   // Per-field debounce timers
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const langConfig = LANGUAGES.find((l) => l.id === snippet.language);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 

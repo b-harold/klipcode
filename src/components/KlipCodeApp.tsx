@@ -393,6 +393,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             onCutFolder={(id) => setClipboard({ type: "cut", items: [{ itemType: "folder", id }] })}
             onCopyFolder={(id) => setClipboard({ type: "copy", items: [{ itemType: "folder", id }] })}
             onPaste={mutations.handlePaste}
+            onCreateFolder={mutations.handleCreateFolder}
+            onCreateSnippetInline={mutations.handleCreateSnippetInline}
             menuButton={menuButton}
           />
         ) : (

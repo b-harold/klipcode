@@ -27,11 +27,13 @@ export interface AsideProps {
   onCut: (entry: ClipboardEntry) => void;
   onCopy: (entry: ClipboardEntry) => void;
   onPaste: (targetFolderId: string | null) => Promise<void>;
-  onMoveFolder: (id: string, newParentId: string | null) => Promise<void>;
-  onMoveSnippet: (id: string, newFolderId: string | null) => Promise<void>;
   onSelectFolder?: (folderId: string) => void;
   onSignIn: () => void;
   onSignOut: () => void;
+  /** Sign-in is redirecting to GitHub. */
+  signingIn: boolean;
+  /** Sign-out is clearing the session and local data. */
+  signingOut: boolean;
   /** Open the trash view. */
   onOpenTrash: () => void;
   /** Restore every trashed record (no confirmation — non-destructive). */

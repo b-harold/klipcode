@@ -12,6 +12,7 @@ import { getDictionary } from "@/i18n";
 import { localeHref } from "@/lib/locale";
 import { SPACE_ROOT_ID, TRASH_ROOT_ID } from "@/lib/navigation";
 import { Tooltip } from "@/ui/Tooltip";
+import { Spinner } from "@/ui/Spinner";
 
 import { useResponsiveSidebar } from "@/hooks/useResponsiveSidebar";
 import { useAuth } from "@/hooks/useAuth";
@@ -255,6 +256,17 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     );
   }
 
+  // First read of the local workspace from IndexedDB. Show a spinner instead of a
+  // blank shell so a cold start (or a large workspace) doesn't look frozen.
+  if (workspaceQuery.isPending) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-3 text-white/45">
+        <Spinner size={22} label={copy.workspace.loading} />
+        <p className="text-sm">{copy.workspace.loading}</p>
+      </div>
+    );
+  }
+
   return (
     <DragProvider
       folders={folders}
@@ -296,10 +308,10 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onCut={setClipboard}
         onCopy={(entry) => setClipboard({ ...entry, type: "copy" })}
         onPaste={mutations.handlePaste}
-        onMoveFolder={mutations.handleMoveFolder}
-        onMoveSnippet={mutations.handleMoveSnippet}
         onSignIn={auth.handleGitHubSignIn}
         onSignOut={auth.handleSignOut}
+        signingIn={auth.signingIn}
+        signingOut={auth.signingOut}
         onSelectFolder={(folderId) => navigate(`${base}?folder=${folderId}`)}
         onOpenTrash={() => navigate(`${base}?folder=${TRASH_ROOT_ID}`)}
         onRestoreAll={() => void mutations.handleRestoreAll()}

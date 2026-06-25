@@ -44,11 +44,11 @@ export function Aside({
   onCut,
   onCopy,
   onPaste,
-  onMoveFolder,
-  onMoveSnippet,
   onSelectFolder,
   onSignIn,
   onSignOut,
+  signingIn,
+  signingOut,
   onOpenTrash,
   onRestoreAll,
   onEmptyTrash,
@@ -229,6 +229,8 @@ export function Aside({
           <AsideHeader
             user={user}
             copy={copy}
+            signingIn={signingIn}
+            signingOut={signingOut}
             onSignIn={onSignIn}
             onSignOut={onSignOut}
             onCollapse={() => onSetOpen(false)}

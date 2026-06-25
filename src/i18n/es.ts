@@ -59,6 +59,8 @@ export const es = {
     cloudSyncRunning: "Sincronizando cambios con la nube.",
     syncFailed: "No se pudo sincronizar con la nube.",
     signedInAs: "Usuario",
+    signingIn: "Iniciando sesión…",
+    signingOut: "Cerrando sesión…",
   },
   forms: {
     folderTitle: "Nueva carpeta",

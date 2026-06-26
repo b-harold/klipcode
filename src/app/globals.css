@@ -1,16 +1,70 @@
 @import "tailwindcss";
 
-:root {
+/* ─── Theme tokens ──────────────────────────────────────────────────────────
+   Dark is the default surface (:root); the light theme overrides below apply
+   when <html data-theme="light"> is set (see src/lib/theme.ts). Most of the UI
+   is built from a single foreground "ink" — white on dark, near-black on light —
+   so opacity-based utilities (text-ink/50, border-ink/10, bg-ink/[0.06]) and the
+   inline `rgba(var(--ink-rgb), …)` composites flip with the theme automatically. */
+:root,
+:root[data-theme="dark"] {
   --background: #0a0a0a;
   --foreground: #ededed;
   --border: #262626;
   --muted: #a1a1aa;
   --surface: #111111;
   --surface-hover: #1a1a1a;
+  --code-surface: #0b0b0b;
   --accent: #ffffff;
+  /* Foreground ink + its raw RGB triple for rgba() composites. */
+  --ink: #ffffff;
+  --ink-rgb: 255, 255, 255;
   /* Text selection highlight (brand purple). Tweak freely. */
   --selection-background: rgba(132, 0, 255, 0.4);
   --selection-foreground: #ffffff;
+  /* Elevated popovers / dialogs / menus. */
+  --panel-bg: linear-gradient(180deg, #181818 0%, #111111 100%);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --panel-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset, 0 24px 64px rgba(0, 0, 0, 0.9),
+    0 4px 16px rgba(0, 0, 0, 0.6);
+  --popover-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  --scrim: rgba(0, 0, 0, 0.6);
+  /* Landing-page accents. */
+  --landing-glow: #ffffff;
+  --landing-grid-line: rgba(255, 255, 255, 0.045);
+  --landing-header-bg: rgba(10, 10, 10, 0.8);
+  --scrollbar-thumb: #333333;
+  --scrollbar-thumb-hover: #555555;
+}
+
+:root[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #18181b;
+  --border: #e4e4e7;
+  --muted: #52525b;
+  --surface: #f4f4f5;
+  --surface-hover: #ececef;
+  --code-surface: #ffffff;
+  --accent: #0a0a0a;
+  --ink: #0a0a0a;
+  --ink-rgb: 10, 10, 10;
+  --selection-background: rgba(132, 0, 255, 0.18);
+  --selection-foreground: #18181b;
+  --panel-bg: #ffffff;
+  --panel-border: rgba(10, 10, 10, 0.1);
+  --panel-shadow:
+    0 0 0 1px rgba(10, 10, 10, 0.05), 0 16px 48px rgba(15, 15, 25, 0.16),
+    0 4px 12px rgba(15, 15, 25, 0.08);
+  --popover-shadow:
+    0 4px 14px rgba(15, 15, 25, 0.14), 0 0 0 1px rgba(10, 10, 10, 0.05);
+  --scrim: rgba(15, 15, 20, 0.35);
+  --landing-glow: #8400ff;
+  --landing-grid-line: rgba(10, 10, 10, 0.05);
+  --landing-header-bg: rgba(255, 255, 255, 0.8);
+  --scrollbar-thumb: #c7c7cc;
+  --scrollbar-thumb-hover: #a1a1a6;
 }
 
 @theme inline {
@@ -21,6 +75,7 @@
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-accent: var(--accent);
+  --color-ink: var(--ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -61,8 +116,8 @@ html { scrollbar-gutter: stable; }
 /* ─── Landing grid background ────────────────────────────────────────────── */
 .landing-grid {
   background-image:
-    linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px);
+    linear-gradient(to right, var(--landing-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--landing-grid-line) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(ellipse 100% 65% at 50% 0%, black 10%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 100% 65% at 50% 0%, black 10%, transparent 100%);
@@ -108,12 +163,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--scrollbar-thumb-hover);
 }
 
 ::-webkit-scrollbar-corner {
@@ -176,16 +231,16 @@ body {
 }
 
 .cm-editor .cm-lineNumbers .cm-gutterElement {
-  color: rgba(237, 237, 237, 0.22) !important;
+  color: rgba(var(--ink-rgb), 0.22) !important;
 }
 
 .cm-editor .cm-lineNumbers .cm-activeLineGutter {
-  color: rgba(237, 237, 237, 0.45) !important;
+  color: rgba(var(--ink-rgb), 0.45) !important;
   background: transparent !important;
 }
 
 .cm-editor .cm-gutters:hover .cm-lineNumbers .cm-gutterElement {
-  color: rgba(237, 237, 237, 0.32) !important;
+  color: rgba(var(--ink-rgb), 0.32) !important;
 }
 
 /* Reserve space for up to 4-digit line numbers to avoid layout jumps */
@@ -224,7 +279,7 @@ body {
 /* Placeholder for folded text ({...}) */
 .cm-editor .cm-foldPlaceholder {
   background: transparent !important;
-  border: 1px solid rgba(38, 38, 38, 0.85) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 6px;
   color: var(--muted);
   display: inline-flex;

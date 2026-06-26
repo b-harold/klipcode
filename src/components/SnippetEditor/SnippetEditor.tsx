@@ -44,21 +44,21 @@ function SyncIndicator({
   switch (status) {
     case "editing":
       return (
-        <span className={`${shared} text-white/40`}>
+        <span className={`${shared} text-ink/40`}>
           <Pencil size={11} />
           {copy.syncEditing}
         </span>
       );
     case "saving":
       return (
-        <span className={`${shared} text-white/40`}>
+        <span className={`${shared} text-ink/40`}>
           <Loader2 size={11} className="animate-spin" />
           {copy.syncSaving}
         </span>
       );
     case "saved-local":
       return (
-        <span className={`${shared} text-white/40`}>
+        <span className={`${shared} text-ink/40`}>
           <CloudOff size={11} />
           {copy.syncSavedLocal}
         </span>
@@ -79,7 +79,7 @@ function SyncIndicator({
       );
     default:
       return (
-        <span className={`${shared} text-white/20`}>
+        <span className={`${shared} text-ink/20`}>
           <Cloud size={11} />
           {copy.syncIdle}
         </span>
@@ -231,7 +231,7 @@ export function SnippetEditor({
       label: snippet.title.trim() ? (
         snippet.title
       ) : (
-        <span className="text-white/25">{editorCopy.titlePlaceholder}</span>
+        <span className="text-ink/25">{editorCopy.titlePlaceholder}</span>
       ),
       // No onClick — the current snippet title is the static "current" crumb
     },
@@ -246,20 +246,20 @@ export function SnippetEditor({
           type="button"
           aria-label={editorCopy.copyCode}
           onClick={handleCopy}
-          className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+          className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70"
         >
           {copied ? <Check size={13} /> : <Copy size={13} />}
         </button>
       </Tooltip>
       {trashActions && (
         <>
-          <div className="h-4 w-px bg-white/[0.08]" />
+          <div className="h-4 w-px bg-ink/[0.08]" />
           <Tooltip content={copy.trash.restore} placement="bottom">
             <button
               type="button"
               aria-label={copy.trash.restore}
               onClick={trashActions.onRestore}
-              className="flex items-center justify-center rounded p-1.5 text-white/45 transition-colors hover:bg-white/[0.06] hover:text-white/80"
+              className="flex items-center justify-center rounded p-1.5 text-ink/45 transition-colors hover:bg-ink/[0.06] hover:text-ink/80"
             >
               <RotateCcw size={13} />
             </button>
@@ -284,7 +284,7 @@ export function SnippetEditor({
         onChange={(v) => onUpdate(snippet.id, { language: v })}
         copy={copy.languageSelect}
       />
-      <div className="h-4 w-px bg-white/[0.08]" />
+      <div className="h-4 w-px bg-ink/[0.08]" />
       <Tooltip
         content={isFormattable ? editorCopy.formatCode : editorCopy.formatNotSupported}
         placement="bottom"
@@ -294,7 +294,7 @@ export function SnippetEditor({
           aria-label={editorCopy.formatCode}
           onClick={handleFormat}
           disabled={!isFormattable || formatting}
-          className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70 disabled:cursor-not-allowed disabled:opacity-30"
+          className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <Zap size={13} className={formatting ? "animate-pulse" : undefined} />
         </button>
@@ -304,7 +304,7 @@ export function SnippetEditor({
           type="button"
           aria-label={editorCopy.copyCode}
           onClick={handleCopy}
-          className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+          className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70"
         >
           {copied ? <Check size={13} /> : <Copy size={13} />}
         </button>
@@ -348,7 +348,7 @@ export function SnippetEditor({
 
       {/* ── Sync status — fixed bottom-right corner (hidden for trashed) ──── */}
       {!readOnly && (
-        <div className="fixed bottom-4 right-4 z-50 rounded-full border border-white/[0.08] bg-[#0a0a0a]/80 px-3 py-1.5 backdrop-blur-sm">
+        <div className="fixed bottom-4 right-4 z-50 rounded-full border border-ink/[0.08] bg-background/80 px-3 py-1.5 backdrop-blur-sm">
           <SyncIndicator status={syncStatus} copy={editorCopy} />
         </div>
       )}

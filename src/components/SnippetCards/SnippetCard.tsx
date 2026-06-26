@@ -257,7 +257,7 @@ export function SnippetCard({
       } : undefined}
       onDragEnd={canDrag ? () => drag.endDrag() : undefined}
       className={cn(
-        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 cursor-pointer",
+        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-ink/[0.06] bg-surface transition-colors hover:border-ink/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20 cursor-pointer",
         canDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "active:cursor-grabbing"),
         className,
       )}
@@ -277,7 +277,7 @@ export function SnippetCard({
                 if (e.key === "Escape") setIsRenaming(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+              className="min-w-0 flex-1 rounded bg-ink/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
             />
           ) : (
             <TruncateTooltip text={displayName} className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" placement="bottom" />
@@ -291,7 +291,7 @@ export function SnippetCard({
               <button
                 type="button"
                 onClick={handleUnpinHome}
-                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-ink/[0.08] hover:text-foreground"
                 aria-label={cm.unpinHome}
               >
                 <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
@@ -306,7 +306,7 @@ export function SnippetCard({
               <button
                 type="button"
                 onClick={handleUnpinAside}
-                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-ink/[0.08] hover:text-foreground"
                 aria-label={cm.unpinAside}
               >
                 <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
@@ -322,8 +322,8 @@ export function SnippetCard({
                 type="button"
                 onClick={handleMoreClick}
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
-                  menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
+                  "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-ink/[0.08] hover:text-foreground",
+                  menuAnchor ? "opacity-100 bg-ink/[0.08] text-foreground" : "opacity-100",
                 )}
                 aria-label={cm.moreOptions}
               >
@@ -336,7 +336,7 @@ export function SnippetCard({
             <button
               type="button"
               onClick={handleCopy}
-              className="flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+              className="flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-ink/[0.08] hover:text-foreground"
               aria-label={cm.copyContent}
             >
               {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -346,11 +346,11 @@ export function SnippetCard({
       </div>
 
       <div className="relative overflow-hidden px-1 pb-1">
-        <div className="max-h-[140px] overflow-hidden rounded-lg border border-white/[0.04] bg-[#0b0b0b] px-3 py-2 font-mono text-[12px] leading-5 text-white/90">
-          <div className="pointer-events-none select-none text-white/40">
+        <div className="max-h-[140px] overflow-hidden rounded-lg border border-ink/[0.04] bg-[var(--code-surface)] px-3 py-2 font-mono text-[12px] leading-5 text-ink/90">
+          <div className="pointer-events-none select-none text-ink/40">
             {previewLines.map((line, index) => (
               <div key={`${snippet.id}-${index}`} className="flex gap-3">
-                <span className="w-5 shrink-0 text-right tabular-nums text-white/25">
+                <span className="w-5 shrink-0 text-right tabular-nums text-ink/25">
                   {index + 1}
                 </span>
                 <span className="min-w-0 flex-1 truncate whitespace-pre">{line || " "}</span>
@@ -370,8 +370,8 @@ export function SnippetCard({
               onNavigateFolder?.();
             }}
             className={cn(
-              "flex items-center gap-1.5 rounded-md border border-white/[0.05] bg-white/[0.02] px-2 py-1 text-[11px] font-medium text-muted transition-all",
-              onNavigateFolder ? "hover:border-white/[0.1] hover:bg-white/[0.06] hover:text-foreground" : "cursor-default",
+              "flex items-center gap-1.5 rounded-md border border-ink/[0.05] bg-ink/[0.02] px-2 py-1 text-[11px] font-medium text-muted transition-all",
+              onNavigateFolder ? "hover:border-ink/[0.1] hover:bg-ink/[0.06] hover:text-foreground" : "cursor-default",
             )}
           >
             <Folder size={12} />

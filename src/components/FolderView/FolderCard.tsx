@@ -192,18 +192,18 @@ export function FolderCard({
         drag.dropOnFolder(folder.id);
       }}
       className={cn(
-        "group flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 cursor-pointer",
+        "group flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20 cursor-pointer",
         isDraggingThis
           ? "opacity-40 cursor-grabbing"
           : "active:cursor-grabbing",
         isDropTarget
-          ? "border-white/30 bg-white/[0.06] ring-1 ring-inset ring-white/20"
-          : "border-white/[0.06] hover:border-white/[0.12] hover:bg-surface-hover",
+          ? "border-ink/30 bg-ink/[0.06] ring-1 ring-inset ring-ink/20"
+          : "border-ink/[0.06] hover:border-ink/[0.12] hover:bg-surface-hover",
       )}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] transition-colors group-hover:bg-white/[0.08]">
-          <Folder size={14} className="text-white/35 transition-colors group-hover:text-white/55" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink/[0.04] transition-colors group-hover:bg-ink/[0.08]">
+          <Folder size={14} className="text-ink/35 transition-colors group-hover:text-ink/55" />
         </div>
         <div className="min-w-0 flex-1">
           {isRenaming ? (
@@ -218,7 +218,7 @@ export function FolderCard({
                 if (e.key === "Escape") setIsRenaming(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded bg-white/[0.07] px-2 py-0.5 text-[13px] font-medium text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+              className="w-full rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
             />
           ) : (
             <>
@@ -241,7 +241,7 @@ export function FolderCard({
                 e.stopPropagation();
                 onPinAside(false);
               }}
-              className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-white/[0.08] hover:text-foreground"
+              className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-ink/[0.08] hover:text-foreground"
               aria-label={cm.unpinAside}
             >
               <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
@@ -256,8 +256,8 @@ export function FolderCard({
               type="button"
               onClick={handleMoreClick}
               className={cn(
-                "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
-                menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
+                "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-ink/[0.08] hover:text-foreground",
+                menuAnchor ? "opacity-100 bg-ink/[0.08] text-foreground" : "opacity-100",
               )}
               aria-label={cm.moreOptions}
             >

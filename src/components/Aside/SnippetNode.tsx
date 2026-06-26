@@ -47,7 +47,7 @@ function RenameRow({
           if (e.key === "Enter") onSubmit((e.target as HTMLInputElement).value);
           if (e.key === "Escape") onCancel();
         }}
-        className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+        className="min-w-0 flex-1 rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
       />
     </div>
   );
@@ -68,10 +68,10 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
   const sharedRowClass = [
     "group relative mr-1 flex items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] transition-all duration-100",
     isActive
-      ? "bg-white/[0.08] text-foreground ring-1 ring-inset ring-white/25"
+      ? "bg-ink/[0.08] text-foreground ring-1 ring-inset ring-ink/25"
       : isMultiSelected
-        ? "bg-white/[0.08] text-foreground"
-        : "text-muted hover:bg-white/[0.04] hover:text-foreground",
+        ? "bg-ink/[0.08] text-foreground"
+        : "text-muted hover:bg-ink/[0.04] hover:text-foreground",
     isDraggingThis ? "opacity-40" : "",
   ].filter(Boolean).join(" ");
 
@@ -135,7 +135,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
           <span
             role="button"
             aria-label={ctx.copy.aside.unpin}
-            className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
+            className="group/pin shrink-0 rounded p-px text-ink/30 transition-colors hover:text-ink/70"
             onClick={(e) => {
               e.stopPropagation();
               void ctx.pinSnippet(snippet.id, "aside", false);

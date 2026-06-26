@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+import { vscodeDark, vscodeLight } from "@uiw/codemirror-theme-vscode";
 import {
   foldGutter,
   LanguageSupport,
@@ -10,7 +10,12 @@ import {
   type Language,
 } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
-import { vscodeDarkMarkdown, markdownMarkTags } from "./markdownTheme";
+import { useTheme } from "@/hooks/useTheme";
+import {
+  vscodeDarkMarkdown,
+  vscodeLightMarkdown,
+  markdownMarkTags,
+} from "./markdownTheme";
 
 // Custom fold gutter with VS Code-style SVG markers (our own classes so CSS can target them)
 const customFoldGutter = foldGutter({
@@ -410,6 +415,16 @@ export function Editor({
   editorRef,
 }: EditorProps) {
   const [extensions, setExtensions] = useState<Extension[]>([]);
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+  const cmTheme =
+    language === "markdown"
+      ? isLight
+        ? vscodeLightMarkdown
+        : vscodeDarkMarkdown
+      : isLight
+        ? vscodeLight
+        : vscodeDark;
 
   const editorStyle = {
     fontSize: `${fontSize}px`,
@@ -435,7 +450,7 @@ export function Editor({
       ref={editorRef}
       value={value}
       onChange={onChange}
-      theme={language === "markdown" ? vscodeDarkMarkdown : vscodeDark}
+      theme={cmTheme}
       extensions={readOnly ? extensions : [...extensions, customFoldGutter]}
       editable={!readOnly}
       readOnly={readOnly}

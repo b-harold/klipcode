@@ -50,8 +50,8 @@ export default function GlobalError({
             border: "none",
             padding: "0.5rem 1rem",
             fontSize: "0.875rem",
-            background: "rgba(255,255,255,0.1)",
-            color: "rgba(255,255,255,0.8)",
+            background: "rgba(var(--ink-rgb),0.1)",
+            color: "rgba(var(--ink-rgb),0.8)",
           }}
         >
           {copy.retry}

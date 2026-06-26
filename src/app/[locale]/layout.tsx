@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { getDictionary } from "@/i18n";
 import { isLocale, localeHref } from "@/lib/locale";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,9 +68,14 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale}
+      data-theme="dark"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full bg-background text-foreground">
+        {/* Applies the stored theme before the body paints to avoid a flash of
+            the wrong surface. Mirrors readTheme()/applyTheme() in lib/theme.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {children}
         <ServiceWorkerRegistration />
       </body>

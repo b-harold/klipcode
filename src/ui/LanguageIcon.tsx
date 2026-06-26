@@ -1,10 +1,13 @@
+"use client";
+
 import { Database, FileCode2, FileText, Hash, TerminalSquare, type LucideIcon } from "lucide-react";
 import {
-  DEFAULT_LANGUAGE_COLOR,
-  LANGUAGE_COLORS,
+  languageColor,
+  LANGUAGE_ICON_BACKING,
   LANGUAGE_ICON_PATHS,
   LANGUAGE_ICON_VIEWBOX,
 } from "@/lib/constants/languageIcons";
+import { useTheme } from "@/hooks/useTheme";
 
 /**
  * Languages that have no brand glyph in our path data fall back to a
@@ -31,13 +34,19 @@ interface LanguageIconProps {
  * for anything unknown. Always tinted with the language's accent color.
  */
 export function LanguageIcon({ language, size = 14, className }: LanguageIconProps) {
-  const color = LANGUAGE_COLORS[language] ?? DEFAULT_LANGUAGE_COLOR;
+  const { theme } = useTheme();
+  const color = languageColor(language, theme);
   const path = LANGUAGE_ICON_PATHS[language];
 
   if (!path) {
     const Fallback = LUCIDE_FALLBACKS[language] ?? FileCode2;
     return <Fallback size={size} className={className} style={{ color }} aria-hidden />;
   }
+
+  // A few glyphs are a filled square with the letters cut out as holes; a solid
+  // backing keeps those letters a fixed color instead of revealing the page
+  // (white on light, dark on dark). See LANGUAGE_ICON_BACKING.
+  const backing = LANGUAGE_ICON_BACKING[language];
 
   return (
     <svg
@@ -49,6 +58,7 @@ export function LanguageIcon({ language, size = 14, className }: LanguageIconPro
       role="img"
       aria-hidden
     >
+      {backing && <rect x="0" y="0" width="100%" height="100%" fill={backing} />}
       <path d={path} />
     </svg>
   );

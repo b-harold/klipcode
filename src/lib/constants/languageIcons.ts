@@ -94,3 +94,48 @@ export const LANGUAGE_COLORS: Record<string, string> = {
 
 /** Fallback color when a language id has no entry in LANGUAGE_COLORS. */
 export const DEFAULT_LANGUAGE_COLOR = "#9aa0a6";
+
+/**
+ * Light-theme overrides for the handful of brand colors that are too pale to
+ * read on a white surface (bright yellow, near-white grays, light cyans). Each
+ * is a darker shade of the same hue so the icon still reads as "its" language.
+ * Languages absent here keep their normal `LANGUAGE_COLORS` value, which already
+ * has enough contrast on both themes.
+ */
+export const LANGUAGE_COLORS_LIGHT: Record<string, string> = {
+  tsx: "#0e7490", // light react cyan → cyan-700
+  jsx: "#0e7490",
+  astro: "#6d28d9", // near-white → Astro purple
+  bash: "#4b5563", // near-white → slate-600
+  json: "#475569", // very light slate → slate-600
+  markdown: "#2563eb", // light blue → blue-600
+  rust: "#b7410e", // pale tan → rust brown
+  go: "#007d9c", // light cyan → Go blue
+  plaintext: "#6b7280", // light gray → gray-500
+};
+
+/** Fallback color for unknown languages on a light surface. */
+export const DEFAULT_LANGUAGE_COLOR_LIGHT = "#6b7280";
+
+/**
+ * Icons whose glyph is a filled square with letters cut out as holes (e.g. the
+ * JavaScript logo) need a solid backing so the letters read as a fixed color in
+ * both themes — otherwise the holes reveal the page background (dark letters on
+ * dark, white letters on light). Maps language id → backing fill. Keep the
+ * recognizable brand color (e.g. JS stays yellow) in LANGUAGE_COLORS.
+ */
+export const LANGUAGE_ICON_BACKING: Record<string, string> = {
+  javascript: "#323330", // official JS letter color (reads black) on the yellow square
+};
+
+/** Resolves the icon color for a language under the given theme. */
+export function languageColor(language: string, theme: "light" | "dark"): string {
+  if (theme === "light") {
+    return (
+      LANGUAGE_COLORS_LIGHT[language] ??
+      LANGUAGE_COLORS[language] ??
+      DEFAULT_LANGUAGE_COLOR_LIGHT
+    );
+  }
+  return LANGUAGE_COLORS[language] ?? DEFAULT_LANGUAGE_COLOR;
+}

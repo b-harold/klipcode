@@ -145,15 +145,15 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
         className={[
           "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition-colors",
           open
-            ? "border-white/20 bg-white/[0.04] text-foreground"
-            : "border-white/[0.08] text-muted hover:border-white/15 hover:text-foreground",
+            ? "border-ink/20 bg-ink/[0.04] text-foreground"
+            : "border-ink/[0.08] text-muted hover:border-ink/15 hover:text-foreground",
         ].join(" ")}
       >
-        <Folder size={12} className="shrink-0 text-white/30" />
+        <Folder size={12} className="shrink-0 text-ink/30" />
         <span className="max-w-[160px] truncate leading-none">{displayLabel}</span>
         <ChevronDown
           size={11}
-          className={`shrink-0 text-white/30 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-ink/30 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -163,10 +163,10 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
             ref={dropdownRef}
             className="klipcode-menu-animate fixed z-[1010] overflow-hidden rounded-xl"
             style={{
-              background: "linear-gradient(180deg, #181818 0%, #111111 100%)",
-              border: "1px solid rgba(255,255,255,0.07)",
+              background: "var(--panel-bg)",
+              border: "1px solid rgba(var(--ink-rgb),0.07)",
               boxShadow:
-                "0 0 0 1px rgba(255,255,255,0.03) inset, 0 20px 56px rgba(0,0,0,0.9), 0 4px 12px rgba(0,0,0,0.5)",
+                "var(--panel-shadow)",
             }}
           >
             <div className="max-h-[280px] overflow-y-auto p-1">
@@ -179,13 +179,13 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                   "flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left text-[13px] leading-none",
                   "transition-colors duration-75",
                   value === ""
-                    ? "bg-white/[0.08] text-white"
-                    : "text-white/60 hover:bg-white/[0.06] hover:text-white/90",
+                    ? "bg-ink/[0.08] text-ink"
+                    : "text-ink/60 hover:bg-ink/[0.06] hover:text-ink/90",
                 ].join(" ")}
               >
                 <Folder size={12} className="shrink-0 opacity-50" />
                 <span className="flex-1">{rootLabel}</span>
-                {value === "" && <Check size={12} className="shrink-0 text-white/50" />}
+                {value === "" && <Check size={12} className="shrink-0 text-ink/50" />}
               </button>
 
               {/* Folder tree */}
@@ -210,7 +210,7 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                         e.stopPropagation();
                         if (hasChildren) toggleExpand(folder.id);
                       }}
-                      className="flex h-7 w-5 shrink-0 items-center justify-center rounded text-white/20 hover:text-white/50"
+                      className="flex h-7 w-5 shrink-0 items-center justify-center rounded text-ink/20 hover:text-ink/50"
                     >
                       {hasChildren ? (
                         <ChevronRight
@@ -218,7 +218,7 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                           className={`transition-transform duration-150 ${isExpanded ? "rotate-90" : ""}`}
                         />
                       ) : (
-                        <span className="inline-block h-px w-2 bg-white/[0.08]" />
+                        <span className="inline-block h-px w-2 bg-ink/[0.08]" />
                       )}
                     </button>
 
@@ -231,8 +231,8 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                         "flex flex-1 min-w-0 items-center gap-2 rounded-lg px-2 py-[6px] text-left text-[13px] leading-none",
                         "transition-colors duration-75",
                         isSelected
-                          ? "bg-white/[0.08] text-white"
-                          : "text-white/60 hover:bg-white/[0.06] hover:text-white/90",
+                          ? "bg-ink/[0.08] text-ink"
+                          : "text-ink/60 hover:bg-ink/[0.06] hover:text-ink/90",
                       ].join(" ")}
                     >
                       {isExpanded && hasChildren ? (
@@ -241,14 +241,14 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                         <Folder size={12} className="shrink-0 opacity-50" />
                       )}
                       <span className="flex-1 truncate">{folder.name}</span>
-                      {isSelected && <Check size={12} className="shrink-0 text-white/50" />}
+                      {isSelected && <Check size={12} className="shrink-0 text-ink/50" />}
                     </button>
                   </div>
                 );
               })}
 
               {folders.length === 0 && (
-                <p className="px-2.5 py-2 text-xs text-white/25">{copy.noFolders}</p>
+                <p className="px-2.5 py-2 text-xs text-ink/25">{copy.noFolders}</p>
               )}
             </div>
           </div>,

@@ -43,7 +43,7 @@ export function ShortcutsDialog({ copy, onClose }: ShortcutsDialogProps) {
       onMouseDown={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[var(--scrim)] backdrop-blur-sm" aria-hidden="true" />
 
       {/* Dialog */}
       <div
@@ -53,15 +53,15 @@ export function ShortcutsDialog({ copy, onClose }: ShortcutsDialogProps) {
         onMouseDown={(e) => e.stopPropagation()}
         className="klipcode-menu-animate relative flex max-h-[70vh] w-full max-w-lg flex-col overflow-hidden rounded-xl"
         style={{
-          background: "linear-gradient(180deg, #181818 0%, #111111 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: "var(--panel-bg)",
+          border: "1px solid rgba(var(--ink-rgb),0.08)",
           boxShadow:
-            "0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 64px rgba(0,0,0,0.9), 0 4px 12px rgba(0,0,0,0.5)",
+            "var(--panel-shadow)",
         }}
       >
         {/* Header */}
-        <div className="flex items-center gap-2.5 border-b border-white/[0.07] px-4 py-3">
-          <Keyboard size={16} className="shrink-0 text-white/35" />
+        <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-3">
+          <Keyboard size={16} className="shrink-0 text-ink/35" />
           <span className="text-sm font-medium text-foreground">{t.title}</span>
         </div>
 
@@ -69,7 +69,7 @@ export function ShortcutsDialog({ copy, onClose }: ShortcutsDialogProps) {
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {groups.map(({ section, items }) => (
             <div key={section} className="mb-1 last:mb-0">
-              <p className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-white/30">
+              <p className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-ink/30">
                 {t.sections[section]}
               </p>
               {items.map((shortcut) => (
@@ -84,7 +84,7 @@ export function ShortcutsDialog({ copy, onClose }: ShortcutsDialogProps) {
                     {formatShortcutKeys(shortcut, mac).map((token, i) => (
                       <kbd
                         key={i}
-                        className="rounded bg-white/[0.07] px-1.5 py-0.5 font-mono text-[11px] text-white/60"
+                        className="rounded bg-ink/[0.07] px-1.5 py-0.5 font-mono text-[11px] text-ink/60"
                       >
                         {token}
                       </kbd>

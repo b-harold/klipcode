@@ -213,6 +213,14 @@ export const es = {
   },
   preferences: {
     title: "Preferencias",
+    appearance: {
+      label: "Apariencia",
+      description: "Tema claro u oscuro",
+      light: "Claro",
+      dark: "Oscuro",
+      toLight: "Cambiar a tema claro",
+      toDark: "Cambiar a tema oscuro",
+    },
     language: {
       label: "Idioma",
       description: "Idioma de la interfaz",

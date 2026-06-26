@@ -115,7 +115,7 @@ function SnippetCardsSection({
       </div>
 
       {snippets.length === 0 ? (
-        emptyMessage ? <p className="text-sm text-white/30">{emptyMessage}</p> : null
+        emptyMessage ? <p className="text-sm text-ink/30">{emptyMessage}</p> : null
       ) : (
         <div
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"

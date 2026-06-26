@@ -5,6 +5,7 @@ import { HeroPerspective } from "@/components/HeroPerspective";
 import { LandingHeader } from "@/components/LandingHeader";
 import { LocaleSwitchLink } from "@/components/LocaleSwitchLink";
 import { AppCtaLink } from "@/components/AppCtaLink";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { isLocale, localeHref, type Locale } from "@/lib/locale";
 import { Logo } from "@/ui/Logo";
 import { GitHubIcon } from "@/components/Aside/GitHubIcon";
@@ -112,9 +113,14 @@ export default async function LandingPage({
               {altLocale.toUpperCase()}
             </LocaleSwitchLink>
 
+            <ThemeToggle
+              toLightLabel={t.preferences.appearance.toLight}
+              toDarkLabel={t.preferences.appearance.toDark}
+            />
+
             <AppCtaLink
               href={appHref}
-              className="group hidden items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-medium text-[#0a0a0a] transition-all hover:bg-white/90 active:scale-[0.97] md:flex"
+              className="group hidden items-center gap-2 rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-background transition-all hover:opacity-90 active:scale-[0.97] md:flex"
             >
               {l.nav.openApp}
             </AppCtaLink>
@@ -127,7 +133,7 @@ export default async function LandingPage({
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-40 left-1/2 h-125 w-200 -translate-x-1/2 rounded-full opacity-[0.07] blur-[120px]"
-          style={{ background: "radial-gradient(ellipse, #ffffff 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(ellipse, var(--landing-glow) 0%, transparent 70%)" }}
         />
 
         <h1 className="landing-fade-in relative max-w-3xl text-balance text-center text-4xl leading-[1.1] font-bold tracking-tight text-foreground whitespace-normal sm:text-5xl md:text-6xl md:whitespace-pre-line">
@@ -149,7 +155,7 @@ export default async function LandingPage({
         <div className="landing-fade-in landing-delay-2 mt-10 flex flex-col items-center gap-3">
           <AppCtaLink
             href={appHref}
-            className="group inline-flex items-center gap-2.5 rounded-full bg-white px-7 py-3 text-sm font-semibold text-[#0a0a0a] shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_2px_20px_rgba(255,255,255,0.1)] transition-all hover:shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_2px_30px_rgba(255,255,255,0.15)] active:scale-[0.97]"
+            className="group inline-flex items-center gap-2.5 rounded-full bg-accent px-7 py-3 text-sm font-semibold text-background shadow-[0_0_0_1px_rgba(var(--ink-rgb),0.1),0_2px_20px_rgba(var(--ink-rgb),0.1)] transition-all hover:shadow-[0_0_0_1px_rgba(var(--ink-rgb),0.15),0_2px_30px_rgba(var(--ink-rgb),0.15)] active:scale-[0.97]"
           >
             {l.hero.cta}
           </AppCtaLink>
@@ -159,7 +165,7 @@ export default async function LandingPage({
         {/* App preview screenshot */}
         <div className="landing-fade-in landing-delay-3 relative mt-6 w-full max-w-5xl md:mt-8">
           <HeroPerspective>
-            <div className="overflow-hidden rounded-xl border border-white/8 shadow-[0_0_80px_-20px_rgba(255,255,255,0.06)]">
+            <div className="overflow-hidden rounded-xl border border-ink/8 shadow-[0_0_80px_-20px_rgba(var(--ink-rgb),0.06)]">
               <Image
                 src="/landing/ui.webp"
                 alt={l.appPreview}
@@ -173,7 +179,7 @@ export default async function LandingPage({
           {/* Bottom fade */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -bottom-1 left-0 h-24 w-full bg-linear-to-t from-[#0a0a0a] to-transparent"
+            className="pointer-events-none absolute -bottom-1 left-0 h-24 w-full bg-linear-to-t from-background to-transparent"
           />
         </div>
       </section>
@@ -191,7 +197,7 @@ export default async function LandingPage({
             </p>
           </div>
           <div className="flex-1">
-            <div className="overflow-hidden rounded-xl border border-white/8">
+            <div className="overflow-hidden rounded-xl border border-ink/8">
               <Image
                 src="/landing/create-snippet.gif"
                 alt={l.demos.create.title}
@@ -207,7 +213,7 @@ export default async function LandingPage({
         {/* Copy snippet — reversed */}
         <div className="flex flex-col-reverse items-center gap-8 md:flex-row md:gap-16">
           <div className="flex-1">
-            <div className="overflow-hidden rounded-xl border border-white/8">
+            <div className="overflow-hidden rounded-xl border border-ink/8">
               <Image
                 src="/landing/copy-snippets.gif"
                 alt={l.demos.copy.title}
@@ -239,7 +245,7 @@ export default async function LandingPage({
             </p>
           </div>
           <div className="w-full max-w-xs md:flex-1">
-            <div className="mx-auto overflow-hidden rounded-xl border border-white/8 md:max-w-sm">
+            <div className="mx-auto overflow-hidden rounded-xl border border-ink/8 md:max-w-sm">
               <Image
                 src="/landing/move-elements.gif"
                 alt={l.demos.move.title}
@@ -266,9 +272,9 @@ export default async function LandingPage({
           {features.map((f) => (
             <div
               key={f.title}
-              className="group rounded-xl border border-white/6 bg-white/2 p-6 transition-colors hover:border-white/10 hover:bg-white/4"
+              className="group rounded-xl border border-ink/6 bg-ink/2 p-6 transition-colors hover:border-ink/10 hover:bg-ink/4"
             >
-              <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg bg-white/6 text-foreground">
+              <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg bg-ink/6 text-foreground">
                 {f.icon}
               </div>
               <h3 className="mb-2 text-sm font-semibold text-foreground">
@@ -290,7 +296,7 @@ export default async function LandingPage({
         >
           <div
             className="h-100 w-150 rounded-full opacity-[0.05] blur-[100px]"
-            style={{ background: "radial-gradient(ellipse, #ffffff 0%, transparent 70%)" }}
+            style={{ background: "radial-gradient(ellipse, var(--landing-glow) 0%, transparent 70%)" }}
           />
         </div>
 
@@ -301,7 +307,7 @@ export default async function LandingPage({
           <p className="mt-5 text-muted leading-relaxed">{l.cta.subtitle}</p>
           <AppCtaLink
             href={appHref}
-            className="mt-8 inline-flex items-center gap-2.5 rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-[#0a0a0a] shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_2px_20px_rgba(255,255,255,0.1)] transition-all hover:shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_2px_30px_rgba(255,255,255,0.15)] active:scale-[0.97]"
+            className="mt-8 inline-flex items-center gap-2.5 rounded-full bg-accent px-8 py-3.5 text-sm font-semibold text-background shadow-[0_0_0_1px_rgba(var(--ink-rgb),0.1),0_2px_20px_rgba(var(--ink-rgb),0.1)] transition-all hover:shadow-[0_0_0_1px_rgba(var(--ink-rgb),0.15),0_2px_30px_rgba(var(--ink-rgb),0.15)] active:scale-[0.97]"
           >
             {l.cta.button}
           </AppCtaLink>
@@ -309,7 +315,7 @@ export default async function LandingPage({
       </section>
 
       {/* ─── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/6 px-4 py-8 sm:px-5">
+      <footer className="border-t border-ink/6 px-4 py-8 sm:px-5">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2 text-muted">
             <Logo className="h-4 w-4" />
@@ -320,11 +326,11 @@ export default async function LandingPage({
               href="https://github.com/martinezharo/klipcode"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex max-w-full items-center justify-center gap-2 rounded-md border border-white/4 bg-white/1 px-3 py-2 text-[12px] font-medium text-white/40 shadow-sm transition-all duration-300 hover:border-white/10 hover:bg-white/4 hover:text-white"
+              className="group flex max-w-full items-center justify-center gap-2 rounded-md border border-ink/4 bg-ink/1 px-3 py-2 text-[12px] font-medium text-ink/40 shadow-sm transition-all duration-300 hover:border-ink/10 hover:bg-ink/4 hover:text-ink"
             >
               <GitHubIcon
                 size={14}
-                className="shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:text-white"
+                className="shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:text-ink"
               />
               <span className="truncate tracking-wide">martinezharo/klipcode</span>
             </a>

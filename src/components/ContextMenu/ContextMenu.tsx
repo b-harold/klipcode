@@ -78,10 +78,10 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
         style={{
           left: x,
           top: y,
-          background: "linear-gradient(180deg, #181818 0%, #111111 100%)",
-          border: "1px solid rgba(255,255,255,0.07)",
+          background: "var(--panel-bg)",
+          border: "1px solid rgba(var(--ink-rgb),0.07)",
           boxShadow:
-            "0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 64px rgba(0,0,0,0.9), 0 4px 16px rgba(0,0,0,0.6)",
+            "var(--panel-shadow)",
         }}
         onMouseDown={(e) => e.stopPropagation()}
         onContextMenu={(e) => {
@@ -96,7 +96,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
               {gi > 0 && (
                 <div
                   className="mx-1 my-1 h-px"
-                  style={{ background: "rgba(255,255,255,0.06)" }}
+                  style={{ background: "rgba(var(--ink-rgb),0.06)" }}
                 />
               )}
               {group.items.map((item) => {
@@ -120,7 +120,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
                       "disabled:pointer-events-none disabled:opacity-25",
                       destructive
                         ? "text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                        : "text-white/60 hover:bg-white/[0.07] hover:text-white/90",
+                        : "text-ink/60 hover:bg-ink/[0.07] hover:text-ink/90",
                     ].join(" ")}
                   >
                     <Ic

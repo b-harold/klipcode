@@ -212,6 +212,14 @@ export const en = {
   },
   preferences: {
     title: "Preferences",
+    appearance: {
+      label: "Appearance",
+      description: "Light or dark theme",
+      light: "Light",
+      dark: "Dark",
+      toLight: "Switch to light theme",
+      toDark: "Switch to dark theme",
+    },
     language: {
       label: "Language",
       description: "Interface language",

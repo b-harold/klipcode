@@ -113,10 +113,10 @@ export function NewSnippet({
   }
 
   return (
-    <section className="rounded-xl border border-white/[0.06] bg-surface">
+    <section className="rounded-xl border border-ink/[0.06] bg-surface">
       <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown}>
         {/* Title + Language row */}
-        <div className="flex flex-col gap-3 border-b border-white/[0.06] px-4 py-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 border-b border-ink/[0.06] px-4 py-3 sm:flex-row sm:items-center">
           <input
             ref={titleRef}
             type="text"
@@ -124,7 +124,7 @@ export function NewSnippet({
             onChange={(e) => handleTitleChange(e.target.value)}
             onKeyDown={handleTitleKeyDown}
             placeholder={copy.forms.snippetTitlePlaceholder}
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/30 outline-none"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-ink/30 outline-none"
           />
           <LanguageSelect
             value={language}
@@ -148,7 +148,7 @@ export function NewSnippet({
         </div>
 
         {/* Footer: folder selector + create button */}
-        <div className="flex items-center justify-between border-t border-white/[0.06] px-4 py-2.5">
+        <div className="flex items-center justify-between border-t border-ink/[0.06] px-4 py-2.5">
           <FolderSelect
             value={folderId}
             onChange={setFolderId}
@@ -160,7 +160,7 @@ export function NewSnippet({
           <button
             type="submit"
             disabled={!code.trim()}
-            className="flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-1.5 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-30"
+            className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-30"
           >
             <Plus size={14} strokeWidth={2.5} />
             <span>{copy.forms.submitSnippet}</span>

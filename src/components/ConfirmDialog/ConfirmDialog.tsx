@@ -54,7 +54,7 @@ export function ConfirmDialog({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[998] bg-black/70 backdrop-blur-[2px]"
+        className="fixed inset-0 z-[998] bg-[var(--scrim)] backdrop-blur-[2px]"
         onMouseDown={onCancel}
       />
 
@@ -66,10 +66,10 @@ export function ConfirmDialog({
           aria-modal="true"
           aria-labelledby="confirm-dialog-title"
           style={{
-            background: "linear-gradient(180deg, #181818 0%, #111111 100%)",
-            border: "1px solid rgba(255,255,255,0.09)",
+            background: "var(--panel-bg)",
+            border: "1px solid rgba(var(--ink-rgb),0.09)",
             boxShadow:
-              "0 0 0 1px rgba(255,255,255,0.03) inset, 0 32px 80px rgba(0,0,0,0.95), 0 4px 20px rgba(0,0,0,0.7)",
+              "var(--panel-shadow)",
           }}
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -84,14 +84,14 @@ export function ConfirmDialog({
             <div className="min-w-0">
               <h2
                 id="confirm-dialog-title"
-                className="text-[13px] font-medium leading-snug text-white/90"
+                className="text-[13px] font-medium leading-snug text-ink/90"
               >
                 {title}
               </h2>
               {subtitle && (
                 <p
                   className="mt-0.5 text-[12px] leading-snug truncate max-w-[260px]"
-                  style={{ color: "rgba(255,255,255,0.4)" }}
+                  style={{ color: "rgba(var(--ink-rgb),0.4)" }}
                   title={subtitle}
                 >
                   {subtitle}
@@ -104,20 +104,20 @@ export function ConfirmDialog({
           {((folderCount > 0 && folderCountLabel) || (snippetCount > 0 && snippetCountLabel)) && (
             <div
               className="mb-4 rounded-lg px-3 py-2.5 space-y-1.5"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ background: "rgba(var(--ink-rgb),0.03)", border: "1px solid rgba(var(--ink-rgb),0.06)" }}
             >
               {folderCount > 0 && folderCountLabel && (
                 <div className="flex items-center gap-2">
-                  <FolderOpen size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
-                  <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  <FolderOpen size={12} style={{ color: "rgba(var(--ink-rgb),0.35)" }} />
+                  <span className="text-[12px]" style={{ color: "rgba(var(--ink-rgb),0.55)" }}>
                     {folderCountLabel(folderCount)}
                   </span>
                 </div>
               )}
               {snippetCount > 0 && snippetCountLabel && (
                 <div className="flex items-center gap-2">
-                  <FileCode2 size={12} style={{ color: "rgba(255,255,255,0.35)" }} />
-                  <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  <FileCode2 size={12} style={{ color: "rgba(var(--ink-rgb),0.35)" }} />
+                  <span className="text-[12px]" style={{ color: "rgba(var(--ink-rgb),0.55)" }}>
                     {snippetCountLabel(snippetCount)}
                   </span>
                 </div>
@@ -126,7 +126,7 @@ export function ConfirmDialog({
           )}
 
           {/* Warning */}
-          <p className="mb-4 text-[12px] leading-relaxed" style={{ color: "rgba(255,255,255,0.38)" }}>
+          <p className="mb-4 text-[12px] leading-relaxed" style={{ color: "rgba(var(--ink-rgb),0.38)" }}>
             {warning}
           </p>
 
@@ -138,17 +138,17 @@ export function ConfirmDialog({
               onClick={onCancel}
               className="rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75"
               style={{
-                color: "rgba(255,255,255,0.55)",
+                color: "rgba(var(--ink-rgb),0.55)",
                 background: "transparent",
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: "1px solid rgba(var(--ink-rgb),0.08)",
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)";
-                (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.8)";
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(var(--ink-rgb),0.05)";
+                (e.currentTarget as HTMLButtonElement).style.color = "rgba(var(--ink-rgb),0.8)";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)";
+                (e.currentTarget as HTMLButtonElement).style.color = "rgba(var(--ink-rgb),0.55)";
               }}
             >
               {cancelLabel}

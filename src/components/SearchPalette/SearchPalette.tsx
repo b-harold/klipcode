@@ -139,7 +139,7 @@ export function SearchPalette({
       onMouseDown={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[var(--scrim)] backdrop-blur-sm" aria-hidden="true" />
 
       {/* Palette */}
       <div
@@ -150,31 +150,31 @@ export function SearchPalette({
         onKeyDown={handleKeyDown}
         className="klipcode-menu-animate relative flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-xl"
         style={{
-          background: "linear-gradient(180deg, #181818 0%, #111111 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: "var(--panel-bg)",
+          border: "1px solid rgba(var(--ink-rgb),0.08)",
           boxShadow:
-            "0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 64px rgba(0,0,0,0.9), 0 4px 12px rgba(0,0,0,0.5)",
+            "var(--panel-shadow)",
         }}
       >
         {/* Search input */}
-        <div className="flex items-center gap-2.5 border-b border-white/[0.07] px-4 py-3">
-          <Search size={16} className="shrink-0 text-white/35" />
+        <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-3">
+          <Search size={16} className="shrink-0 text-ink/35" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.placeholder}
-            className="w-full bg-transparent text-sm text-foreground placeholder:text-white/30 outline-none"
+            className="w-full bg-transparent text-sm text-foreground placeholder:text-ink/30 outline-none"
           />
         </div>
 
         {/* Results */}
         <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto p-2">
           {query.trim() === "" ? (
-            <p className="px-3 py-6 text-center text-[13px] text-white/30">{t.empty}</p>
+            <p className="px-3 py-6 text-center text-[13px] text-ink/30">{t.empty}</p>
           ) : results.length === 0 ? (
-            <p className="px-3 py-6 text-center text-[13px] text-white/30">{t.noResults}</p>
+            <p className="px-3 py-6 text-center text-[13px] text-ink/30">{t.noResults}</p>
           ) : (
             results.map((result, index) => {
               const isActive = index === activeIndex;
@@ -187,7 +187,7 @@ export function SearchPalette({
                   onClick={() => choose(index)}
                   className={[
                     "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
-                    isActive ? "bg-white/[0.08]" : "hover:bg-white/[0.04]",
+                    isActive ? "bg-ink/[0.08]" : "hover:bg-ink/[0.04]",
                   ].join(" ")}
                 >
                   <LanguageIcon
@@ -200,18 +200,18 @@ export function SearchPalette({
                       <span className="truncate text-[13px] text-foreground">
                         {result.displayName}
                       </span>
-                      <span className="shrink-0 truncate text-[11px] text-white/30">
+                      <span className="shrink-0 truncate text-[11px] text-ink/30">
                         {result.folderPath}
                       </span>
                     </div>
                     {result.preview && (
-                      <p className="truncate font-mono text-[11px] text-white/35">
+                      <p className="truncate font-mono text-[11px] text-ink/35">
                         {result.preview}
                       </p>
                     )}
                   </div>
                   {isActive && (
-                    <CornerDownLeft size={13} className="shrink-0 text-white/35" />
+                    <CornerDownLeft size={13} className="shrink-0 text-ink/35" />
                   )}
                 </button>
               );
@@ -220,17 +220,17 @@ export function SearchPalette({
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center gap-4 border-t border-white/[0.07] px-4 py-2 text-[11px] text-white/30">
+        <div className="flex items-center gap-4 border-t border-ink/[0.07] px-4 py-2 text-[11px] text-ink/30">
           <span className="flex items-center gap-1.5">
-            <kbd className="rounded bg-white/[0.07] px-1.5 py-0.5 font-mono">↑↓</kbd>
+            <kbd className="rounded bg-ink/[0.07] px-1.5 py-0.5 font-mono">↑↓</kbd>
             {t.navigateHint}
           </span>
           <span className="flex items-center gap-1.5">
-            <kbd className="rounded bg-white/[0.07] px-1.5 py-0.5 font-mono">↵</kbd>
+            <kbd className="rounded bg-ink/[0.07] px-1.5 py-0.5 font-mono">↵</kbd>
             {t.selectHint}
           </span>
           <span className="flex items-center gap-1.5">
-            <kbd className="rounded bg-white/[0.07] px-1.5 py-0.5 font-mono">esc</kbd>
+            <kbd className="rounded bg-ink/[0.07] px-1.5 py-0.5 font-mono">esc</kbd>
             {t.closeHint}
           </span>
         </div>

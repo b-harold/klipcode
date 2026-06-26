@@ -206,11 +206,11 @@ export function FolderView({
         {/* ── Folder header ──────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.04]">
               {isRootSpace ? (
-                <Layers size={20} className="text-white/40" />
+                <Layers size={20} className="text-ink/40" />
               ) : (
-                <FolderOpen size={20} className="text-white/40" />
+                <FolderOpen size={20} className="text-ink/40" />
               )}
             </div>
             <div className="min-w-0">
@@ -229,7 +229,7 @@ export function FolderView({
                   <button
                     type="button"
                     onClick={() => setCreating("folder")}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[13px] font-medium text-white/60 transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-white/90"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-1.5 text-[13px] font-medium text-ink/60 transition-colors hover:border-ink/15 hover:bg-ink/[0.06] hover:text-ink/90"
                   >
                     <FolderPlus size={14} className="opacity-70" />
                     {copy.forms.folderTitle}
@@ -239,7 +239,7 @@ export function FolderView({
                   <button
                     type="button"
                     onClick={() => setCreating("snippet")}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.08] px-3 py-1.5 text-[13px] font-medium text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.12] hover:text-white"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.08] px-3 py-1.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/25 hover:bg-ink/[0.12] hover:text-ink"
                   >
                     <FilePlus size={14} className="opacity-80" />
                     {copy.forms.snippetTitle}
@@ -268,8 +268,8 @@ export function FolderView({
             <div className={[
               "flex items-center justify-center gap-1.5 rounded-lg border border-dashed py-2 text-[11px] select-none transition-colors duration-100",
               isCurrentFolderDropTarget
-                ? "border-white/35 bg-white/[0.05] text-white/60"
-                : "border-white/[0.1] bg-transparent text-white/25",
+                ? "border-ink/35 bg-ink/[0.05] text-ink/60"
+                : "border-ink/[0.1] bg-transparent text-ink/25",
             ].join(" ")}>
               {isRootSpace ? <Layers size={11} /> : <FolderOpen size={11} />}
               {folderTitle}
@@ -279,18 +279,18 @@ export function FolderView({
 
         {/* ── Empty state ────────────────────────────────────────────────── */}
         {isEmpty && !creating && (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/[0.07] py-20">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
-              <FileCode2 size={22} className="text-white/20" />
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-ink/[0.07] py-20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.03]">
+              <FileCode2 size={22} className="text-ink/20" />
             </div>
-            <p className="text-sm text-white/30">{copy.folderView.empty}</p>
+            <p className="text-sm text-ink/30">{copy.folderView.empty}</p>
           </div>
         )}
 
         {/* ── Sub-folders ────────────────────────────────────────────────── */}
         {childFolders.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/30">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/30">
               {copy.folderView.subFolders}
             </h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -319,7 +319,7 @@ export function FolderView({
         {/* ── Snippets grid ──────────────────────────────────────────────── */}
         {folderSnippets.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/30">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/30">
               {copy.folderView.snippets}
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -396,13 +396,13 @@ function InlineCreate({
   const detected = type === "snippet" ? detectLanguageFromTitle(value) : null;
 
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2">
+    <div className="flex items-center gap-2.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-2">
       {type === "folder" ? (
-        <Folder size={15} className="shrink-0 text-white/30" />
+        <Folder size={15} className="shrink-0 text-ink/30" />
       ) : detected ? (
         <LanguageIcon language={detected} size={15} className="shrink-0" />
       ) : (
-        <FileCode2 size={15} className="shrink-0 text-white/30" />
+        <FileCode2 size={15} className="shrink-0 text-ink/30" />
       )}
       <input
         ref={inputRef}
@@ -416,7 +416,7 @@ function InlineCreate({
           if (e.key === "Escape") onCancel();
         }}
         placeholder={placeholder}
-        className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-white/25 outline-none"
+        className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-ink/25 outline-none"
       />
     </div>
   );

@@ -29,7 +29,7 @@ export function AsideHeader({
       <div className="flex items-center gap-2">
         {user ? (
           <div className="flex min-w-0 flex-1 items-center gap-2.5 p-1">
-            <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10">
+            <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-ink/10">
               <Image
                 src={user.user_metadata.avatar_url}
                 alt={user.user_metadata.full_name || user.email || "Avatar"}
@@ -47,7 +47,7 @@ export function AsideHeader({
               <button
                 onClick={onSignOut}
                 disabled={signingOut}
-                className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/10 hover:text-white/60 disabled:cursor-default disabled:hover:bg-transparent"
+                className="shrink-0 rounded p-1 text-ink/25 transition-colors hover:bg-ink/10 hover:text-ink/60 disabled:cursor-default disabled:hover:bg-transparent"
                 aria-label={signingOut ? copy.auth.signingOut : copy.auth.signOut}
                 aria-busy={signingOut}
               >
@@ -63,9 +63,9 @@ export function AsideHeader({
             aria-busy={signingIn}
           >
             {signingIn ? (
-              <Spinner size={15} className="shrink-0 text-white/80" />
+              <Spinner size={15} className="shrink-0 text-ink/80" />
             ) : (
-              <LogIn size={15} className="shrink-0 text-white/60 group-hover:text-white" />
+              <LogIn size={15} className="shrink-0 text-ink/60 group-hover:text-ink" />
             )}
             <span className="truncate text-[12px] font-medium text-foreground/80 group-hover:text-foreground">
               {signingIn ? copy.auth.signingIn : copy.auth.signIn}
@@ -77,7 +77,7 @@ export function AsideHeader({
           <button
             type="button"
             onClick={onCollapse}
-            className="shrink-0 rounded-md p-1.5 text-white/20 transition-colors hover:bg-white/6 hover:text-white/60"
+            className="shrink-0 rounded-md p-1.5 text-ink/20 transition-colors hover:bg-ink/6 hover:text-ink/60"
             aria-label={copy.aside.collapse}
           >
             <ChevronsLeft size={14} />

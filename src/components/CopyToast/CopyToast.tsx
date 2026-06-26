@@ -36,7 +36,7 @@ export function CopyToast({ nonce, message }: CopyToastProps) {
       }`}
       aria-live="polite"
     >
-      <div className="flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-[#0a0a0a]/90 px-3 py-1.5 text-[12px] text-white/80 backdrop-blur-sm">
+      <div className="flex items-center gap-1.5 rounded-full border border-ink/[0.08] bg-background/90 px-3 py-1.5 text-[12px] text-ink/80 backdrop-blur-sm">
         <Check size={13} className="text-emerald-400" />
         {message}
       </div>

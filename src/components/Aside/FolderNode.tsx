@@ -72,12 +72,12 @@ export function FolderNode({
   const sharedRowClass = [
     "group relative mr-1 flex items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] transition-all duration-100",
     isActive
-      ? "bg-white/[0.08] text-foreground ring-1 ring-inset ring-white/25"
+      ? "bg-ink/[0.08] text-foreground ring-1 ring-inset ring-ink/25"
       : isMultiSelected
-        ? "bg-white/[0.08] text-foreground"
-        : "text-muted hover:bg-white/[0.04] hover:text-foreground",
+        ? "bg-ink/[0.08] text-foreground"
+        : "text-muted hover:bg-ink/[0.04] hover:text-foreground",
     isDraggingThis ? "opacity-40" : "",
-    isDropTarget ? "bg-white/[0.07] text-foreground ring-1 ring-inset ring-white/[0.18]" : "",
+    isDropTarget ? "bg-ink/[0.07] text-foreground ring-1 ring-inset ring-ink/[0.18]" : "",
   ].filter(Boolean).join(" ");
   const hasChildren = childFolders.length > 0 || childSnippets.length > 0;
   const isAnyCreatingHere = isCreatingHere || isCreatingSnippetHere;
@@ -92,12 +92,12 @@ export function FolderNode({
         >
           <ChevronRight
             size={13}
-            className={`shrink-0 text-white/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
+            className={`shrink-0 text-ink/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
           />
           {isOpen && hasChildren ? (
-            <FolderOpen size={13} className="shrink-0 text-white/25" />
+            <FolderOpen size={13} className="shrink-0 text-ink/25" />
           ) : (
-            <Folder size={13} className="shrink-0 text-white/25" />
+            <Folder size={13} className="shrink-0 text-ink/25" />
           )}
           <input
             autoFocus
@@ -109,7 +109,7 @@ export function FolderNode({
                 ctx.submitFolderRename(folder.id, (e.target as HTMLInputElement).value);
               if (e.key === "Escape") ctx.cancelRename();
             }}
-            className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
+            className="min-w-0 flex-1 rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
           />
         </div>
       ) : (
@@ -148,7 +148,7 @@ export function FolderNode({
           <Tooltip content={isOpen ? ctx.copy.aside.collapseFolder : ctx.copy.aside.expandFolder}>
             <button
               type="button"
-              className="flex h-4 w-4 shrink-0 items-center justify-center text-white/25 transition-colors hover:text-white/45"
+              className="flex h-4 w-4 shrink-0 items-center justify-center text-ink/25 transition-colors hover:text-ink/45"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsOpen((value) => !value);
@@ -174,9 +174,9 @@ export function FolderNode({
             className="flex min-w-0 flex-1 items-center gap-1.5 text-left active:cursor-grabbing"
           >
             {isOpen && hasChildren ? (
-              <FolderOpen size={13} className="shrink-0 text-white/25" />
+              <FolderOpen size={13} className="shrink-0 text-ink/25" />
             ) : (
-              <Folder size={13} className="shrink-0 text-white/25" />
+              <Folder size={13} className="shrink-0 text-ink/25" />
             )}
             <TruncateTooltip text={folder.name} className="flex-1 truncate leading-none" />
           </button>
@@ -190,7 +190,7 @@ export function FolderNode({
               <button
                 type="button"
                 aria-label={ctx.copy.aside.unpin}
-                className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
+                className="group/pin shrink-0 rounded p-px text-ink/30 transition-colors hover:text-ink/70"
                 onClick={(e) => {
                   e.stopPropagation();
                   void ctx.pinFolder(folder.id, "aside", false);
@@ -208,7 +208,7 @@ export function FolderNode({
         <div className="relative">
           {(hasChildren || isAnyCreatingHere) && (
             <div
-              className="absolute bottom-1 top-0 w-px bg-white/[0.05]"
+              className="absolute bottom-1 top-0 w-px bg-ink/[0.05]"
               style={{ left: `${paddingLeft + 6}px` }}
             />
           )}

@@ -119,11 +119,11 @@ export function TrashView({
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.04]">
               {isRoot ? (
-                <Trash2 size={20} className="text-white/40" />
+                <Trash2 size={20} className="text-ink/40" />
               ) : (
-                <FolderOpen size={20} className="text-white/40" />
+                <FolderOpen size={20} className="text-ink/40" />
               )}
             </div>
             <div>
@@ -140,7 +140,7 @@ export function TrashView({
               <button
                 type="button"
                 onClick={onRestoreAll}
-                className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[13px] font-medium text-white/70 transition-colors hover:bg-white/[0.07] hover:text-foreground"
+                className="flex items-center gap-1.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-1.5 text-[13px] font-medium text-ink/70 transition-colors hover:bg-ink/[0.07] hover:text-foreground"
               >
                 <RotateCcw size={14} />
                 {copy.trash.restoreAll}
@@ -159,18 +159,18 @@ export function TrashView({
 
         {/* ── Empty state ─────────────────────────────────────────────────── */}
         {isEmpty && (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/[0.07] py-20">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
-              <Trash2 size={22} className="text-white/20" />
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-ink/[0.07] py-20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.03]">
+              <Trash2 size={22} className="text-ink/20" />
             </div>
-            <p className="text-sm text-white/30">{copy.trash.empty}</p>
+            <p className="text-sm text-ink/30">{copy.trash.empty}</p>
           </div>
         )}
 
         {/* ── Sub-folders ─────────────────────────────────────────────────── */}
         {childFolders.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/30">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/30">
               {copy.folderView.subFolders}
             </h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -195,7 +195,7 @@ export function TrashView({
         {/* ── Snippets ────────────────────────────────────────────────────── */}
         {folderSnippets.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/30">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/30">
               {copy.folderView.snippets}
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

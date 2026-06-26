@@ -20,6 +20,7 @@ import { useCloudSync } from "@/hooks/useCloudSync";
 import { useWorkspaceMutations } from "@/hooks/useWorkspaceMutations";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { usePreferences } from "@/hooks/usePreferences";
+import { useTheme } from "@/hooks/useTheme";
 
 import { AccountToast } from "@/components/AccountToast/AccountToast";
 import { CopyToast } from "@/components/CopyToast/CopyToast";
@@ -42,6 +43,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const queryClient = useQueryClient();
   const { sidebarOpen, setSidebarOpen, isMobile } = useResponsiveSidebar();
   const { preferences, updatePreferences } = usePreferences();
+  const { theme, setTheme } = useTheme();
 
   function refreshWorkspace() {
     startTransition(() => {
@@ -258,7 +260,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         type="button"
         aria-label={copy.aside.open}
         onClick={() => setSidebarOpen(true)}
-        className="shrink-0 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/6 hover:text-white/70"
+        className="shrink-0 rounded-md p-1.5 text-ink/40 transition-colors hover:bg-ink/6 hover:text-ink/70"
       >
         <Menu size={16} />
       </button>
@@ -272,11 +274,11 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   if (workspaceQuery.isError) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-sm text-white/60">{copy.workspace.loadError}</p>
+        <p className="text-sm text-ink/60">{copy.workspace.loadError}</p>
         <button
           type="button"
           onClick={() => void workspaceQuery.refetch()}
-          className="rounded-md bg-white/10 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/15"
+          className="rounded-md bg-ink/10 px-4 py-2 text-sm text-ink/80 transition-colors hover:bg-ink/15"
         >
           {copy.error.retry}
         </button>
@@ -288,7 +290,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   // blank shell so a cold start (or a large workspace) doesn't look frozen.
   if (workspaceQuery.isPending) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-3 text-white/45">
+      <div className="flex h-screen flex-col items-center justify-center gap-3 text-ink/45">
         <Spinner size={22} label={copy.workspace.loading} />
         <p className="text-sm">{copy.workspace.loading}</p>
       </div>
@@ -479,10 +481,12 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       <PreferencesDialog
         copy={copy}
         locale={locale}
+        theme={theme}
         folders={folders}
         preferences={preferences}
         onChangePreferences={updatePreferences}
         onChangeLocale={handleChangeLocale}
+        onChangeTheme={setTheme}
         onClose={() => setPrefsOpen(false)}
       />
     )}

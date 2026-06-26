@@ -8,6 +8,7 @@ import type { Dictionary } from "@/i18n";
 import type { FolderRecord } from "@/lib/types";
 import type { Preferences } from "@/lib/preferences";
 import type { Locale } from "@/lib/locale";
+import type { Theme } from "@/lib/theme";
 import { LANGUAGES, type LanguageId } from "@/lib/constants/languages";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { FolderSelect } from "@/ui/FolderSelect";
@@ -15,11 +16,46 @@ import { FolderSelect } from "@/ui/FolderSelect";
 interface PreferencesDialogProps {
   copy: Dictionary;
   locale: Locale;
+  theme: Theme;
   folders: FolderRecord[];
   preferences: Preferences;
   onChangePreferences: (patch: Partial<Preferences>) => void;
   onChangeLocale: (locale: Locale) => void;
+  onChangeTheme: (theme: Theme) => void;
   onClose: () => void;
+}
+
+/** Pill segmented control used for the locale and theme rows. */
+function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg border border-ink/[0.08] p-0.5">
+      {options.map((opt) => {
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            aria-pressed={active}
+            className={[
+              "rounded-md px-2.5 py-1 text-xs transition-colors",
+              active ? "bg-ink/[0.08] text-ink" : "text-ink/50 hover:text-ink/80",
+            ].join(" ")}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 /** A labelled preference row: title + helper text on the left, control on the right. */
@@ -36,7 +72,7 @@ function Row({
     <div className="flex items-center justify-between gap-4 px-4 py-3.5">
       <div className="min-w-0">
         <p className="text-[13px] text-foreground/90">{title}</p>
-        <p className="mt-0.5 text-[12px] text-white/35">{description}</p>
+        <p className="mt-0.5 text-[12px] text-ink/35">{description}</p>
       </div>
       <div className="shrink-0">{control}</div>
     </div>
@@ -51,10 +87,12 @@ const LOCALE_OPTIONS: { value: Locale; key: "en" | "es" }[] = [
 export function PreferencesDialog({
   copy,
   locale,
+  theme,
   folders,
   preferences,
   onChangePreferences,
   onChangeLocale,
+  onChangeTheme,
   onClose,
 }: PreferencesDialogProps) {
   const t = copy.preferences;
@@ -82,7 +120,7 @@ export function PreferencesDialog({
       onMouseDown={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[var(--scrim)] backdrop-blur-sm" aria-hidden="true" />
 
       {/* Dialog */}
       <div
@@ -92,46 +130,49 @@ export function PreferencesDialog({
         onMouseDown={(e) => e.stopPropagation()}
         className="klipcode-menu-animate relative flex w-full max-w-md flex-col overflow-hidden rounded-xl"
         style={{
-          background: "linear-gradient(180deg, #181818 0%, #111111 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: "var(--panel-bg)",
+          border: "1px solid rgba(var(--ink-rgb),0.08)",
           boxShadow:
-            "0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 64px rgba(0,0,0,0.9), 0 4px 12px rgba(0,0,0,0.5)",
+            "var(--panel-shadow)",
         }}
       >
         {/* Header */}
-        <div className="flex items-center gap-2.5 border-b border-white/[0.07] px-4 py-3">
-          <Settings size={16} className="shrink-0 text-white/35" />
+        <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-3">
+          <Settings size={16} className="shrink-0 text-ink/35" />
           <span className="text-sm font-medium text-foreground">{t.title}</span>
         </div>
 
         {/* Body */}
-        <div className="divide-y divide-white/[0.05]">
+        <div className="divide-y divide-ink/[0.05]">
+          {/* Appearance (theme) */}
+          <Row
+            title={t.appearance.label}
+            description={t.appearance.description}
+            control={
+              <Segmented<Theme>
+                value={theme}
+                onChange={onChangeTheme}
+                options={[
+                  { value: "light", label: t.appearance.light },
+                  { value: "dark", label: t.appearance.dark },
+                ]}
+              />
+            }
+          />
+
           {/* Interface language */}
           <Row
             title={t.language.label}
             description={t.language.description}
             control={
-              <div className="flex items-center gap-0.5 rounded-lg border border-white/[0.08] p-0.5">
-                {LOCALE_OPTIONS.map(({ value, key }) => {
-                  const active = locale === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => onChangeLocale(value)}
-                      aria-pressed={active}
-                      className={[
-                        "rounded-md px-2.5 py-1 text-xs transition-colors",
-                        active
-                          ? "bg-white/[0.08] text-white"
-                          : "text-white/50 hover:text-white/80",
-                      ].join(" ")}
-                    >
-                      {t.language[key]}
-                    </button>
-                  );
-                })}
-              </div>
+              <Segmented<Locale>
+                value={locale}
+                onChange={onChangeLocale}
+                options={LOCALE_OPTIONS.map(({ value, key }) => ({
+                  value,
+                  label: t.language[key],
+                }))}
+              />
             }
           />
 

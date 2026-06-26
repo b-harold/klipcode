@@ -181,6 +181,9 @@ export const en = {
     codeCopied: "Copied!",
     formatCode: "Format code",
     formatNotSupported: "Formatting not available for this language",
+    previewMarkdown: "Preview Markdown",
+    editMarkdown: "Edit source",
+    previewEmpty: "Nothing to preview yet.",
     trashedNotice: "This snippet is in the trash — restore it to edit.",
   },
   search: {
@@ -233,6 +236,12 @@ export const en = {
     defaultLanguage: {
       label: "Default language",
       description: "Pre-selected language when creating a snippet",
+    },
+    markdownPreview: {
+      label: "Markdown preview",
+      description: "Open Markdown snippets as a rendered preview by default",
+      on: "On",
+      off: "Off",
     },
   },
   trash: {

@@ -13,11 +13,14 @@ import {
   FolderOpen,
   Layers,
   Zap,
+  Eye,
+  Code2,
   RotateCcw,
   Trash2,
 } from "lucide-react";
 
 import { Editor } from "@/components/Editor/Editor";
+import { MarkdownPreview } from "@/components/MarkdownPreview/MarkdownPreview";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { LanguageIcon } from "@/ui/LanguageIcon";
@@ -100,6 +103,8 @@ export interface SnippetEditorProps {
   onNavigateFolder?: (folderId: string) => void;
   onNavigateHome?: () => void;
   onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId }) => void;
+  /** Whether Markdown snippets open in the Notion-like preview by default. */
+  markdownPreviewByDefault?: boolean;
   menuButton?: React.ReactNode;
   /** When true the snippet is in the trash: it's shown read-only with a notice
    *  and restore / delete-permanently actions instead of the edit controls. */
@@ -120,16 +125,22 @@ export function SnippetEditor({
   onNavigateFolder,
   onNavigateHome,
   onUpdate,
+  markdownPreviewByDefault = true,
   menuButton,
   readOnly = false,
   trashActions,
 }: SnippetEditorProps) {
   const editorCopy = copy.snippetEditor;
 
+  const isMarkdown = snippet.language === "markdown";
+
   // Local state — initialised from snippet once (key={snippet.id} resets on swap)
   const [code, setCode] = useState(snippet.code);
   const [copied, setCopied] = useState(false);
   const [formatting, setFormatting] = useState(false);
+  // Markdown snippets can swap the code editor for a Notion-like rendered preview;
+  // the initial side honours the user's preference (key={snippet.id} re-seeds it).
+  const [showPreview, setShowPreview] = useState(isMarkdown && markdownPreviewByDefault);
 
   // Per-field debounce timers
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -239,8 +250,27 @@ export function SnippetEditor({
 
   const isFormattable = snippet.language in PRETTIER_PARSERS;
 
+  // Markdown-only toggle between the rendered preview and the raw source editor.
+  const previewToggle = isMarkdown ? (
+    <Tooltip
+      content={showPreview ? editorCopy.editMarkdown : editorCopy.previewMarkdown}
+      placement="bottom"
+    >
+      <button
+        type="button"
+        aria-label={showPreview ? editorCopy.editMarkdown : editorCopy.previewMarkdown}
+        aria-pressed={showPreview}
+        onClick={() => setShowPreview((v) => !v)}
+        className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70"
+      >
+        {showPreview ? <Code2 size={13} /> : <Eye size={13} />}
+      </button>
+    </Tooltip>
+  ) : null;
+
   const breadcrumbActions = readOnly ? (
     <>
+      {previewToggle}
       <Tooltip content={editorCopy.copyCode} placement="bottom">
         <button
           type="button"
@@ -299,6 +329,7 @@ export function SnippetEditor({
           <Zap size={13} className={formatting ? "animate-pulse" : undefined} />
         </button>
       </Tooltip>
+      {previewToggle}
       <Tooltip content={editorCopy.copyCode} placement="bottom">
         <button
           type="button"
@@ -333,18 +364,24 @@ export function SnippetEditor({
         </div>
       )}
 
-      {/* ── Editor ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">
-        <Editor
-          value={code}
-          onChange={handleCodeChange}
-          language={snippet.language}
-          readOnly={readOnly}
-          height="100%"
-          fontSize={14}
-          gutterBackground="var(--background)"
-        />
-      </div>
+      {/* ── Editor / Markdown preview ──────────────────────────────────────── */}
+      {isMarkdown && showPreview ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <MarkdownPreview value={code} emptyLabel={editorCopy.previewEmpty} />
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">
+          <Editor
+            value={code}
+            onChange={handleCodeChange}
+            language={snippet.language}
+            readOnly={readOnly}
+            height="100%"
+            fontSize={14}
+            gutterBackground="var(--background)"
+          />
+        </div>
+      )}
 
       {/* ── Sync status — fixed bottom-right corner (hidden for trashed) ──── */}
       {!readOnly && (

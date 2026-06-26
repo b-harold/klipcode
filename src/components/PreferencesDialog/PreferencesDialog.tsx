@@ -203,6 +203,24 @@ export function PreferencesDialog({
               />
             }
           />
+
+          {/* Markdown preview by default */}
+          <Row
+            title={t.markdownPreview.label}
+            description={t.markdownPreview.description}
+            control={
+              <Segmented<"on" | "off">
+                value={preferences.markdownPreviewByDefault ? "on" : "off"}
+                onChange={(value) =>
+                  onChangePreferences({ markdownPreviewByDefault: value === "on" })
+                }
+                options={[
+                  { value: "on", label: t.markdownPreview.on },
+                  { value: "off", label: t.markdownPreview.off },
+                ]}
+              />
+            }
+          />
         </div>
       </div>
     </div>,

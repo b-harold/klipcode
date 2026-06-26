@@ -373,6 +373,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
                 navigate(`${base}?folder=${selectedSnippetTrashed ? TRASH_ROOT_ID : SPACE_ROOT_ID}`)
               }
               onUpdate={mutations.handleUpdateSnippet}
+              markdownPreviewByDefault={preferences.markdownPreviewByDefault}
               menuButton={menuButton}
               readOnly={selectedSnippetTrashed}
               trashActions={

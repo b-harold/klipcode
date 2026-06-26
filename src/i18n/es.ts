@@ -182,6 +182,9 @@ export const es = {
     codeCopied: "¡Copiado!",
     formatCode: "Formatear código",
     formatNotSupported: "Formateo no disponible para este lenguaje",
+    previewMarkdown: "Previsualizar Markdown",
+    editMarkdown: "Editar código",
+    previewEmpty: "Nada que previsualizar todavía.",
     trashedNotice: "Este snippet está en la papelera; restáuralo para editarlo.",
   },
   search: {
@@ -234,6 +237,12 @@ export const es = {
     defaultLanguage: {
       label: "Lenguaje por defecto",
       description: "Lenguaje preseleccionado al crear un snippet",
+    },
+    markdownPreview: {
+      label: "Vista previa Markdown",
+      description: "Abrir los snippets Markdown como vista previa renderizada por defecto",
+      on: "Sí",
+      off: "No",
     },
   },
   trash: {

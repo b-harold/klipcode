@@ -182,9 +182,9 @@ export const es = {
     codeCopied: "¡Copiado!",
     formatCode: "Formatear código",
     formatNotSupported: "Formateo no disponible para este lenguaje",
-    previewMarkdown: "Previsualizar Markdown",
-    editMarkdown: "Editar código",
-    previewEmpty: "Nada que previsualizar todavía.",
+    previewMarkdown: "Vista de texto enriquecido",
+    editMarkdown: "Código Markdown",
+    mdPlaceholder: "Escribe algo… Los atajos de Markdown funcionan aquí.",
     trashedNotice: "Este snippet está en la papelera; restáuralo para editarlo.",
   },
   search: {
@@ -239,8 +239,8 @@ export const es = {
       description: "Lenguaje preseleccionado al crear un snippet",
     },
     markdownPreview: {
-      label: "Vista previa Markdown",
-      description: "Abrir los snippets Markdown como vista previa renderizada por defecto",
+      label: "Editor enriquecido Markdown",
+      description: "Abrir los snippets Markdown en el editor de texto enriquecido por defecto",
       on: "Sí",
       off: "No",
     },

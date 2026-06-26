@@ -181,9 +181,9 @@ export const en = {
     codeCopied: "Copied!",
     formatCode: "Format code",
     formatNotSupported: "Formatting not available for this language",
-    previewMarkdown: "Preview Markdown",
-    editMarkdown: "Edit source",
-    previewEmpty: "Nothing to preview yet.",
+    previewMarkdown: "Rich text view",
+    editMarkdown: "Markdown source",
+    mdPlaceholder: "Write something… Markdown shortcuts work here.",
     trashedNotice: "This snippet is in the trash — restore it to edit.",
   },
   search: {
@@ -238,8 +238,8 @@ export const en = {
       description: "Pre-selected language when creating a snippet",
     },
     markdownPreview: {
-      label: "Markdown preview",
-      description: "Open Markdown snippets as a rendered preview by default",
+      label: "Markdown rich editor",
+      description: "Open Markdown snippets in the rich text editor by default",
       on: "On",
       off: "Off",
     },

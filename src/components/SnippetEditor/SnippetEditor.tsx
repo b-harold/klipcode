@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { Editor } from "@/components/Editor/Editor";
-import { MarkdownPreview } from "@/components/MarkdownPreview/MarkdownPreview";
+import { MarkdownEditor } from "@/components/MarkdownPreview/MarkdownEditor";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { LanguageIcon } from "@/ui/LanguageIcon";
@@ -364,10 +364,15 @@ export function SnippetEditor({
         </div>
       )}
 
-      {/* ── Editor / Markdown preview ──────────────────────────────────────── */}
+      {/* ── Source editor / Markdown WYSIWYG ───────────────────────────────── */}
       {isMarkdown && showPreview ? (
         <div className="flex-1 min-h-0 overflow-hidden">
-          <MarkdownPreview value={code} emptyLabel={editorCopy.previewEmpty} />
+          <MarkdownEditor
+            value={code}
+            onChange={handleCodeChange}
+            editable={!readOnly}
+            copy={{ placeholder: editorCopy.mdPlaceholder }}
+          />
         </div>
       ) : (
         <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">

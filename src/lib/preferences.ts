@@ -20,7 +20,7 @@ const STORAGE_KEY = "klipcode:preferences";
 export const DEFAULT_PREFERENCES: Preferences = {
   defaultFolderId: null,
   defaultLanguage: DEFAULT_LANGUAGE,
-  markdownPreviewByDefault: true,
+  markdownPreviewByDefault: false,
 };
 
 export function readPreferences(): Preferences {
@@ -32,7 +32,7 @@ export function readPreferences(): Preferences {
     return {
       defaultFolderId: parsed.defaultFolderId ?? null,
       defaultLanguage: parsed.defaultLanguage ?? DEFAULT_LANGUAGE,
-      markdownPreviewByDefault: parsed.markdownPreviewByDefault ?? true,
+      markdownPreviewByDefault: parsed.markdownPreviewByDefault ?? false,
     };
   } catch {
     return DEFAULT_PREFERENCES;

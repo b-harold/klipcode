@@ -1,48 +1,81 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# KlipCode | Project Specification & Agent Instructions
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+KlipCode is a local-first code snippet manager. Snippets and folders are persisted immediately to IndexedDB (Dexie) and optionally synced to Supabase (PostgreSQL + GitHub Auth). The app works fully offline/anonymously; Supabase is opt-in.
 
-# KlipCode | Project Specification & Instructions
-Description: Multi-device code snippet management web application. Focus on input speed, aesthetic minimalism (Vercel style), and invisible synchronization.
+## Stack
 
-## 1. Technology Stack
-- Framework: Next.js (App Router).
+- **Framework:** Next.js 16 (App Router)
+- **Styling:** Tailwind CSS v4 (dark mode by default)
+- **Editor:** CodeMirror 6 (`@uiw/react-codemirror`)
+- **Database:** Supabase (PostgreSQL + GitHub Auth)
+- **Local Persistence:** IndexedDB via Dexie.js
+- **Sync/State:** TanStack Query (React Query)
+- **Deployment:** Cloudflare Workers via OpenNext
+- **Package Manager:** pnpm
 
-- Styling: Tailwind CSS (Dark mode by default).
+## Commands
 
-- Editor: CodeMirror 6 (@uiw/react-codemirror).
+```bash
+pnpm dev              # dev server (localhost:3000)
+pnpm build            # next build
+pnpm lint             # eslint
+pnpm test             # vitest run (one-shot)
+pnpm test:watch       # vitest watch
+pnpm test src/__tests__/sync.test.ts   # run a single test file
+pnpm preview          # opennextjs-cloudflare build + local Workers preview
+pnpm deploy           # build + deploy to Cloudflare
+pnpm cf-typegen       # regenerate cloudflare-env.d.ts from wrangler bindings
+```
 
-- Database: Supabase (PostgreSQL + GitHub Auth).
+Tests run in the `node` environment with `fake-indexeddb/auto`; Dexie code is testable without a browser. Path alias `@/*` → `src/*`.
 
-- Local Persistence: IndexedDB via Dexie.js.
+## Architecture
 
-- Sync/State: TanStack Query (React Query).
+### Local-first data model + sync
 
-- Deployment: Cloudflare Workers (via OpenNext).
+The source of truth on each device is IndexedDB. `FolderRecord`/`SnippetRecord` (`src/lib/types.ts`) carry sync bookkeeping fields — understand these before touching sync logic:
 
-- Package Manager: PNPM.
+- `ownerId: string | null` — `null` means anonymous/seeded (shared, never synced or deleted by reconciliation); a user id means owned by that account.
+- `dirty: boolean` — has unsynced local changes; cleared only after a successful upload.
+- `lastSyncedAt: string | null` — `null` means never uploaded to the cloud (a placeholder); set once a cloud row exists.
+- `updatedAt` — ISO string, used both for ordering and as an optimistic-concurrency guard.
 
-## 2. Business Rules & Flow
+`src/lib/db.ts` owns the Dexie schema (currently **version 4** — add a new `this.version(n).upgrade(...)` block for any schema/field migration, never mutate existing ones).
 
-- Auto-save: The editor has no "Save" button. Uses debounce (800ms) to sync with Supabase.
+`src/lib/sync.ts` is the sync engine:
+- `syncDirtyWorkspace` uploads dirty records (folders parent-before-child by depth; snippets oldest-first). After each upsert it re-reads the record and only clears `dirty` if `updatedAt` still matches — so a concurrent edit during upload is not lost.
+- A still-empty snippet never uploaded (`!code.trim() && lastSyncedAt === null`) is *settled locally* instead of creating a cloud row. Once uploaded, an empty body IS uploaded.
+- `fetchCloudWorkspace` pulls cloud rows, skipping dirty newer local records, then calls `reconcileDeletions` — a clean owned record with `lastSyncedAt` absent from the cloud was deleted on another device and is removed locally.
+- `reconcileWorkspace` = push then pull; used on sign-in/session migration.
 
-- Sync States: Display visually in the editor: Changing... (local input), Saving... (request in progress), Saved to cloud (success).
+Preserve the invariants in the inline comments — the `dirty` / `lastSyncedAt === null` / `ownerId === null` distinctions are load-bearing.
 
-- Session Migration: If data exists in localStorage/IndexedDB at GitHub login, automatically import it to the user's cloud profile.
+### React composition
 
-- Performance: Home shows read-only previews (use static highlighting or CodeMirror in readOnly mode). Full editor instance only on snippet open.
+`KlipCodeApp.tsx` (the client root) wires together four hooks:
 
-- User-visible text must never be hardcoded; store in i18n for translation support.
+- `useAuth` — Supabase session, GitHub OAuth, and session migration (runs `reconcileWorkspace` on login so anonymous local data is claimed by the account).
+- `useCloudSync` — debounced background sync loop and per-snippet `SyncStatus` (`idle`→`editing`→`saving`→`saved-cloud`/`saved-local`/`error`). Stops auto-retry after `MAX_SYNC_ERRORS` (5) consecutive failures.
+- `useWorkspaceMutations` — all create/update/delete/move/pin/paste actions; writes IndexedDB then schedules a cloud sync.
+- `useResponsiveSidebar` — sidebar open/mobile state.
 
-## 3. Style Guide (UI/UX)
-- Aesthetics: Minimalist, professional, dark theme by default. Inspired by Vercel/Linear.
+**No Save button:** edits debounce at `DEBOUNCE_MS` (800ms, `src/lib/constants/timing.ts`) to local storage, then a second debounce pushes to the cloud. Navigation state lives in URL search params (`?snippet=` / `?folder=`).
 
-- Fonts: Cascadia Code (with ligatures enabled) for code blocks.
+### Routing & i18n
 
-- Theme: 'VS Code Dark' for code blocks.
+App Router under `src/app/[locale]/` with `[locale]` ∈ `{en, es}`, but **English is served prefix-less**: canonical URLs are `/` + `/app` (English) and `/es` + `/es/app` (Spanish). `src/middleware.ts` rewrites clean paths internally to `/en/*`, permanently (308) redirects legacy `/en/*` URLs, and lets `/es/*` through. (`proxy.ts` is forced onto Node.js runtime which OpenNext/Cloudflare doesn't support — only Edge `middleware.ts` deploys.)
 
-- Palette: Background #0a0a0a, borders #262626 (or white/10), accents in pure white or soft gray.
+Build locale-aware URLs with `localeHref`/`localePrefix` from `src/lib/locale.ts` — never hardcode `/en`. All user-facing text must come from `src/i18n/en.ts` / `src/i18n/es.ts` via `getDictionary(locale)` — never hardcode strings. Both locale files must stay structurally identical.
 
-- Components: Fully custom menus and selects (avoid native HTML).
+### Supabase
+
+`getSupabaseBrowserClient()` returns `null` when env vars are unset; every sync/auth path must tolerate null and degrade to local-only. The DB schema and RLS policies live in `db-structure.sql` (cloud columns are snake_case; `src/lib/sync.ts` maps to/from camelCase local records).
+
+## Style Guide
+
+- **Aesthetics:** Minimalist, professional, dark theme. Inspired by Vercel/Linear.
+- **Palette:** Background `#0a0a0a`, borders `#262626` (or `white/10`), accents in pure white or soft gray.
+- **Fonts:** Cascadia Code (with ligatures) for code blocks.
+- **Code theme:** VS Code Dark.
+- **Components:** Custom UI primitives only (`src/ui/`) — avoid native HTML selects/menus.
+- **Next.js 16:** APIs differ from older versions. When unsure, consult `node_modules/next/dist/docs/`.

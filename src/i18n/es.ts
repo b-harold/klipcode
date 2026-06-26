@@ -122,6 +122,7 @@ export const es = {
     unpin: "Desfijar",
     search: "Buscar",
     shortcuts: "Atajos de teclado",
+    preferences: "Preferencias",
     trash: "Papelera",
   },
   contextMenu: {
@@ -208,6 +209,23 @@ export const es = {
       copyCurrent: "Copiar el código del snippet actual",
       closeEditor: "Cerrar editor",
       navigateList: "Moverse entre tarjetas",
+    },
+  },
+  preferences: {
+    title: "Preferencias",
+    language: {
+      label: "Idioma",
+      description: "Idioma de la interfaz",
+      en: "English",
+      es: "Español",
+    },
+    defaultFolder: {
+      label: "Carpeta por defecto",
+      description: "Carpeta preseleccionada al crear un snippet",
+    },
+    defaultLanguage: {
+      label: "Lenguaje por defecto",
+      description: "Lenguaje preseleccionado al crear un snippet",
     },
   },
   trash: {

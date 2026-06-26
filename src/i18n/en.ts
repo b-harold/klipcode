@@ -121,6 +121,7 @@ export const en = {
     unpin: "Unpin",
     search: "Search",
     shortcuts: "Keyboard shortcuts",
+    preferences: "Preferences",
     trash: "Trash",
   },
   contextMenu: {
@@ -207,6 +208,23 @@ export const en = {
       copyCurrent: "Copy current snippet code",
       closeEditor: "Close editor",
       navigateList: "Move between cards",
+    },
+  },
+  preferences: {
+    title: "Preferences",
+    language: {
+      label: "Language",
+      description: "Interface language",
+      en: "English",
+      es: "Español",
+    },
+    defaultFolder: {
+      label: "Default folder",
+      description: "Pre-selected folder when creating a snippet",
+    },
+    defaultLanguage: {
+      label: "Default language",
+      description: "Pre-selected language when creating a snippet",
     },
   },
   trash: {

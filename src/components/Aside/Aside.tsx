@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FilePlus, FolderPlus, Home, Keyboard, Layers, RotateCcw, Search, Trash2 } from "lucide-react";
+import { FilePlus, FolderPlus, Home, Keyboard, Layers, RotateCcw, Search, Settings, Trash2 } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
@@ -33,6 +33,7 @@ export function Aside({
   onGoHome,
   onOpenSearch,
   onOpenShortcuts,
+  onOpenPreferences,
   onGoSpace,
   onCreateSnippetInline,
   onCreateFolder,
@@ -443,6 +444,14 @@ export function Aside({
           </div>
 
           <div className="shrink-0 px-2 pb-4 pt-2">
+            <button
+              type="button"
+              onClick={onOpenPreferences}
+              className="mb-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
+            >
+              <Settings size={14} className="shrink-0" />
+              <span className="flex-1 text-left">{copy.aside.preferences}</span>
+            </button>
             <button
               type="button"
               onClick={onOpenTrash}

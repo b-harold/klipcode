@@ -9,7 +9,7 @@ import { readTrash, readWorkspace } from "@/lib/db";
 import { seedWelcomeContent } from "@/lib/seed";
 import type { ClipboardEntry, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
 import { getDictionary } from "@/i18n";
-import { localeHref } from "@/lib/locale";
+import { localeHref, LOCALE_COOKIE, type Locale } from "@/lib/locale";
 import { SPACE_ROOT_ID, TRASH_ROOT_ID } from "@/lib/navigation";
 import { Tooltip } from "@/ui/Tooltip";
 import { Spinner } from "@/ui/Spinner";
@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import { useWorkspaceMutations } from "@/hooks/useWorkspaceMutations";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { usePreferences } from "@/hooks/usePreferences";
 
 import { AccountToast } from "@/components/AccountToast/AccountToast";
 import { CopyToast } from "@/components/CopyToast/CopyToast";
@@ -32,11 +33,15 @@ import { FolderView } from "@/components/FolderView/FolderView";
 import { TrashView } from "@/components/TrashView/TrashView";
 import { SearchPalette } from "@/components/SearchPalette/SearchPalette";
 import { ShortcutsDialog } from "@/components/ShortcutsDialog/ShortcutsDialog";
+import { PreferencesDialog } from "@/components/PreferencesDialog/PreferencesDialog";
+
+const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const copy = getDictionary(locale);
   const queryClient = useQueryClient();
   const { sidebarOpen, setSidebarOpen, isMobile } = useResponsiveSidebar();
+  const { preferences, updatePreferences } = usePreferences();
 
   function refreshWorkspace() {
     startTransition(() => {
@@ -121,6 +126,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const [copyNonce, setCopyNonce] = useState(0);
   const [newSnippetFocusNonce, setNewSnippetFocusNonce] = useState(0);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
@@ -198,9 +204,31 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   // A trashed snippet opens read-only with restore / delete-permanently actions.
   const selectedSnippetTrashed = !!selectedSnippet?.deletedAt;
 
+  // The preferred default folder for new snippets, validated against the live
+  // workspace — a stored id whose folder was deleted falls back to root.
+  const preferredDefaultFolderId =
+    preferences.defaultFolderId && folders.some((f) => f.id === preferences.defaultFolderId)
+      ? preferences.defaultFolderId
+      : null;
+
+  // Until a context-menu/shortcut requests a specific folder, the creator uses
+  // the preferred default.
+  const newSnippetDefaultFolderId = defaultNewSnippetFolderId ?? preferredDefaultFolderId;
+
   function handleNewSnippetAt(folderId: string | null) {
     navigate(base);
     setDefaultNewSnippetFolderId(folderId);
+  }
+
+  function handleChangeLocale(next: Locale) {
+    if (next === locale) {
+      setPrefsOpen(false);
+      return;
+    }
+    // Persist the explicit choice so it wins over Accept-Language (mirrors
+    // LocaleSwitchLink), then hard-navigate to the same view in the new locale.
+    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`;
+    window.location.assign(localeHref(next, "/app") + window.location.search);
   }
 
   /* ── Global keyboard shortcuts ────────────────────────────────────────── */
@@ -209,7 +237,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     onToggleSearch: () => setSearchOpen((v) => !v),
     onToggleHelp: () => setHelpOpen((v) => !v),
     onNewSnippet: () => {
-      handleNewSnippetAt(selectedFolderId ?? null);
+      handleNewSnippetAt(selectedFolderId ?? preferredDefaultFolderId);
       setNewSnippetFocusNonce((n) => n + 1);
     },
     onCopyCurrent: () => {
@@ -221,7 +249,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     onToggleSidebar: () => setSidebarOpen((v) => !v),
     onCloseEditor: () => navigate(base),
     hasOpenSnippet: !!selectedSnippet,
-    overlayOpen: searchOpen || helpOpen || pendingEmptyTrash,
+    overlayOpen: searchOpen || helpOpen || prefsOpen || pendingEmptyTrash,
   });
 
   const menuButton = !sidebarOpen ? (
@@ -297,6 +325,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onGoHome={() => navigate(base)}
         onOpenSearch={() => setSearchOpen(true)}
         onOpenShortcuts={() => setHelpOpen(true)}
+        onOpenPreferences={() => setPrefsOpen(true)}
         onGoSpace={() => navigate(`${base}?folder=${SPACE_ROOT_ID}`)}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
         onCreateFolder={mutations.handleCreateFolder}
@@ -408,7 +437,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
               <NewSnippet
                 copy={copy}
                 folders={folders}
-                defaultFolderId={defaultNewSnippetFolderId}
+                defaultFolderId={newSnippetDefaultFolderId}
+                defaultLanguage={preferences.defaultLanguage}
                 focusNonce={newSnippetFocusNonce}
                 onCreateSnippet={mutations.handleCreateSnippet}
               />
@@ -444,6 +474,18 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     )}
 
     {helpOpen && <ShortcutsDialog copy={copy} onClose={() => setHelpOpen(false)} />}
+
+    {prefsOpen && (
+      <PreferencesDialog
+        copy={copy}
+        locale={locale}
+        folders={folders}
+        preferences={preferences}
+        onChangePreferences={updatePreferences}
+        onChangeLocale={handleChangeLocale}
+        onClose={() => setPrefsOpen(false)}
+      />
+    )}
 
     <CopyToast nonce={copyNonce} message={copy.snippetEditor.codeCopied} />
 

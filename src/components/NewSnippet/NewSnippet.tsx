@@ -15,6 +15,7 @@ interface NewSnippetProps {
   copy: Dictionary;
   folders: FolderRecord[];
   defaultFolderId?: string | null;
+  defaultLanguage?: LanguageId;
   /** Bumped when a keyboard shortcut opens this form; focuses the title field. */
   focusNonce?: number;
   onCreateSnippet: (data: {
@@ -25,9 +26,16 @@ interface NewSnippetProps {
   }) => void;
 }
 
-export function NewSnippet({ copy, folders, defaultFolderId, focusNonce = 0, onCreateSnippet }: NewSnippetProps) {
+export function NewSnippet({
+  copy,
+  folders,
+  defaultFolderId,
+  defaultLanguage = DEFAULT_LANGUAGE,
+  focusNonce = 0,
+  onCreateSnippet,
+}: NewSnippetProps) {
   const [title, setTitle] = useState("");
-  const [language, setLanguage] = useState<LanguageId>(DEFAULT_LANGUAGE);
+  const [language, setLanguage] = useState<LanguageId>(defaultLanguage);
   const [folderId, setFolderId] = useState(defaultFolderId ?? "");
   const [code, setCode] = useState("");
 
@@ -50,6 +58,14 @@ export function NewSnippet({ copy, folders, defaultFolderId, focusNonce = 0, onC
   if (defaultFolderId !== prevDefaultFolderId) {
     setPrevDefaultFolderId(defaultFolderId);
     if (defaultFolderId != null) setFolderId(defaultFolderId);
+  }
+
+  // Same pattern for the preferred default language: pick it up when the stored
+  // preference loads (or changes) so the dropdown reflects the user's choice.
+  const [prevDefaultLanguage, setPrevDefaultLanguage] = useState(defaultLanguage);
+  if (defaultLanguage !== prevDefaultLanguage) {
+    setPrevDefaultLanguage(defaultLanguage);
+    setLanguage(defaultLanguage);
   }
 
   // Auto-select the language when the title carries a recognizable extension
@@ -91,7 +107,7 @@ export function NewSnippet({ copy, folders, defaultFolderId, focusNonce = 0, onC
     });
 
     setTitle("");
-    setLanguage(DEFAULT_LANGUAGE);
+    setLanguage(defaultLanguage);
     setFolderId(defaultFolderId ?? "");
     setCode("");
   }

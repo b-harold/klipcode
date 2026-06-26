@@ -49,9 +49,5 @@ next-env.d.ts
 !.dev.vars.example
 !.env.example
 
-#agents
-.agents/*
-.claude/*
-
 # local supabase migrations (schema lives in db-structure.sql)
 .sb-migrations/

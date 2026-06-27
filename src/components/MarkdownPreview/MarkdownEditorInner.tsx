@@ -52,6 +52,7 @@ import type { MarkdownEditorCopy } from "./MarkdownEditor";
 import { LinkDialog } from "./LinkDialog";
 import { CodeBlockComponent } from "./CodeBlockComponent";
 import { SlashCommand, type SlashCommandItem } from "./SlashCommand";
+import { ListExitShortcut } from "./ListExitShortcut";
 
 // Syntax highlighting inside fenced code blocks. `common` bundles ~35 popular
 // grammars (js, ts, python, css, html, json, bash, …) — enough for snippets,
@@ -440,6 +441,7 @@ export default function MarkdownEditorInner({
         emptyText: copy.slash.noResults,
         groupLabel: copy.slash.group,
       }),
+      ListExitShortcut,
     ],
     content: value,
     editorProps: {

@@ -114,6 +114,29 @@ function FormattingMenu({ editor }: { editor: Editor }) {
   );
 }
 
+// Clicking the empty space below the content gives a fresh line to type in:
+// append an empty paragraph at the end (unless the last block is already an empty
+// paragraph) and place the caret there.
+function focusWithTrailingLine(editor: Editor) {
+  const last = editor.state.doc.lastChild;
+  const lastIsEmptyParagraph =
+    last?.type.name === "paragraph" && last.content.size === 0;
+
+  if (lastIsEmptyParagraph) {
+    editor.chain().focus("end").run();
+    return;
+  }
+
+  editor
+    .chain()
+    .command(({ tr, dispatch }) => {
+      if (dispatch) tr.insert(tr.doc.content.size, editor.schema.nodes.paragraph.create());
+      return true;
+    })
+    .focus("end")
+    .run();
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Editor
 // ──────────────────────────────────────────────────────────────────────────────
@@ -174,18 +197,29 @@ export default function MarkdownEditorInner({
   return (
     <div
       className="h-full overflow-y-auto"
-      // Clicking the blank area below the content focuses the editor at the end —
-      // a small Notion-like affordance so the whole pane feels writable.
+      // Clicking the blank area below the content drops a fresh line and focuses
+      // it — a Notion-like affordance so the whole pane feels writable.
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && editor) {
+        if (e.target === e.currentTarget && editor && editable) {
           e.preventDefault();
-          editor.chain().focus("end").run();
+          focusWithTrailingLine(editor);
         }
       }}
     >
       <div className="mx-auto w-full max-w-3xl px-6 py-8 pr-10">
         {editor && editable && <FormattingMenu editor={editor} />}
         <EditorContent editor={editor} />
+        {editor && editable && (
+          <div
+            aria-hidden
+            className="cursor-text"
+            style={{ minHeight: "clamp(6rem, 30vh, 18rem)" }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              focusWithTrailingLine(editor);
+            }}
+          />
+        )}
       </div>
     </div>
   );

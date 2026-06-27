@@ -225,6 +225,13 @@ body {
   outline: none !important;
 }
 
+/* Breathing room below the last line so clicking near the bottom comfortably
+   lands the caret at the end and starting a new line feels natural. Editable
+   only — read-only previews keep their tight bounds. */
+.cm-editor .cm-content[contenteditable="true"] {
+  padding-bottom: clamp(6rem, 30vh, 18rem);
+}
+
 .cm-editor .cm-gutters {
   background: var(--klipcode-editor-gutter-background, transparent) !important;
   border-right: none !important;

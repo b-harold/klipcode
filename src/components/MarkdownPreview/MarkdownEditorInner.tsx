@@ -47,6 +47,7 @@ import {
   Link as LinkIcon,
 } from "lucide-react";
 
+import { Tooltip } from "@/ui/Tooltip";
 import type { MarkdownEditorCopy } from "./MarkdownEditor";
 import { LinkDialog } from "./LinkDialog";
 import { CodeBlockComponent } from "./CodeBlockComponent";
@@ -194,18 +195,20 @@ function BubbleButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={active}
-      onClick={onClick}
-      className={[
-        "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
-        active ? "bg-ink/[0.12] text-foreground" : "text-ink/55 hover:bg-ink/[0.08] hover:text-ink/90",
-      ].join(" ")}
-    >
-      {children}
-    </button>
+    <Tooltip content={label} placement="top">
+      <button
+        type="button"
+        aria-label={label}
+        aria-pressed={active}
+        onClick={onClick}
+        className={[
+          "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+          active ? "bg-ink/[0.12] text-foreground" : "text-ink/55 hover:bg-ink/[0.08] hover:text-ink/90",
+        ].join(" ")}
+      >
+        {children}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -241,7 +244,9 @@ function FormattingMenu({ editor, copy }: { editor: Editor; copy: MarkdownEditor
     <>
       <BubbleMenu
         editor={editor}
-        tippyOptions={{ duration: 120 }}
+        // maxWidth: "none" — tippy caps the box at 350px by default, which clips
+        // the rightmost buttons (code block, link) now that the toolbar is wider.
+        tippyOptions={{ duration: 120, maxWidth: "none" }}
         // Hide on empty selections and inside code blocks (marks don't apply there).
         shouldShow={({ editor, state }) =>
           !state.selection.empty && !editor.isActive("codeBlock")
@@ -316,7 +321,7 @@ function TableMenu({ editor, copy }: { editor: Editor; copy: MarkdownEditorCopy[
       editor={editor}
       pluginKey="tableMenu"
       shouldShow={({ editor, state }) => editor.isActive("table") && state.selection.empty}
-      tippyOptions={{ duration: 120, placement: "top" }}
+      tippyOptions={{ duration: 120, placement: "top", maxWidth: "none" }}
       className="klipcode-bubble-menu flex items-center gap-0.5 rounded-lg border border-ink/[0.1] p-1 shadow-[var(--popover-shadow)]"
     >
       <BubbleButton label={copy.addColumnBefore} onClick={() => editor.chain().focus().addColumnBefore().run()}>
@@ -339,14 +344,16 @@ function TableMenu({ editor, copy }: { editor: Editor; copy: MarkdownEditorCopy[
         <Rows3 size={14} />
       </BubbleButton>
       {SEP}
-      <button
-        type="button"
-        aria-label={copy.deleteTable}
-        onClick={() => editor.chain().focus().deleteTable().run()}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-300"
-      >
-        <Trash2 size={14} />
-      </button>
+      <Tooltip content={copy.deleteTable} placement="top">
+        <button
+          type="button"
+          aria-label={copy.deleteTable}
+          onClick={() => editor.chain().focus().deleteTable().run()}
+          className="flex h-7 w-7 items-center justify-center rounded-md text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-300"
+        >
+          <Trash2 size={14} />
+        </button>
+      </Tooltip>
     </BubbleMenu>
   );
 }

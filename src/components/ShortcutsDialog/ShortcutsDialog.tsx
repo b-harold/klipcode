@@ -39,7 +39,7 @@ export function ShortcutsDialog({ copy, onClose }: ShortcutsDialogProps) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[1000] flex items-start justify-center px-4 pt-[12vh]"
+      className="fixed inset-0 z-[var(--z-dialog)] flex items-start justify-center px-4 pt-[12vh]"
       onMouseDown={onClose}
     >
       {/* Backdrop */}

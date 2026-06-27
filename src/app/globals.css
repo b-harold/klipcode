@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* ─── Z-index scale ──────────────────────────────────────────────────────────
+   Single source of truth for stacking order. Tippy.js poppers default to
+   z-index 9999 — keep every framework-managed floating layer *below* the
+   dialog layer so Tippy never renders above a modal. Consumers use
+   `z-[var(--z-*)]` instead of hardcoding literal values. */
+:root {
+  --z-base: 0;
+  --z-tooltip: 100;
+  --z-menu: 200;
+  --z-popover: 300;
+  --z-toast: 400;
+  --z-dialog: 10000;
+  --z-dialog-sticky: 10100;
+}
+
 /* ─── Theme tokens ──────────────────────────────────────────────────────────
    Dark is the default surface (:root); the light theme overrides below apply
    when <html data-theme="light"> is set (see src/lib/theme.ts). Most of the UI

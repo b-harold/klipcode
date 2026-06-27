@@ -374,6 +374,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
               }
               onUpdate={mutations.handleUpdateSnippet}
               markdownPreviewByDefault={preferences.markdownPreviewByDefault}
+              onMarkdownPreviewChange={(open) =>
+                updatePreferences({ markdownPreviewByDefault: open })
+              }
               menuButton={menuButton}
               readOnly={selectedSnippetTrashed}
               trashActions={

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Copy,
   Check,
@@ -105,6 +105,9 @@ export interface SnippetEditorProps {
   onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId }) => void;
   /** Whether Markdown snippets open in the Notion-like preview by default. */
   markdownPreviewByDefault?: boolean;
+  /** Persisted when the user flips the preview/source toggle — the chosen side
+   *  becomes the default side Markdown snippets open on. */
+  onMarkdownPreviewChange?: (open: boolean) => void;
   menuButton?: React.ReactNode;
   /** When true the snippet is in the trash: it's shown read-only with a notice
    *  and restore / delete-permanently actions instead of the edit controls. */
@@ -126,6 +129,7 @@ export function SnippetEditor({
   onNavigateHome,
   onUpdate,
   markdownPreviewByDefault = true,
+  onMarkdownPreviewChange,
   menuButton,
   readOnly = false,
   trashActions,
@@ -139,8 +143,18 @@ export function SnippetEditor({
   const [copied, setCopied] = useState(false);
   const [formatting, setFormatting] = useState(false);
   // Markdown snippets can swap the code editor for a Notion-like rendered preview;
-  // the initial side honours the user's preference (key={snippet.id} re-seeds it).
+  // the initial side honours the user's last choice (key={snippet.id} re-seeds
+  // it when swapping snippets). Flipping the toggle also persists the choice so
+  // the next Markdown snippet opens on the same side.
   const [showPreview, setShowPreview] = useState(isMarkdown && markdownPreviewByDefault);
+
+  const handleTogglePreview = useCallback(() => {
+    setShowPreview((prev) => {
+      const next = !prev;
+      onMarkdownPreviewChange?.(next);
+      return next;
+    });
+  }, [onMarkdownPreviewChange]);
 
   // Per-field debounce timers
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -260,7 +274,7 @@ export function SnippetEditor({
         type="button"
         aria-label={showPreview ? editorCopy.editMarkdown : editorCopy.previewMarkdown}
         aria-pressed={showPreview}
-        onClick={() => setShowPreview((v) => !v)}
+        onClick={handleTogglePreview}
         className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70"
       >
         {showPreview ? <Code2 size={13} /> : <Eye size={13} />}

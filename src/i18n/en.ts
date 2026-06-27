@@ -247,12 +247,6 @@ export const en = {
       label: "Default language",
       description: "Pre-selected language when creating a snippet",
     },
-    markdownPreview: {
-      label: "Markdown rich editor",
-      description: "Open Markdown snippets in the rich text editor by default",
-      on: "On",
-      off: "Off",
-    },
   },
   trash: {
     title: "Trash",

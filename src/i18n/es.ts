@@ -248,12 +248,6 @@ export const es = {
       label: "Lenguaje por defecto",
       description: "Lenguaje preseleccionado al crear un snippet",
     },
-    markdownPreview: {
-      label: "Editor enriquecido Markdown",
-      description: "Abrir los snippets Markdown en el editor de texto enriquecido por defecto",
-      on: "Sí",
-      off: "No",
-    },
   },
   trash: {
     title: "Papelera",

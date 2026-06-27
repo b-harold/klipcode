@@ -5,6 +5,7 @@ import { HeroPerspective } from "@/components/HeroPerspective";
 import { LandingHeader } from "@/components/LandingHeader";
 import { LocaleSwitchLink } from "@/components/LocaleSwitchLink";
 import { AppCtaLink } from "@/components/AppCtaLink";
+import { LandingHeroImage } from "@/components/LandingHeroImage";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { isLocale, localeHref, type Locale } from "@/lib/locale";
 import { Logo } from "@/ui/Logo";
@@ -166,13 +167,11 @@ export default async function LandingPage({
         <div className="landing-fade-in landing-delay-3 relative mt-6 w-full max-w-5xl md:mt-8">
           <HeroPerspective>
             <div className="overflow-hidden rounded-xl border border-ink/8 shadow-[0_0_80px_-20px_rgba(var(--ink-rgb),0.06)]">
-              <Image
-                src="/landing/ui.webp"
+              <LandingHeroImage
                 alt={l.appPreview}
                 width={1920}
                 height={1080}
                 className="w-full"
-                priority
               />
             </div>
           </HeroPerspective>

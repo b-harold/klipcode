@@ -80,7 +80,7 @@ function FormattingMenu({ editor }: { editor: Editor }) {
     <BubbleMenu
       editor={editor}
       tippyOptions={{ duration: 120 }}
-      className="flex items-center gap-0.5 rounded-lg border border-ink/[0.1] bg-[var(--panel-bg)] p-1 shadow-[var(--popover-shadow)]"
+      className="klipcode-bubble-menu flex items-center gap-0.5 rounded-lg border border-ink/[0.1] p-1 shadow-[var(--popover-shadow)]"
     >
       <BubbleButton label="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
         <Bold size={14} />

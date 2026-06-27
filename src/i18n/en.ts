@@ -185,6 +185,16 @@ export const en = {
     editMarkdown: "Markdown source",
     mdPlaceholder: "Write something… Markdown shortcuts work here.",
     trashedNotice: "This snippet is in the trash — restore it to edit.",
+    linkDialog: {
+      title: "Insert link",
+      editTitle: "Edit link",
+      label: "URL",
+      placeholder: "https://",
+      apply: "Apply",
+      cancel: "Cancel",
+      remove: "Remove link",
+      invalid: "Enter a valid URL",
+    },
   },
   search: {
     placeholder: "Search snippets by title or code…",

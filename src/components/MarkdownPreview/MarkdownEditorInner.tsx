@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent, BubbleMenu, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 
 import type { MarkdownEditorCopy } from "./MarkdownEditor";
+import { LinkDialog } from "./LinkDialog";
 
 // Syntax highlighting inside fenced code blocks. `common` bundles ~35 popular
 // grammars (js, ts, python, css, html, json, bash, …) — enough for snippets,
@@ -64,11 +65,19 @@ function BubbleButton({
   );
 }
 
-function FormattingMenu({ editor }: { editor: Editor }) {
-  const promptLink = () => {
-    const prev = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("URL", prev ?? "https://");
-    if (url === null) return;
+function FormattingMenu({ editor, copy }: { editor: Editor; copy: MarkdownEditorCopy }) {
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkHref, setLinkHref] = useState<string | undefined>();
+
+  const openLink = () => {
+    // Capture the current link href *before* focus leaves the editor, so the
+    // dialog can pre-fill it and decide between "insert" / "edit" wording.
+    setLinkHref((editor.getAttributes("link").href as string | undefined) ?? undefined);
+    setLinkOpen(true);
+  };
+
+  const applyLink = (url: string) => {
+    setLinkOpen(false);
     if (url === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
       return;
@@ -76,41 +85,58 @@ function FormattingMenu({ editor }: { editor: Editor }) {
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
+  const removeLink = () => {
+    setLinkOpen(false);
+    editor.chain().focus().extendMarkRange("link").unsetLink().run();
+  };
+
   return (
-    <BubbleMenu
-      editor={editor}
-      tippyOptions={{ duration: 120 }}
-      className="klipcode-bubble-menu flex items-center gap-0.5 rounded-lg border border-ink/[0.1] p-1 shadow-[var(--popover-shadow)]"
-    >
-      <BubbleButton label="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
-        <Bold size={14} />
-      </BubbleButton>
-      <BubbleButton label="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
-        <Italic size={14} />
-      </BubbleButton>
-      <BubbleButton label="Strikethrough" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
-        <Strikethrough size={14} />
-      </BubbleButton>
-      <BubbleButton label="Inline code" active={editor.isActive("code")} onClick={() => editor.chain().focus().toggleCode().run()}>
-        <Code size={14} />
-      </BubbleButton>
-      <div className="mx-0.5 h-5 w-px bg-ink/[0.1]" />
-      <BubbleButton label="Heading 1" active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
-        <Heading1 size={14} />
-      </BubbleButton>
-      <BubbleButton label="Heading 2" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
-        <Heading2 size={14} />
-      </BubbleButton>
-      <BubbleButton label="Bullet list" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
-        <List size={14} />
-      </BubbleButton>
-      <BubbleButton label="Quote" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
-        <Quote size={14} />
-      </BubbleButton>
-      <BubbleButton label="Link" active={editor.isActive("link")} onClick={promptLink}>
-        <LinkIcon size={14} />
-      </BubbleButton>
-    </BubbleMenu>
+    <>
+      <BubbleMenu
+        editor={editor}
+        tippyOptions={{ duration: 120 }}
+        className="klipcode-bubble-menu flex items-center gap-0.5 rounded-lg border border-ink/[0.1] p-1 shadow-[var(--popover-shadow)]"
+      >
+        <BubbleButton label="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+          <Bold size={14} />
+        </BubbleButton>
+        <BubbleButton label="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+          <Italic size={14} />
+        </BubbleButton>
+        <BubbleButton label="Strikethrough" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
+          <Strikethrough size={14} />
+        </BubbleButton>
+        <BubbleButton label="Inline code" active={editor.isActive("code")} onClick={() => editor.chain().focus().toggleCode().run()}>
+          <Code size={14} />
+        </BubbleButton>
+        <div className="mx-0.5 h-5 w-px bg-ink/[0.1]" />
+        <BubbleButton label="Heading 1" active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
+          <Heading1 size={14} />
+        </BubbleButton>
+        <BubbleButton label="Heading 2" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+          <Heading2 size={14} />
+        </BubbleButton>
+        <BubbleButton label="Bullet list" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+          <List size={14} />
+        </BubbleButton>
+        <BubbleButton label="Quote" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+          <Quote size={14} />
+        </BubbleButton>
+        <BubbleButton label="Link" active={editor.isActive("link")} onClick={openLink}>
+          <LinkIcon size={14} />
+        </BubbleButton>
+      </BubbleMenu>
+
+      {linkOpen && (
+        <LinkDialog
+          initialHref={linkHref}
+          copy={copy.linkDialog}
+          onCancel={() => setLinkOpen(false)}
+          onSubmit={applyLink}
+          onRemove={removeLink}
+        />
+      )}
+    </>
   );
 }
 
@@ -207,7 +233,7 @@ export default function MarkdownEditorInner({
       }}
     >
       <div className="mx-auto w-full max-w-3xl px-6 py-8 pr-10">
-        {editor && editable && <FormattingMenu editor={editor} />}
+        {editor && editable && <FormattingMenu editor={editor} copy={copy} />}
         <EditorContent editor={editor} />
         {editor && editable && (
           <div

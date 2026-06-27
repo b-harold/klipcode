@@ -371,7 +371,7 @@ export function SnippetEditor({
             value={code}
             onChange={handleCodeChange}
             editable={!readOnly}
-            copy={{ placeholder: editorCopy.mdPlaceholder }}
+            copy={{ placeholder: editorCopy.mdPlaceholder, linkDialog: editorCopy.linkDialog }}
           />
         </div>
       ) : (

@@ -9,6 +9,17 @@ const MarkdownEditorInner = lazy(() => import("./MarkdownEditorInner"));
 export interface MarkdownEditorCopy {
   /** Shown in the empty editor before the user types. */
   placeholder: string;
+  /** Copy for the link insertion dialog launched from the bubble menu. */
+  linkDialog: {
+    title: string;
+    editTitle: string;
+    label: string;
+    placeholder: string;
+    apply: string;
+    cancel: string;
+    remove: string;
+    invalid: string;
+  };
 }
 
 export interface MarkdownEditorProps {

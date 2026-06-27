@@ -186,6 +186,16 @@ export const es = {
     editMarkdown: "Código Markdown",
     mdPlaceholder: "Escribe algo… Los atajos de Markdown funcionan aquí.",
     trashedNotice: "Este snippet está en la papelera; restáuralo para editarlo.",
+    linkDialog: {
+      title: "Insertar enlace",
+      editTitle: "Editar enlace",
+      label: "URL",
+      placeholder: "https://",
+      apply: "Aplicar",
+      cancel: "Cancelar",
+      remove: "Quitar enlace",
+      invalid: "Introduce una URL válida",
+    },
   },
   search: {
     placeholder: "Buscar snippets por título o código…",

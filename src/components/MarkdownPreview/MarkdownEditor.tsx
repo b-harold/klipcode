@@ -2,6 +2,9 @@
 
 import { lazy, Suspense } from "react";
 
+import type { Dictionary } from "@/i18n";
+import type { LanguageId } from "@/lib/constants/languages";
+
 // TipTap + ProseMirror + lowlight are sizeable; only load the editor when a
 // Markdown snippet is actually opened in the WYSIWYG view.
 const MarkdownEditorInner = lazy(() => import("./MarkdownEditorInner"));
@@ -20,6 +23,14 @@ export interface MarkdownEditorCopy {
     remove: string;
     invalid: string;
   };
+  /** Aria labels for the floating formatting toolbar (bubble menu). */
+  toolbar: Dictionary["snippetEditor"]["mdToolbar"];
+  /** Labels for the "/" block-inserter menu. */
+  slash: Dictionary["snippetEditor"]["mdSlash"];
+  /** Aria labels for the in-table controls. */
+  table: Dictionary["snippetEditor"]["mdTable"];
+  /** Reused language picker copy for the code-block language selector. */
+  languageSelect: Dictionary["languageSelect"];
 }
 
 export interface MarkdownEditorProps {
@@ -29,6 +40,8 @@ export interface MarkdownEditorProps {
   onChange: (markdown: string) => void;
   /** When false the document is read-only (e.g. a trashed snippet). */
   editable: boolean;
+  /** Language pre-selected on newly inserted code blocks (user preference). */
+  defaultCodeLanguage: LanguageId;
   copy: MarkdownEditorCopy;
 }
 

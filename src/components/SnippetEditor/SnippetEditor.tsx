@@ -105,6 +105,8 @@ export interface SnippetEditorProps {
   onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId }) => void;
   /** Whether Markdown snippets open in the Notion-like preview by default. */
   markdownPreviewByDefault?: boolean;
+  /** User's default language, pre-selected on code blocks inserted in Markdown. */
+  defaultCodeLanguage?: LanguageId;
   /** Persisted when the user flips the preview/source toggle — the chosen side
    *  becomes the default side Markdown snippets open on. */
   onMarkdownPreviewChange?: (open: boolean) => void;
@@ -129,6 +131,7 @@ export function SnippetEditor({
   onNavigateHome,
   onUpdate,
   markdownPreviewByDefault = true,
+  defaultCodeLanguage = "plaintext",
   onMarkdownPreviewChange,
   menuButton,
   readOnly = false,
@@ -385,7 +388,15 @@ export function SnippetEditor({
             value={code}
             onChange={handleCodeChange}
             editable={!readOnly}
-            copy={{ placeholder: editorCopy.mdPlaceholder, linkDialog: editorCopy.linkDialog }}
+            defaultCodeLanguage={defaultCodeLanguage}
+            copy={{
+              placeholder: editorCopy.mdPlaceholder,
+              linkDialog: editorCopy.linkDialog,
+              toolbar: editorCopy.mdToolbar,
+              slash: editorCopy.mdSlash,
+              table: editorCopy.mdTable,
+              languageSelect: copy.languageSelect,
+            }}
           />
         </div>
       ) : (

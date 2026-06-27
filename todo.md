@@ -43,17 +43,17 @@ Findings from a full project review (2026-06-11). Organized by area; file refere
 - [x] **Keyboard shortcuts**: new snippet, copy current snippet, navigate list, close editor. The audience is developers; this is high-leverage. _(Fixed: a central registry (`src/lib/constants/shortcuts.ts`) feeds a single window-level handler (`useGlobalShortcuts`) and a help overlay (`ShortcutsDialog`, opened with `⌘//?` or the sidebar "Keyboard shortcuts" button). Bindings — search `⌘K`, new snippet `⌘⌥N`, copy current code `⌘⌥C`, toggle sidebar `⌘B`, close editor `Esc`, and `↑/↓` roving focus over the home cards. Action shortcuts use modifier combos so they fire even while typing in the title/editor; bare-key shortcuts are suppressed in text fields. macOS shows ⌘/⌥, other platforms Ctrl/Alt.)_
 - [ ] **Export / import** (JSON download/restore). Cheap insurance for users and a migration path; could later extend to GitHub Gist sync.
 - [ ] **Tags** in addition to folders (a snippet often belongs to multiple topics).
-- [ ] **Trash / undo for deletions.** Snippet deletes are instant, permanent, and pushed to the cloud. Pairs with the soft-delete/tombstone work in Bugs.
+- [x] **Trash / undo for deletions.** Snippet deletes are instant, permanent, and pushed to the cloud. Pairs with the soft-delete/tombstone work in Bugs.
 - [ ] **Public share links** for individual snippets (read-only page).
 - [ ] **Snippet duplication** action ("Duplicate" in the context menu — copy/paste already half-implements this).
 - [ ] **More OAuth providers** — GitHub-only today; Google would widen the audience.
-- [ ] **PWA manifest + installability.** The app is already offline-capable thanks to IndexedDB; a manifest and basic service worker would make it installable.
+- [x] **PWA manifest + installability.** The app is already offline-capable thanks to IndexedDB; a manifest and basic service worker would make it installable.
 - [x] **Auto-detect language from file extension.** When creating a snippet and entering a title with an extension (e.g. `script.js`, `style.css`, `index.html`), automatically set the language syntax without requiring manual selection from the language dropdown. _(Fixed: `detectLanguageFromTitle` in `src/lib/constants/languages.ts` parses file extensions and `handleTitleChange` in `NewSnippet.tsx` automatically updates the language dropdown.)_
 - [ ] **Preview button for markdown and HTML.** Add a preview toggle button in the editor for `.md` and `.html` snippets to render and display the output without leaving the editor.
 
 ## 🎨 UI / UX
 
-- [ ] **No confirmation or undo when deleting a snippet** — folders get a `ConfirmDialog`, snippets vanish instantly. Add confirm or (better) toast-with-undo.
+- [x] **No confirmation or undo when deleting a snippet** — folders get a `ConfirmDialog`, snippets vanish instantly. Add confirm or (better) toast-with-undo.
 - [ ] **Card previews have no syntax highlighting** — they render dimmed plain text (`SnippetCard.tsx:326`). The spec in `AGENTS.md` calls for static highlighting on home previews; a lightweight highlighter (e.g. Lezer-based, reusing already-shipped CodeMirror parsers) would do it without loading full editors.
 - [ ] **`SnippetCard` accessibility: nested interactive elements.** The card is an `<article role="button" tabIndex={0}>` containing real `<button>`s (`SnippetCard.tsx:224`). Interactive descendants inside a `role="button"` are invalid and confuse screen readers/keyboard users. Restructure (e.g. card title as the actionable element, actions outside the button semantics).
 - [x] **Language choice isn't persisted.** The proxy (`src/proxy.ts`) redirects `/` purely by `Accept-Language`; a user who manually switches to `/es` gets bounced back to English on their next visit. Set a `NEXT_LOCALE` cookie on manual switch and prefer it in the proxy. _(Fixed: English is now prefix-less (`/`, `/app`) and the `LocaleSwitchLink` sets a `NEXT_LOCALE` cookie that `proxy.ts` prefers over `Accept-Language`, so an explicit choice sticks. Legacy `/en/*` URLs 308-redirect to the clean form.)_

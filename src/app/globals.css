@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* ─── Z-index scale ──────────────────────────────────────────────────────────
+   Single source of truth for stacking order. Tippy.js poppers default to
+   z-index 9999 — keep every framework-managed floating layer *below* the
+   dialog layer so Tippy never renders above a modal. Consumers use
+   `z-[var(--z-*)]` instead of hardcoding literal values. */
+:root {
+  --z-base: 0;
+  --z-tooltip: 100;
+  --z-menu: 200;
+  --z-popover: 300;
+  --z-toast: 400;
+  --z-dialog: 10000;
+  --z-dialog-sticky: 10100;
+}
+
 /* ─── Theme tokens ──────────────────────────────────────────────────────────
    Dark is the default surface (:root); the light theme overrides below apply
    when <html data-theme="light"> is set (see src/lib/theme.ts). Most of the UI
@@ -225,6 +240,13 @@ body {
   outline: none !important;
 }
 
+/* Breathing room below the last line so clicking near the bottom comfortably
+   lands the caret at the end and starting a new line feels natural. Editable
+   only — read-only previews keep their tight bounds. */
+.cm-editor .cm-content[contenteditable="true"] {
+  padding-bottom: clamp(6rem, 30vh, 18rem);
+}
+
 .cm-editor .cm-gutters {
   background: var(--klipcode-editor-gutter-background, transparent) !important;
   border-right: none !important;
@@ -320,3 +342,160 @@ body {
 .cm-fold-closed:hover {
   background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23cccccc'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M10.072 8.024L5.715 3.667l.618-.62L11 7.716v.618L6.333 13l-.618-.619 4.357-4.357z'/%3E%3C/svg%3E");
 }
+
+/* ─── Markdown WYSIWYG editor (TipTap / ProseMirror) ─────────────────────────
+   Notion-like document styling for the rich Markdown view. Built from the theme
+   "ink" tokens so it flips with light/dark automatically. The editor root carries
+   the .klipcode-md class (see MarkdownEditorInner). */
+.klipcode-md {
+  min-height: 62vh;
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 15px;
+  line-height: 1.75;
+  color: rgba(var(--ink-rgb), 0.85);
+  -webkit-font-smoothing: antialiased;
+}
+.klipcode-md:focus { outline: none; }
+.klipcode-md > :first-child { margin-top: 0; }
+.klipcode-md > :last-child { margin-bottom: 0; }
+
+.klipcode-md h1 {
+  font-size: 1.7rem; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em;
+  margin: 1.6rem 0 0.6rem; color: var(--foreground);
+}
+.klipcode-md h2 {
+  font-size: 1.35rem; font-weight: 600; line-height: 1.25; margin: 1.5rem 0 0.6rem;
+  padding-bottom: 0.3rem; border-bottom: 1px solid rgba(var(--ink-rgb), 0.08);
+  color: var(--foreground);
+}
+.klipcode-md h3 { font-size: 1.15rem; font-weight: 600; margin: 1.3rem 0 0.4rem; color: var(--foreground); }
+.klipcode-md h4 { font-size: 1rem; font-weight: 600; margin: 1.1rem 0 0.3rem; color: var(--foreground); }
+.klipcode-md h5 {
+  font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  margin: 1rem 0 0.3rem; color: rgba(var(--ink-rgb), 0.7);
+}
+.klipcode-md h6 {
+  font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  margin: 1rem 0 0.3rem; color: rgba(var(--ink-rgb), 0.5);
+}
+.klipcode-md p { margin: 0.7rem 0; }
+.klipcode-md a {
+  color: #4aa3ff; text-decoration: underline;
+  text-decoration-color: rgba(74, 163, 255, 0.35); text-underline-offset: 2px; cursor: pointer;
+}
+.klipcode-md a:hover { text-decoration-color: #4aa3ff; }
+.klipcode-md strong { font-weight: 600; color: var(--foreground); }
+.klipcode-md em { font-style: italic; }
+.klipcode-md s, .klipcode-md del { color: rgba(var(--ink-rgb), 0.4); }
+.klipcode-md ul, .klipcode-md ol { margin: 0.7rem 0; padding-left: 1.5rem; }
+.klipcode-md ul { list-style: disc; }
+.klipcode-md ol { list-style: decimal; }
+.klipcode-md li { margin: 0.2rem 0; }
+.klipcode-md li::marker { color: rgba(var(--ink-rgb), 0.4); }
+.klipcode-md li > p { margin: 0.2rem 0; }
+.klipcode-md blockquote {
+  margin: 1rem 0; padding-left: 1rem; border-left: 2px solid rgba(var(--ink-rgb), 0.2);
+  color: rgba(var(--ink-rgb), 0.6); font-style: italic;
+}
+.klipcode-md hr { margin: 1.5rem 0; border: 0; border-top: 1px solid rgba(var(--ink-rgb), 0.1); }
+.klipcode-md code {
+  font-family: 'Cascadia Code', var(--font-geist-mono), monospace; font-size: 0.85em;
+  background: rgba(var(--ink-rgb), 0.08); padding: 0.1em 0.4em; border-radius: 4px; color: var(--foreground);
+}
+.klipcode-md pre {
+  margin: 1rem 0; padding: 1rem; border-radius: 0.5rem;
+  border: 1px solid rgba(var(--ink-rgb), 0.08); background: var(--code-surface); overflow-x: auto;
+}
+.klipcode-md pre code {
+  background: none; padding: 0; font-size: 13px; line-height: 1.6; color: rgba(var(--ink-rgb), 0.9);
+}
+/* Code-block NodeView: anchor the overlaid language selector to the top-right.
+   Extra right padding on <pre> keeps the first code line clear of the picker. */
+.klipcode-md-codeblock { position: relative; }
+.klipcode-md-codeblock > pre { padding-right: 8.5rem; }
+.klipcode-md-codeblock-lang { position: absolute; top: 0.55rem; right: 0.55rem; z-index: 1; }
+.klipcode-md img { max-width: 100%; border-radius: 0.5rem; border: 1px solid rgba(var(--ink-rgb), 0.08); margin: 1rem 0; }
+.klipcode-md table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 14px; }
+.klipcode-md th, .klipcode-md td { border: 1px solid rgba(var(--ink-rgb), 0.1); padding: 0.4rem 0.6rem; text-align: left; }
+.klipcode-md th { background: rgba(var(--ink-rgb), 0.04); font-weight: 600; color: var(--foreground); }
+
+/* Floating formatting toolbar — `background` (not background-color) so the dark
+   theme's gradient --panel-bg renders solid instead of falling back to transparent. */
+.klipcode-bubble-menu { background: var(--panel-bg); }
+
+/* GFM task lists — checkbox vertically centered with the first text line */
+.klipcode-md ul[data-type="taskList"] { list-style: none; padding-left: 0.2rem; }
+.klipcode-md ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5rem; }
+.klipcode-md ul[data-type="taskList"] li > label {
+  margin: 0;
+  height: 1.75em; /* matches .klipcode-md line-height so the checkbox lines up with the first line */
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+}
+.klipcode-md ul[data-type="taskList"] li > div { flex: 1 1 auto; min-width: 0; }
+.klipcode-md ul[data-type="taskList"] li > div > p:first-child { margin-top: 0; }
+.klipcode-md ul[data-type="taskList"] input[type="checkbox"] {
+  width: 1.05em;
+  height: 1.05em;
+  margin: 0;
+  accent-color: #4aa3ff;
+  cursor: pointer;
+}
+
+/* Placeholder shown in the empty document */
+.klipcode-md p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: rgba(var(--ink-rgb), 0.3);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ─── Code-block syntax highlighting (highlight.js tokens, VS Code Dark+) ──── */
+.klipcode-md .hljs-comment, .klipcode-md .hljs-quote { color: #6a9955; font-style: italic; }
+.klipcode-md .hljs-keyword, .klipcode-md .hljs-selector-tag,
+.klipcode-md .hljs-literal, .klipcode-md .hljs-meta .hljs-keyword,
+.klipcode-md .hljs-doctag, .klipcode-md .hljs-section { color: #569cd6; }
+.klipcode-md .hljs-built_in, .klipcode-md .hljs-class .hljs-title,
+.klipcode-md .hljs-title.class_, .klipcode-md .hljs-type { color: #4ec9b0; }
+.klipcode-md .hljs-string, .klipcode-md .hljs-regexp,
+.klipcode-md .hljs-addition, .klipcode-md .hljs-meta .hljs-string { color: #ce9178; }
+.klipcode-md .hljs-number { color: #b5cea8; }
+.klipcode-md .hljs-title, .klipcode-md .hljs-title.function_, .klipcode-md .hljs-function .hljs-title { color: #dcdcaa; }
+.klipcode-md .hljs-attr, .klipcode-md .hljs-attribute,
+.klipcode-md .hljs-variable, .klipcode-md .hljs-template-variable,
+.klipcode-md .hljs-property, .klipcode-md .hljs-params, .klipcode-md .hljs-selector-attr { color: #9cdcfe; }
+.klipcode-md .hljs-name, .klipcode-md .hljs-tag .hljs-name { color: #569cd6; }
+.klipcode-md .hljs-symbol, .klipcode-md .hljs-bullet, .klipcode-md .hljs-link,
+.klipcode-md .hljs-meta, .klipcode-md .hljs-selector-id, .klipcode-md .hljs-selector-class { color: #d7ba7d; }
+.klipcode-md .hljs-deletion { color: #ce9178; }
+.klipcode-md .hljs-emphasis { font-style: italic; }
+.klipcode-md .hljs-strong { font-weight: 600; }
+
+/* Light-theme token overrides (VS Code Light+), for legibility on the white surface. */
+:root[data-theme="light"] .klipcode-md .hljs-comment,
+:root[data-theme="light"] .klipcode-md .hljs-quote { color: #008000; }
+:root[data-theme="light"] .klipcode-md .hljs-keyword,
+:root[data-theme="light"] .klipcode-md .hljs-selector-tag,
+:root[data-theme="light"] .klipcode-md .hljs-literal,
+:root[data-theme="light"] .klipcode-md .hljs-meta .hljs-keyword,
+:root[data-theme="light"] .klipcode-md .hljs-doctag,
+:root[data-theme="light"] .klipcode-md .hljs-section,
+:root[data-theme="light"] .klipcode-md .hljs-name,
+:root[data-theme="light"] .klipcode-md .hljs-tag .hljs-name { color: #0000ff; }
+:root[data-theme="light"] .klipcode-md .hljs-built_in,
+:root[data-theme="light"] .klipcode-md .hljs-title.class_,
+:root[data-theme="light"] .klipcode-md .hljs-type { color: #267f99; }
+:root[data-theme="light"] .klipcode-md .hljs-string,
+:root[data-theme="light"] .klipcode-md .hljs-regexp,
+:root[data-theme="light"] .klipcode-md .hljs-addition { color: #a31515; }
+:root[data-theme="light"] .klipcode-md .hljs-number { color: #098658; }
+:root[data-theme="light"] .klipcode-md .hljs-title,
+:root[data-theme="light"] .klipcode-md .hljs-title.function_ { color: #795e26; }
+:root[data-theme="light"] .klipcode-md .hljs-attr,
+:root[data-theme="light"] .klipcode-md .hljs-attribute,
+:root[data-theme="light"] .klipcode-md .hljs-variable,
+:root[data-theme="light"] .klipcode-md .hljs-template-variable,
+:root[data-theme="light"] .klipcode-md .hljs-property,
+:root[data-theme="light"] .klipcode-md .hljs-params { color: #001080; }

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, type CSSProperties } from "react";
-import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import CodeMirror, {
+  EditorView,
+  type ReactCodeMirrorRef,
+} from "@uiw/react-codemirror";
 import { vscodeDark, vscodeLight } from "@uiw/codemirror-theme-vscode";
 import {
   foldGutter,
@@ -23,6 +26,32 @@ const customFoldGutter = foldGutter({
     const el = document.createElement("span");
     el.className = open ? "cm-fold-open" : "cm-fold-closed";
     return el;
+  },
+});
+
+// Clicking the empty space below the last line gives a fresh line to type in:
+// append a newline at the end of the document (unless the last line is already
+// empty) and drop the caret there.
+const appendLineOnClickBelow = EditorView.domEventHandlers({
+  mousedown(event, view) {
+    if (event.button !== 0) return false;
+    const bottom = view.coordsAtPos(view.state.doc.length)?.bottom;
+    if (bottom == null || event.clientY <= bottom) return false; // clicked on text, not below it
+
+    const end = view.state.doc.length;
+    const lastLineEmpty = view.state.doc.lineAt(end).length === 0;
+    view.dispatch(
+      lastLineEmpty
+        ? { selection: { anchor: end }, scrollIntoView: true }
+        : {
+            changes: { from: end, insert: "\n" },
+            selection: { anchor: end + 1 },
+            scrollIntoView: true,
+          },
+    );
+    view.focus();
+    event.preventDefault();
+    return true;
   },
 });
 
@@ -451,7 +480,11 @@ export function Editor({
       value={value}
       onChange={onChange}
       theme={cmTheme}
-      extensions={readOnly ? extensions : [...extensions, customFoldGutter]}
+      extensions={
+        readOnly
+          ? extensions
+          : [...extensions, customFoldGutter, appendLineOnClickBelow]
+      }
       editable={!readOnly}
       readOnly={readOnly}
       placeholder={placeholder}

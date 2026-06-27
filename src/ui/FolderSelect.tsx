@@ -161,7 +161,7 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
         createPortal(
           <div
             ref={dropdownRef}
-            className="klipcode-menu-animate fixed z-[1010] overflow-hidden rounded-xl"
+            className="klipcode-menu-animate fixed z-[var(--z-menu)] overflow-hidden rounded-xl"
             style={{
               background: "var(--panel-bg)",
               border: "1px solid rgba(var(--ink-rgb),0.07)",

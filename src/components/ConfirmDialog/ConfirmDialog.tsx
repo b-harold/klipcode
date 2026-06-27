@@ -54,12 +54,12 @@ export function ConfirmDialog({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[998] bg-[var(--scrim)] backdrop-blur-[2px]"
+        className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--scrim)] backdrop-blur-[2px]"
         onMouseDown={onCancel}
       />
 
       {/* Dialog panel */}
-      <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[var(--z-dialog-sticky)] flex items-center justify-center p-4 pointer-events-none">
         <div
           className="klipcode-dialog-animate pointer-events-auto w-full max-w-[360px] rounded-xl p-5"
           role="alertdialog"

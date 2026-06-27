@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Copy,
   Check,
@@ -13,11 +13,14 @@ import {
   FolderOpen,
   Layers,
   Zap,
+  Eye,
+  Code2,
   RotateCcw,
   Trash2,
 } from "lucide-react";
 
 import { Editor } from "@/components/Editor/Editor";
+import { MarkdownEditor } from "@/components/MarkdownPreview/MarkdownEditor";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { LanguageIcon } from "@/ui/LanguageIcon";
@@ -100,6 +103,13 @@ export interface SnippetEditorProps {
   onNavigateFolder?: (folderId: string) => void;
   onNavigateHome?: () => void;
   onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId }) => void;
+  /** Whether Markdown snippets open in the Notion-like preview by default. */
+  markdownPreviewByDefault?: boolean;
+  /** User's default language, pre-selected on code blocks inserted in Markdown. */
+  defaultCodeLanguage?: LanguageId;
+  /** Persisted when the user flips the preview/source toggle — the chosen side
+   *  becomes the default side Markdown snippets open on. */
+  onMarkdownPreviewChange?: (open: boolean) => void;
   menuButton?: React.ReactNode;
   /** When true the snippet is in the trash: it's shown read-only with a notice
    *  and restore / delete-permanently actions instead of the edit controls. */
@@ -120,16 +130,34 @@ export function SnippetEditor({
   onNavigateFolder,
   onNavigateHome,
   onUpdate,
+  markdownPreviewByDefault = true,
+  defaultCodeLanguage = "plaintext",
+  onMarkdownPreviewChange,
   menuButton,
   readOnly = false,
   trashActions,
 }: SnippetEditorProps) {
   const editorCopy = copy.snippetEditor;
 
+  const isMarkdown = snippet.language === "markdown";
+
   // Local state — initialised from snippet once (key={snippet.id} resets on swap)
   const [code, setCode] = useState(snippet.code);
   const [copied, setCopied] = useState(false);
   const [formatting, setFormatting] = useState(false);
+  // Markdown snippets can swap the code editor for a Notion-like rendered preview;
+  // the initial side honours the user's last choice (key={snippet.id} re-seeds
+  // it when swapping snippets). Flipping the toggle also persists the choice so
+  // the next Markdown snippet opens on the same side.
+  const [showPreview, setShowPreview] = useState(isMarkdown && markdownPreviewByDefault);
+
+  const handleTogglePreview = useCallback(() => {
+    setShowPreview((prev) => {
+      const next = !prev;
+      onMarkdownPreviewChange?.(next);
+      return next;
+    });
+  }, [onMarkdownPreviewChange]);
 
   // Per-field debounce timers
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -239,8 +267,27 @@ export function SnippetEditor({
 
   const isFormattable = snippet.language in PRETTIER_PARSERS;
 
+  // Markdown-only toggle between the rendered preview and the raw source editor.
+  const previewToggle = isMarkdown ? (
+    <Tooltip
+      content={showPreview ? editorCopy.editMarkdown : editorCopy.previewMarkdown}
+      placement="bottom"
+    >
+      <button
+        type="button"
+        aria-label={showPreview ? editorCopy.editMarkdown : editorCopy.previewMarkdown}
+        aria-pressed={showPreview}
+        onClick={handleTogglePreview}
+        className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70"
+      >
+        {showPreview ? <Code2 size={13} /> : <Eye size={13} />}
+      </button>
+    </Tooltip>
+  ) : null;
+
   const breadcrumbActions = readOnly ? (
     <>
+      {previewToggle}
       <Tooltip content={editorCopy.copyCode} placement="bottom">
         <button
           type="button"
@@ -299,6 +346,7 @@ export function SnippetEditor({
           <Zap size={13} className={formatting ? "animate-pulse" : undefined} />
         </button>
       </Tooltip>
+      {previewToggle}
       <Tooltip content={editorCopy.copyCode} placement="bottom">
         <button
           type="button"
@@ -333,18 +381,37 @@ export function SnippetEditor({
         </div>
       )}
 
-      {/* ── Editor ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">
-        <Editor
-          value={code}
-          onChange={handleCodeChange}
-          language={snippet.language}
-          readOnly={readOnly}
-          height="100%"
-          fontSize={14}
-          gutterBackground="var(--background)"
-        />
-      </div>
+      {/* ── Source editor / Markdown WYSIWYG ───────────────────────────────── */}
+      {isMarkdown && showPreview ? (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <MarkdownEditor
+            value={code}
+            onChange={handleCodeChange}
+            editable={!readOnly}
+            defaultCodeLanguage={defaultCodeLanguage}
+            copy={{
+              placeholder: editorCopy.mdPlaceholder,
+              linkDialog: editorCopy.linkDialog,
+              toolbar: editorCopy.mdToolbar,
+              slash: editorCopy.mdSlash,
+              table: editorCopy.mdTable,
+              languageSelect: copy.languageSelect,
+            }}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">
+          <Editor
+            value={code}
+            onChange={handleCodeChange}
+            language={snippet.language}
+            readOnly={readOnly}
+            height="100%"
+            fontSize={14}
+            gutterBackground="var(--background)"
+          />
+        </div>
+      )}
 
       {/* ── Sync status — fixed bottom-right corner (hidden for trashed) ──── */}
       {!readOnly && (

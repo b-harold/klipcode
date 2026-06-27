@@ -193,7 +193,7 @@ export default function MarkdownEditorInner({
     extensions: [
       StarterKit.configure({ codeBlock: false }),
       CodeBlockLowlight.configure({ lowlight, defaultLanguage: "plaintext" }),
-      Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" } }),
+      Link.configure({ openOnClick: true, autolink: true, HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" } }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Table.configure({ resizable: false }),

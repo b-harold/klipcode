@@ -81,6 +81,26 @@ describe("ListExitShortcut", () => {
     expect(ed.getHTML()).not.toMatch(/<\/ul><p><\/p>$/);
   });
 
+  it("bullet: second backspace after exiting joins into list instead of regenerating a bullet", () => {
+    const ed = makeEditor("- one\n- two\n");
+    end(ed);
+    ed.commands.splitListItem("listItem"); // empty 3rd item
+    backspace(ed); // exit list -> trailing <p></p>
+    backspace(ed); // should delete upward, NOT re-wrap as a list item
+    expect(ed.getHTML()).toBe('<ul class="tight" data-tight="true"><li><p>one</p></li><li><p>two</p></li></ul>');
+  });
+
+  it("bullet: backspace at start of a non-empty paragraph after a list merges its text in", () => {
+    const ed = makeEditor("- one\n");
+    end(ed);
+    ed.commands.splitListItem("listItem");
+    backspace(ed); // exit -> <ul><li>one</li></ul><p></p>
+    ed.commands.insertContent("tail"); // <p>tail</p>
+    ed.commands.setTextSelection(ed.state.selection.from - "tail".length); // caret before "tail"
+    backspace(ed);
+    expect(ed.getHTML()).toBe('<ul class="tight" data-tight="true"><li><p>onetail</p></li></ul>');
+  });
+
   it("bullet: empty FIRST (only) item — backspace exits to paragraph", () => {
     const ed = makeEditor("- \n");
     // caret at start of the empty item

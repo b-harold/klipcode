@@ -446,14 +446,6 @@ export function Aside({
           <div className="shrink-0 px-2 pb-4 pt-2">
             <button
               type="button"
-              onClick={onOpenPreferences}
-              className="mb-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-ink/4 hover:text-foreground"
-            >
-              <Settings size={14} className="shrink-0" />
-              <span className="flex-1 text-left">{copy.aside.preferences}</span>
-            </button>
-            <button
-              type="button"
               onClick={onOpenTrash}
               onContextMenu={(e) => {
                 e.preventDefault();
@@ -488,7 +480,7 @@ export function Aside({
                 // Always carry a 1px (transparent) border so toggling to the
                 // dashed drop-zone border only changes color, never width — an
                 // animated 0→1px width renders dashes as a solid line mid-tween.
-                "flex w-full items-center rounded-md border border-transparent px-3 py-2 transition-colors duration-150",
+                "mb-1 flex w-full items-center rounded-md border border-transparent px-3 py-2 transition-colors duration-150",
                 drag.dragging?.origin === "workspace"
                   ? "justify-center gap-1.5 border-dashed text-[11px] select-none " +
                     (drag.dragOverId === "trash-button"
@@ -513,6 +505,14 @@ export function Aside({
                   )}
                 </>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={onOpenPreferences}
+              className="mb-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-ink/4 hover:text-foreground"
+            >
+              <Settings size={14} className="shrink-0" />
+              <span className="flex-1 text-left">{copy.aside.preferences}</span>
             </button>
             <button
               type="button"

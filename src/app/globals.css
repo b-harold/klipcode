@@ -436,12 +436,51 @@ body {
 }
 .klipcode-md ul[data-type="taskList"] li > div { flex: 1 1 auto; min-width: 0; }
 .klipcode-md ul[data-type="taskList"] li > div > p:first-child { margin-top: 0; }
+/* Custom task-list checkbox — black with a white border when empty (dark),
+   inverting to a solid white fill with a dark checkmark when checked. Built from
+   appearance:none so it carries the KlipCode ink palette instead of the OS accent. */
 .klipcode-md ul[data-type="taskList"] input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
   width: 1.05em;
   height: 1.05em;
   margin: 0;
-  accent-color: #4aa3ff;
+  flex: 0 0 auto;
+  border-radius: 0.28em;
+  border: 1.5px solid rgba(var(--ink-rgb), 0.45);
+  background: var(--background);
   cursor: pointer;
+  display: inline-grid;
+  place-content: center;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+.klipcode-md ul[data-type="taskList"] input[type="checkbox"]:hover {
+  border-color: rgba(var(--ink-rgb), 0.8);
+}
+.klipcode-md ul[data-type="taskList"] input[type="checkbox"]:focus-visible {
+  outline: 2px solid rgba(var(--ink-rgb), 0.4);
+  outline-offset: 2px;
+}
+.klipcode-md ul[data-type="taskList"] input[type="checkbox"]::before {
+  content: "";
+  width: 0.62em;
+  height: 0.62em;
+  transform: scale(0);
+  transition: transform 0.12s ease;
+  background-color: var(--background);
+  /* Checkmark glyph, masked so it inherits the surface color above. */
+  -webkit-mask: var(--klipcode-check) center / contain no-repeat;
+  mask: var(--klipcode-check) center / contain no-repeat;
+}
+.klipcode-md ul[data-type="taskList"] input[type="checkbox"]:checked {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.klipcode-md ul[data-type="taskList"] input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+:root {
+  --klipcode-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5l3.2 3.2L13 5'/%3E%3C/svg%3E");
 }
 
 /* Placeholder shown in the empty document */

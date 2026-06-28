@@ -84,10 +84,12 @@ export function LanguageSelect({
       setOpen(false);
     };
     window.addEventListener("keydown", onKey, true);
-    document.addEventListener("mousedown", onOutside);
+    // Capture phase: a parent (e.g. the preferences dialog) may stopPropagation
+    // on mousedown, which would otherwise hide this outside click from us.
+    document.addEventListener("mousedown", onOutside, true);
     return () => {
       window.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("mousedown", onOutside);
+      document.removeEventListener("mousedown", onOutside, true);
     };
   }, [open]);
 

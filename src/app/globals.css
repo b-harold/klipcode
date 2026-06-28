@@ -13,6 +13,7 @@
   --z-toast: 400;
   --z-dialog: 10000;
   --z-dialog-sticky: 10100;
+  --z-dialog-menu: 10200; /* menus/dropdowns opened from within a dialog */
 }
 
 /* ─── Theme tokens ──────────────────────────────────────────────────────────

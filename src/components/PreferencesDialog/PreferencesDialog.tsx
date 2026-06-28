@@ -187,6 +187,7 @@ export function PreferencesDialog({
                 folders={folders}
                 rootLabel={copy.workspace.rootOption}
                 copy={copy.folderSelect}
+                menuZIndex="var(--z-dialog-menu)"
               />
             }
           />
@@ -200,6 +201,7 @@ export function PreferencesDialog({
                 value={defaultLanguage}
                 onChange={(value) => onChangePreferences({ defaultLanguage: value })}
                 copy={copy.languageSelect}
+                menuZIndex="var(--z-dialog-menu)"
               />
             }
           />

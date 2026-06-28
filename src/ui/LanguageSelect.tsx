@@ -11,9 +11,16 @@ interface LanguageSelectProps {
   value: LanguageId;
   onChange: (value: LanguageId) => void;
   copy: Dictionary["languageSelect"];
+  /** CSS z-index for the portalled dropdown; raise it when used inside a dialog. */
+  menuZIndex?: string;
 }
 
-export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
+export function LanguageSelect({
+  value,
+  onChange,
+  copy,
+  menuZIndex = "var(--z-menu)",
+}: LanguageSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -109,8 +116,9 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
         createPortal(
           <div
             ref={dropdownRef}
-            className="klipcode-menu-animate fixed z-[var(--z-menu)] overflow-hidden rounded-xl"
+            className="klipcode-menu-animate fixed overflow-hidden rounded-xl"
             style={{
+              zIndex: menuZIndex,
               background: "var(--panel-bg)",
               border: "1px solid rgba(var(--ink-rgb),0.07)",
               boxShadow:

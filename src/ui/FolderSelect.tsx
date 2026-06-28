@@ -53,11 +53,20 @@ interface FolderSelectProps {
   folders: FolderRecord[];
   rootLabel: string;
   copy: Dictionary["folderSelect"];
+  /** CSS z-index for the portalled dropdown; raise it when used inside a dialog. */
+  menuZIndex?: string;
 }
 
 const INDENT = 16;
 
-export function FolderSelect({ value, onChange, folders, rootLabel, copy }: FolderSelectProps) {
+export function FolderSelect({
+  value,
+  onChange,
+  folders,
+  rootLabel,
+  copy,
+  menuZIndex = "var(--z-menu)",
+}: FolderSelectProps) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -161,8 +170,9 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
         createPortal(
           <div
             ref={dropdownRef}
-            className="klipcode-menu-animate fixed z-[var(--z-menu)] overflow-hidden rounded-xl"
+            className="klipcode-menu-animate fixed overflow-hidden rounded-xl"
             style={{
+              zIndex: menuZIndex,
               background: "var(--panel-bg)",
               border: "1px solid rgba(var(--ink-rgb),0.07)",
               boxShadow:

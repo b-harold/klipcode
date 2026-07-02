@@ -8,6 +8,7 @@ import type { Dictionary } from "@/i18n";
 import type { FolderRecord, SelectedItem } from "@/lib/types";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { suppressModifierDragStart } from "@/hooks/useMultiSelection";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 
 /* ─────────────────── Menu builder ───────────────────────────────────────── */
@@ -192,6 +193,7 @@ export function FolderCard({
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
       onDragStart={(e) => {
+        if (suppressModifierDragStart(e)) return;
         drag.startDrag("folder", folder.id, isTrash ? "trash" : "workspace", dragItems);
         e.dataTransfer.effectAllowed = "move";
       }}
@@ -212,7 +214,7 @@ export function FolderCard({
         drag.dropOnFolder(folder.id);
       }}
       className={cn(
-        "group flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20 cursor-pointer",
+        "group flex min-w-0 select-none items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20 cursor-pointer",
         isDraggingThis
           ? "opacity-40 cursor-grabbing"
           : "active:cursor-grabbing",
@@ -240,7 +242,7 @@ export function FolderCard({
                 if (e.key === "Escape") setIsRenaming(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
+              className="w-full select-text rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
             />
           ) : (
             <>

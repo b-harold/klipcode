@@ -8,6 +8,7 @@ import type { SelectedItem, SnippetRecord } from "@/lib/types";
 import { cn, getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { suppressModifierDragStart } from "@/hooks/useMultiSelection";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 
@@ -261,12 +262,13 @@ export function SnippetCard({
       draggable={canDrag}
       onContextMenu={handleContextMenu}
       onDragStart={canDrag ? (e) => {
+        if (suppressModifierDragStart(e)) return;
         drag.startDrag("snippet", snippet.id, isTrash ? "trash" : "workspace", dragItems);
         e.dataTransfer.effectAllowed = "move";
       } : undefined}
       onDragEnd={canDrag ? () => drag.endDrag() : undefined}
       className={cn(
-        "group relative flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border bg-surface transition-colors hover:bg-surface-hover has-[[data-card-open]:focus-visible]:ring-2 has-[[data-card-open]:focus-visible]:ring-ink/20 cursor-pointer",
+        "group relative flex w-72 shrink-0 select-none flex-col overflow-hidden rounded-xl border bg-surface transition-colors hover:bg-surface-hover has-[[data-card-open]:focus-visible]:ring-2 has-[[data-card-open]:focus-visible]:ring-ink/20 cursor-pointer",
         selected
           ? "border-ink/30 bg-ink/[0.05]"
           : "border-ink/[0.06] hover:border-ink/[0.12]",
@@ -289,7 +291,7 @@ export function SnippetCard({
                 if (e.key === "Escape") setIsRenaming(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="min-w-0 flex-1 rounded bg-ink/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
+              className="min-w-0 flex-1 select-text rounded bg-ink/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
             />
           ) : (
             <button

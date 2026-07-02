@@ -1,9 +1,28 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type {
+  DragEvent as ReactDragEvent,
+  MouseEvent as ReactMouseEvent,
+  KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 
 import type { FolderRecord, SelectedItem, SnippetRecord } from "@/lib/types";
+
+/**
+ * Cancel a native dragstart that began with a selection modifier held. A
+ * ⌘/Ctrl/Shift+click that drifts a few pixels between press and release
+ * otherwise turns into a drag, and the browser then never fires the `click`
+ * that would have toggled the selection. Returns true when suppressed —
+ * callers should bail out of their drag setup.
+ */
+export function suppressModifierDragStart(e: ReactDragEvent): boolean {
+  if (e.ctrlKey || e.metaKey || e.shiftKey) {
+    e.preventDefault();
+    return true;
+  }
+  return false;
+}
 
 interface UseMultiSelectionOptions {
   folders: FolderRecord[];
@@ -44,6 +63,25 @@ export function useMultiSelection({
     (id: string): "folder" | "snippet" => (folders.some((f) => f.id === id) ? "folder" : "snippet"),
     [folders],
   );
+
+  // Items can vanish out from under the selection — deleted on another device
+  // and reconciled away, moved out by cut/paste, trashed via a single-item
+  // menu… Prune stale ids so batch actions never operate on ghosts
+  // (resolveType would misclassify a vanished folder as a snippet).
+  useEffect(() => {
+    const live = new Set<string>();
+    for (const f of folders) live.add(f.id);
+    for (const s of snippets) live.add(s.id);
+    // Intentional synchronize-with-props effect; the no-op branch returns the
+    // previous set so it re-renders only when something was actually pruned.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set([...prev].filter((id) => live.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+    if (anchorRef.current && !live.has(anchorRef.current)) anchorRef.current = null;
+  }, [folders, snippets]);
 
   const getOrderedVisibleIds = useCallback((): string[] => {
     const root = containerRef.current;

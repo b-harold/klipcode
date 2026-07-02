@@ -9,7 +9,7 @@ export function ItemActions({
   label: string;
 }) {
   return (
-    <span className="invisible flex shrink-0 items-center gap-px group-hover:visible">
+    <span data-no-drag="" className="invisible flex shrink-0 items-center gap-px group-hover:visible">
       <Tooltip content={label}>
         <button
           type="button"

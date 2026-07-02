@@ -1,6 +1,24 @@
+import type { DragEvent as ReactDragEvent } from "react";
+
 import type { FolderRecord } from "@/lib/types";
+import { suppressModifierDragStart } from "@/hooks/useMultiSelection";
 
 export const STEP = 14;
+
+/**
+ * Whether a row's dragstart should be cancelled: it began with a selection
+ * modifier held (the click must reach the multi-selection), or on one of the
+ * row's small `[data-no-drag]` controls (chevron / pin / "…"), where a
+ * slightly-sloppy press must stay a click.
+ */
+export function suppressRowDragStart(e: ReactDragEvent): boolean {
+  if (suppressModifierDragStart(e)) return true;
+  if (e.target instanceof Element && e.target.closest("[data-no-drag]")) {
+    e.preventDefault();
+    return true;
+  }
+  return false;
+}
 
 export function sortByPinThenAlpha<T extends { isPinnedAside: boolean }>(
   items: T[],

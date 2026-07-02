@@ -8,7 +8,7 @@ import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
-import { STEP } from "./utils";
+import { STEP, suppressRowDragStart } from "./utils";
 
 /**
  * The inline rename input for a snippet row. Controlled so the filename's
@@ -105,6 +105,13 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
       tabIndex={0}
       data-selectable-id={snippet.id}
       data-selectable-type="snippet"
+      draggable
+      onDragStart={(e) => {
+        if (suppressRowDragStart(e)) return;
+        ctx.startDrag("snippet", snippet.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragEnd={() => ctx.endDrag()}
       onClick={(e) => ctx.activateItem(e, { id: snippet.id, type: "snippet" })}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -113,19 +120,10 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
         }
       }}
       onContextMenu={openContextMenu}
-      className={`${sharedRowClass} cursor-pointer`}
+      className={`${sharedRowClass} cursor-pointer select-none active:cursor-grabbing`}
       style={{ paddingLeft }}
     >
-      <span
-        draggable
-        onDragStart={(e) => {
-          e.stopPropagation();
-          ctx.startDrag("snippet", snippet.id);
-          e.dataTransfer.effectAllowed = "move";
-        }}
-        onDragEnd={() => ctx.endDrag()}
-        className="flex min-w-0 flex-1 items-center gap-1.5 active:cursor-grabbing"
-      >
+      <span className="flex min-w-0 flex-1 items-center gap-1.5">
         <LanguageIcon language={snippet.language} size={13} className="shrink-0" />
         <TruncateTooltip text={displayName} className="flex-1 truncate leading-none" />
       </span>
@@ -135,6 +133,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
           <span
             role="button"
             aria-label={ctx.copy.aside.unpin}
+            data-no-drag=""
             className="group/pin shrink-0 rounded p-px text-ink/30 transition-colors hover:text-ink/70"
             onClick={(e) => {
               e.stopPropagation();

@@ -8,7 +8,7 @@ import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
 import { NewFolderInput } from "./NewFolderInput";
 import { SnippetNode } from "./SnippetNode";
-import { STEP, sortByPinThenAlpha } from "./utils";
+import { STEP, sortByPinThenAlpha, suppressRowDragStart } from "./utils";
 
 export function FolderNode({
   folder,
@@ -112,12 +112,19 @@ export function FolderNode({
         </div>
       ) : (
         <div
-          className={`${sharedRowClass} cursor-pointer`}
+          className={`${sharedRowClass} cursor-pointer select-none active:cursor-grabbing`}
           style={{ paddingLeft }}
           role="button"
           tabIndex={0}
           data-selectable-id={folder.id}
           data-selectable-type="folder"
+          draggable
+          onDragStart={(e) => {
+            if (suppressRowDragStart(e)) return;
+            ctx.startDrag("folder", folder.id);
+            e.dataTransfer.effectAllowed = "move";
+          }}
+          onDragEnd={() => ctx.endDrag()}
           onClick={(e) => ctx.activateItem(e, { id: folder.id, type: "folder" })}
           onKeyDown={(e) => {
             if (e.target !== e.currentTarget) return;
@@ -146,6 +153,7 @@ export function FolderNode({
           <Tooltip content={isOpen ? ctx.copy.aside.collapseFolder : ctx.copy.aside.expandFolder}>
             <button
               type="button"
+              data-no-drag=""
               className="flex h-4 w-4 shrink-0 items-center justify-center text-ink/25 transition-colors hover:text-ink/45"
               onClick={(e) => {
                 e.stopPropagation();
@@ -162,14 +170,7 @@ export function FolderNode({
 
           <button
             type="button"
-            draggable
-            onDragStart={(e) => {
-              e.stopPropagation();
-              ctx.startDrag("folder", folder.id);
-              e.dataTransfer.effectAllowed = "move";
-            }}
-            onDragEnd={() => ctx.endDrag()}
-            className="flex min-w-0 flex-1 items-center gap-1.5 text-left active:cursor-grabbing"
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
           >
             {isOpen && hasChildren ? (
               <FolderOpen size={13} className="shrink-0 text-ink/25" />
@@ -188,6 +189,7 @@ export function FolderNode({
               <button
                 type="button"
                 aria-label={ctx.copy.aside.unpin}
+                data-no-drag=""
                 className="group/pin shrink-0 rounded p-px text-ink/30 transition-colors hover:text-ink/70"
                 onClick={(e) => {
                   e.stopPropagation();

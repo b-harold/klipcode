@@ -424,11 +424,44 @@ export async function syncTombstones(userId: string): Promise<void> {
 }
 
 /**
- * On sign-in, take over any anonymous (`ownerId === null`) local records —
- * including the seeded welcome content, which is created `dirty: false` — by
+ * Whether the signed-in account already has any cloud rows. Distinguishes a
+ * brand-new account (the seeded welcome content should be claimed and uploaded)
+ * from a returning one (an untouched seed must be discarded, not re-uploaded).
+ * A query failure resolves to false so sign-in falls back to claiming — the
+ * direction that never destroys data.
+ */
+async function accountHasCloudContent(userId: string): Promise<boolean> {
+  const supabase = getSupabaseBrowserClient();
+
+  if (!supabase) {
+    return false;
+  }
+
+  try {
+    const [{ data: folderRows }, { data: snippetRows }] = await Promise.all([
+      supabase.from("folders").select("id").eq("owner_id", userId).limit(1),
+      supabase.from("snippets").select("id").eq("owner_id", userId).limit(1),
+    ]);
+
+    return (folderRows?.length ?? 0) > 0 || (snippetRows?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * On sign-in, take over any anonymous (`ownerId === null`) local records by
  * assigning them to the account and marking them dirty so the next push uploads
- * them. Without this the seed stays visible locally but never reaches the cloud
- * or other devices.
+ * them. Without this, anonymous work stays visible locally but never reaches
+ * the cloud or other devices.
+ *
+ * The seeded welcome content is the exception: it is created `dirty: false`
+ * with no `lastSyncedAt`, and since every user action marks a record dirty, a
+ * still-pristine anonymous record can only be the untouched seed. For a
+ * brand-new account (no cloud rows) the seed is claimed like everything else;
+ * for a returning account it is deleted locally instead, so signing in from a
+ * fresh device doesn't push yet another welcome folder into an existing
+ * workspace.
  */
 async function claimAnonymousRecords(userId: string): Promise<void> {
   const [folders, snippets] = await Promise.all([
@@ -436,8 +469,56 @@ async function claimAnonymousRecords(userId: string): Promise<void> {
     db.snippets.toArray(),
   ]);
 
-  const anonymousFolders = folders.filter((folder) => folder.ownerId === null);
-  const anonymousSnippets = snippets.filter((snippet) => snippet.ownerId === null);
+  let anonymousFolders = folders.filter((folder) => folder.ownerId === null);
+  let anonymousSnippets = snippets.filter((snippet) => snippet.ownerId === null);
+
+  if (anonymousFolders.length === 0 && anonymousSnippets.length === 0) {
+    return;
+  }
+
+  const isPristineSeed = (record: FolderRecord | SnippetRecord) =>
+    !record.dirty && record.lastSyncedAt === null;
+
+  const hasPristineSeed =
+    anonymousFolders.some(isPristineSeed) || anonymousSnippets.some(isPristineSeed);
+
+  if (hasPristineSeed && (await accountHasCloudContent(userId))) {
+    const seedSnippetIds = new Set(
+      anonymousSnippets.filter(isPristineSeed).map((snippet) => snippet.id)
+    );
+
+    // A pristine folder is only dropped when nothing kept (a dirty anonymous
+    // record or an owned one) still lives inside it; iterate so parents
+    // emptied by a dropped child fall too.
+    const remainingSnippets = snippets.filter((snippet) => !seedSnippetIds.has(snippet.id));
+    let remainingFolders = folders;
+    const seedFolderIds = new Set<string>();
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const folder of remainingFolders) {
+        if (folder.ownerId !== null || !isPristineSeed(folder)) continue;
+        const hasChild =
+          remainingFolders.some((other) => other.parentId === folder.id) ||
+          remainingSnippets.some((snippet) => snippet.folderId === folder.id);
+        if (!hasChild) {
+          seedFolderIds.add(folder.id);
+          remainingFolders = remainingFolders.filter((other) => other.id !== folder.id);
+          changed = true;
+        }
+      }
+    }
+
+    if (seedSnippetIds.size > 0) {
+      await db.snippets.bulkDelete([...seedSnippetIds]);
+    }
+    if (seedFolderIds.size > 0) {
+      await db.folders.bulkDelete([...seedFolderIds]);
+    }
+
+    anonymousFolders = anonymousFolders.filter((folder) => !seedFolderIds.has(folder.id));
+    anonymousSnippets = anonymousSnippets.filter((snippet) => !seedSnippetIds.has(snippet.id));
+  }
 
   if (anonymousFolders.length > 0) {
     await db.folders.bulkPut(

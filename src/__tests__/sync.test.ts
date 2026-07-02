@@ -19,7 +19,12 @@ const fakeClient = {
             const data = (cloud[table] as Array<{ owner_id: string }>).filter(
               (row) => row.owner_id === value
             );
-            return Promise.resolve({ data, error: null });
+            // Thenable like the real PostgREST builder, with `.limit()` support.
+            return Object.assign(Promise.resolve({ data, error: null }), {
+              limit(count: number) {
+                return Promise.resolve({ data: data.slice(0, count), error: null });
+              },
+            });
           },
         };
       },
@@ -330,5 +335,65 @@ describe("reconcileWorkspace() anonymous claim", () => {
     expect(localSnippet?.ownerId).toBe(USER);
     expect(localSnippet?.dirty).toBe(false);
     expect(localSnippet?.lastSyncedAt).not.toBeNull();
+  });
+
+  it("discards an untouched seed instead of claiming it when the account already has cloud content", async () => {
+    // The account was used before: a returning sign-in, not a new user.
+    const existing = makeSnippet();
+    cloud.snippets = [cloudSnippet(existing)];
+
+    const seedFolder = makeFolder({ ownerId: null, dirty: false, lastSyncedAt: null });
+    const seedSnippet = makeSnippet({
+      ownerId: null,
+      dirty: false,
+      lastSyncedAt: null,
+      folderId: seedFolder.id,
+    });
+    await db.folders.add(seedFolder);
+    await db.snippets.add(seedSnippet);
+
+    await reconcileWorkspace(USER);
+
+    // The seed never reaches the cloud and is gone locally too.
+    expect(cloud.folders.find((row) => row.id === seedFolder.id)).toBeUndefined();
+    expect(cloud.snippets.find((row) => row.id === seedSnippet.id)).toBeUndefined();
+    expect(await db.folders.get(seedFolder.id)).toBeUndefined();
+    expect(await db.snippets.get(seedSnippet.id)).toBeUndefined();
+
+    // The existing cloud content is pulled down as usual.
+    expect(await db.snippets.get(existing.id)).toBeDefined();
+  });
+
+  it("keeps the seed folder when it holds real anonymous work, discarding only pristine records", async () => {
+    const existing = makeSnippet();
+    cloud.snippets = [cloudSnippet(existing)];
+
+    const seedFolder = makeFolder({ ownerId: null, dirty: false, lastSyncedAt: null });
+    const seedSnippet = makeSnippet({
+      ownerId: null,
+      dirty: false,
+      lastSyncedAt: null,
+      folderId: seedFolder.id,
+    });
+    // The user edited/created this one while anonymous, so it is dirty.
+    const editedSnippet = makeSnippet({
+      ownerId: null,
+      dirty: true,
+      lastSyncedAt: null,
+      folderId: seedFolder.id,
+    });
+    await db.folders.add(seedFolder);
+    await db.snippets.bulkAdd([seedSnippet, editedSnippet]);
+
+    await reconcileWorkspace(USER);
+
+    // The pristine seed snippet is dropped, but the folder survives (it still
+    // holds real work) and is claimed together with the edited snippet.
+    expect(await db.snippets.get(seedSnippet.id)).toBeUndefined();
+    expect(cloud.snippets.find((row) => row.id === seedSnippet.id)).toBeUndefined();
+
+    expect(cloud.folders.find((row) => row.id === seedFolder.id)?.owner_id).toBe(USER);
+    expect(cloud.snippets.find((row) => row.id === editedSnippet.id)?.owner_id).toBe(USER);
+    expect((await db.snippets.get(editedSnippet.id))?.ownerId).toBe(USER);
   });
 });

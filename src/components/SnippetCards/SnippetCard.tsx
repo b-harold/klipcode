@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, RotateCcw, Scissors, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 import type { Dictionary } from "@/i18n";
 import type { SnippetRecord } from "@/lib/types";
@@ -198,13 +198,6 @@ export function SnippetCard({
     onUnpinAside?.();
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onSelect();
-    }
-  };
-
   const openMenuAt = (x: number, y: number) => setMenuAnchor({ x, y });
 
   const handleMoreClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -244,12 +237,8 @@ export function SnippetCard({
 
   return (
     <article
-      role="button"
-      tabIndex={0}
       data-snippet-card=""
       draggable={canDrag}
-      onClick={onSelect}
-      onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
       onDragStart={canDrag ? (e) => {
         drag.startDrag("snippet", snippet.id, isTrash ? "trash" : "workspace");
@@ -257,7 +246,7 @@ export function SnippetCard({
       } : undefined}
       onDragEnd={canDrag ? () => drag.endDrag() : undefined}
       className={cn(
-        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-ink/[0.06] bg-surface transition-colors hover:border-ink/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20 cursor-pointer",
+        "group relative flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-ink/[0.06] bg-surface transition-colors hover:border-ink/[0.12] hover:bg-surface-hover has-[[data-card-open]:focus-visible]:ring-2 has-[[data-card-open]:focus-visible]:ring-ink/20 cursor-pointer",
         canDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "active:cursor-grabbing"),
         className,
       )}
@@ -280,11 +269,19 @@ export function SnippetCard({
               className="min-w-0 flex-1 rounded bg-ink/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
             />
           ) : (
-            <TruncateTooltip text={displayName} className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" placement="bottom" />
+            <button
+              type="button"
+              data-card-open=""
+              onClick={onSelect}
+              aria-label={displayName}
+              className="min-w-0 flex-1 text-left outline-none focus-visible:outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']"
+            >
+              <TruncateTooltip text={displayName} className="relative z-10 block truncate text-sm font-medium text-foreground" placement="bottom" />
+            </button>
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="relative z-10 flex items-center gap-1">
           {/* Unpin-from-home button (home view) */}
           {onUnpinHome && snippet.isPinnedHome && (
             <Tooltip content={cm.unpinHome} placement="bottom">
@@ -345,7 +342,7 @@ export function SnippetCard({
         </div>
       </div>
 
-      <div className="relative overflow-hidden px-1 pb-1">
+      <div className="pointer-events-none relative overflow-hidden px-1 pb-1">
         <div className="max-h-[140px] overflow-hidden rounded-lg border border-ink/[0.04] bg-[var(--code-surface)] px-3 py-2 font-mono text-[12px] leading-5 text-ink/90">
           <div className="pointer-events-none select-none text-ink/40">
             {previewLines.map((line, index) => (
@@ -362,7 +359,7 @@ export function SnippetCard({
       </div>
 
       {folderName && (
-        <div className="mt-auto flex justify-end px-4 pb-4 pt-1">
+        <div className="pointer-events-none relative z-10 mt-auto flex justify-end px-4 pb-4 pt-1">
           <button
             type="button"
             onClick={(e) => {
@@ -370,7 +367,7 @@ export function SnippetCard({
               onNavigateFolder?.();
             }}
             className={cn(
-              "flex items-center gap-1.5 rounded-md border border-ink/[0.05] bg-ink/[0.02] px-2 py-1 text-[11px] font-medium text-muted transition-all",
+              "pointer-events-auto flex items-center gap-1.5 rounded-md border border-ink/[0.05] bg-ink/[0.02] px-2 py-1 text-[11px] font-medium text-muted transition-all",
               onNavigateFolder ? "hover:border-ink/[0.1] hover:bg-ink/[0.06] hover:text-foreground" : "cursor-default",
             )}
           >

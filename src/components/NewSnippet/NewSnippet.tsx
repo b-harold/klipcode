@@ -20,6 +20,10 @@ interface NewSnippetProps {
   codeWrap?: boolean;
   /** Bumped when a keyboard shortcut opens this form; focuses the title field. */
   focusNonce?: number;
+  /** When rendered inside a host surface (e.g. the create-snippet modal), drop
+   *  the card chrome (rounded border) so the form attaches flush to the host's
+   *  header separator. */
+  embedded?: boolean;
   onCreateSnippet: (data: {
     title: string;
     language: string;
@@ -35,6 +39,7 @@ export function NewSnippet({
   defaultLanguage = DEFAULT_LANGUAGE,
   codeWrap = false,
   focusNonce = 0,
+  embedded = false,
   onCreateSnippet,
 }: NewSnippetProps) {
   const [title, setTitle] = useState("");
@@ -116,7 +121,7 @@ export function NewSnippet({
   }
 
   return (
-    <section className="rounded-xl border border-ink/[0.06] bg-surface">
+    <section className={embedded ? "bg-surface" : "rounded-xl border border-ink/[0.06] bg-surface"}>
       <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown}>
         {/* Title + Language row */}
         <div className="flex flex-col gap-3 border-b border-ink/[0.06] px-4 py-3 sm:flex-row sm:items-center">

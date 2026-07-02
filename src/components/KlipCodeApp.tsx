@@ -26,6 +26,8 @@ import { AccountToast } from "@/components/AccountToast/AccountToast";
 import { CopyToast } from "@/components/CopyToast/CopyToast";
 import { Aside } from "@/components/Aside/Aside";
 import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
+import { CreateSnippetModal } from "@/components/CreateSnippetModal/CreateSnippetModal";
+import { CreatedSnippetToast } from "@/components/CreatedSnippetToast/CreatedSnippetToast";
 import { DragProvider } from "@/components/DragContext";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
@@ -130,9 +132,21 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [copyNonce, setCopyNonce] = useState(0);
-  const [newSnippetFocusNonce, setNewSnippetFocusNonce] = useState(0);
-  const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
   const [pendingEmptyTrash, setPendingEmptyTrash] = useState(false);
+
+  /* ── Create-snippet modal + "open it?" toast ─────────────────────────── */
+
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createModalFolderId, setCreateModalFolderId] = useState<string | null>(null);
+  const [createModalFocusNonce, setCreateModalFocusNonce] = useState(0);
+  const [createdSnippetId, setCreatedSnippetId] = useState<string | null>(null);
+  const [createdSnippetNonce, setCreatedSnippetNonce] = useState(0);
+
+  function openCreateModal(folderId: string | null) {
+    setCreateModalFolderId(folderId);
+    setCreateModalOpen(true);
+    setCreateModalFocusNonce((n) => n + 1);
+  }
 
   /* ── Workspace data ───────────────────────────────────────────────────── */
 
@@ -218,15 +232,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       ? preferences.defaultFolderId
       : null;
 
-  // Until a context-menu/shortcut requests a specific folder, the creator uses
-  // the preferred default.
-  const newSnippetDefaultFolderId = defaultNewSnippetFolderId ?? preferredDefaultFolderId;
-
-  function handleNewSnippetAt(folderId: string | null) {
-    navigate(base);
-    setDefaultNewSnippetFolderId(folderId);
-  }
-
   function handleChangeLocale(next: Locale) {
     if (next === locale) {
       setPrefsOpen(false);
@@ -244,8 +249,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     onToggleSearch: () => setSearchOpen((v) => !v),
     onToggleHelp: () => setHelpOpen((v) => !v),
     onNewSnippet: () => {
-      handleNewSnippetAt(selectedFolderId ?? preferredDefaultFolderId);
-      setNewSnippetFocusNonce((n) => n + 1);
+      openCreateModal(selectedFolderId ?? preferredDefaultFolderId);
     },
     onCopyCurrent: () => {
       if (!selectedSnippet) return;
@@ -256,7 +260,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     onToggleSidebar: () => setSidebarOpen((v) => !v),
     onCloseEditor: () => navigate(base),
     hasOpenSnippet: !!selectedSnippet,
-    overlayOpen: searchOpen || helpOpen || prefsOpen || pendingEmptyTrash,
+    overlayOpen: searchOpen || helpOpen || prefsOpen || pendingEmptyTrash || createModalOpen,
   });
 
   const menuButton = !sidebarOpen ? (
@@ -335,7 +339,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onOpenShortcuts={() => setHelpOpen(true)}
         onOpenPreferences={() => setPrefsOpen(true)}
         onGoSpace={() => navigate(`${base}?folder=${SPACE_ROOT_ID}`)}
-        onCreateSnippetInline={mutations.handleCreateSnippetInline}
+        onOpenCreateModal={openCreateModal}
         onCreateFolder={mutations.handleCreateFolder}
         onDeleteFolder={mutations.handleDeleteFolder}
         onDeleteSnippet={mutations.handleDeleteSnippet}
@@ -457,7 +461,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             onDeleteMany={mutations.handleDeleteMany}
             onPaste={mutations.handlePaste}
             onCreateFolder={mutations.handleCreateFolder}
-            onCreateSnippetInline={mutations.handleCreateSnippetInline}
+            onOpenCreateModal={openCreateModal}
             menuButton={menuButton}
           />
         ) : (
@@ -471,10 +475,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
               <NewSnippet
                 copy={copy}
                 folders={folders}
-                defaultFolderId={newSnippetDefaultFolderId}
+                defaultFolderId={preferredDefaultFolderId}
                 defaultLanguage={preferences.defaultLanguage}
                 codeWrap={preferences.codeWrap}
-                focusNonce={newSnippetFocusNonce}
                 onCreateSnippet={mutations.handleCreateSnippet}
               />
 
@@ -525,6 +528,34 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     )}
 
     <CopyToast nonce={copyNonce} message={copy.snippetEditor.codeCopied} />
+
+    {createModalOpen && (
+      <CreateSnippetModal
+        copy={copy}
+        folders={folders}
+        defaultFolderId={createModalFolderId}
+        defaultLanguage={preferences.defaultLanguage}
+        codeWrap={preferences.codeWrap}
+        focusNonce={createModalFocusNonce}
+        onClose={() => setCreateModalOpen(false)}
+        onCreateSnippet={async (data) => {
+          const id = await mutations.handleCreateSnippet(data);
+          setCreateModalOpen(false);
+          if (id) {
+            setCreatedSnippetId(id);
+            setCreatedSnippetNonce((n) => n + 1);
+          }
+          return id;
+        }}
+      />
+    )}
+
+    <CreatedSnippetToast
+      nonce={createdSnippetNonce}
+      snippetId={createdSnippetId}
+      copy={copy}
+      onOpen={(id) => navigate(`${base}?snippet=${id}`)}
+    />
 
     {pendingEmptyTrash && (
       <ConfirmDialog

@@ -17,7 +17,6 @@ import { AsideHeader } from "./AsideHeader";
 import { FolderNode } from "./FolderNode";
 import { SnippetNode } from "./SnippetNode";
 import { NewFolderInput } from "./NewFolderInput";
-import { NewSnippetInput } from "./NewSnippetInput";
 import { useContextMenuGroups } from "./useContextMenuGroups";
 import { GitHubIcon } from "./GitHubIcon";
 
@@ -35,7 +34,7 @@ export function Aside({
   onOpenShortcuts,
   onOpenPreferences,
   onGoSpace,
-  onCreateSnippetInline,
+  onOpenCreateModal,
   onCreateFolder,
   onDeleteFolder,
   onDeleteSnippet,
@@ -66,9 +65,6 @@ export function Aside({
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [creatingFolderParentId, setCreatingFolderParentId] = useState<
-    string | null | undefined
-  >(undefined);
-  const [creatingSnippetFolderId, setCreatingSnippetFolderId] = useState<
     string | null | undefined
   >(undefined);
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
@@ -155,7 +151,7 @@ export function Aside({
     onCopy,
     setRenamingId,
     setCreatingFolderParentId,
-    setCreatingSnippetFolderId,
+    onOpenCreateModal,
     selectedIds,
     getSelectedItems,
     clearSelection,
@@ -167,7 +163,6 @@ export function Aside({
     copy,
     renamingId,
     creatingFolderParentId,
-    creatingSnippetFolderId,
     openMenu: (target) => setMenuTarget(target),
     beginRename: (id) => setRenamingId(id),
     submitFolderRename: (id, value) => {
@@ -186,12 +181,6 @@ export function Aside({
     submitCreateFolder: (parentId, name) => {
       void onCreateFolder(parentId, name);
       setCreatingFolderParentId(undefined);
-    },
-    beginCreateSnippet: (folderId) => setCreatingSnippetFolderId(folderId),
-    cancelCreateSnippet: () => setCreatingSnippetFolderId(undefined),
-    submitCreateSnippet: (folderId, title) => {
-      void onCreateSnippetInline(folderId, title);
-      setCreatingSnippetFolderId(undefined);
     },
     selectSnippet: onSelectSnippet,
     selectFolder: (id: string) => onSelectFolder?.(id),
@@ -366,7 +355,7 @@ export function Aside({
                   <button
                     type="button"
                     aria-label={copy.aside.addSnippet}
-                    onClick={() => setCreatingSnippetFolderId(null)}
+                    onClick={() => onOpenCreateModal(null)}
                     className="rounded p-1 text-ink/30 transition-colors hover:bg-ink/6 hover:text-muted"
                   >
                     <FilePlus size={13} />
@@ -398,15 +387,12 @@ export function Aside({
                 setMenuTarget({ type: "root", x: e.clientX, y: e.clientY });
               }}
             >
-              {isEmpty && creatingFolderParentId === undefined && creatingSnippetFolderId === undefined ? (
+              {isEmpty && creatingFolderParentId === undefined ? (
                 <p className="px-3 pt-1 text-xs text-ink/20">{copy.aside.emptySpace}</p>
               ) : (
                 <div>
                   {creatingFolderParentId === null && (
                     <NewFolderInput depth={0} parentId={null} />
-                  )}
-                  {creatingSnippetFolderId === null && (
-                    <NewSnippetInput depth={0} folderId={null} />
                   )}
                   {pinnedFolders.map((folder) => (
                     <FolderNode key={folder.id} folder={folder} folders={folders} snippets={snippets} depth={0} />

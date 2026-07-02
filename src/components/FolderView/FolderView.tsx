@@ -12,8 +12,6 @@ import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 import { ViewHeader, EmptyState, CardSection } from "@/components/ViewShell/ViewShell";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
-import { LanguageIcon } from "@/ui/LanguageIcon";
-import { detectLanguageFromTitle } from "@/lib/constants/languages";
 import { useDragCtx } from "@/components/DragContext";
 import { FolderCard } from "./FolderCard";
 import { getFolderPath, buildSnippetCountMap, buildSubFolderCountMap } from "./utils";
@@ -42,7 +40,7 @@ export interface FolderViewProps {
   onDeleteMany?: (items: SelectedItem[]) => Promise<void>;
   onPaste?: (targetFolderId: string | null) => Promise<void>;
   onCreateFolder?: (parentId: string | null, name: string) => Promise<void>;
-  onCreateSnippetInline?: (folderId: string | null, title: string) => Promise<void>;
+  onOpenCreateModal?: (folderId: string | null) => void;
   menuButton?: ReactNode;
 }
 
@@ -66,13 +64,13 @@ export function FolderView({
   onDeleteMany,
   onPaste,
   onCreateFolder,
-  onCreateSnippetInline,
+  onOpenCreateModal,
   menuButton,
 }: FolderViewProps) {
   const drag = useDragCtx();
 
-  // Inline creation (folder/snippet) + right-click context menu on the canvas.
-  const [creating, setCreating] = useState<"folder" | "snippet" | null>(null);
+  // Inline folder creation + right-click context menu on the canvas.
+  const [creating, setCreating] = useState<"folder" | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
   const isRootSpace = folderId === SPACE_ROOT_ID;
@@ -249,7 +247,7 @@ export function FolderView({
       ];
 
   const hasPaste = !!clipboard;
-  const canCreate = !!onCreateFolder || !!onCreateSnippetInline;
+  const canCreate = !!onCreateFolder || !!onOpenCreateModal;
 
   // Right-click on the empty canvas (cards stop propagation) opens a quick menu
   // mirroring the header actions: create here or paste into this folder.
@@ -259,8 +257,8 @@ export function FolderView({
         ...(onCreateFolder
           ? [{ id: "new-folder", label: copy.contextMenu.newFolder, Icon: FolderPlus, onClick: () => setCreating("folder") }]
           : []),
-        ...(onCreateSnippetInline
-          ? [{ id: "new-snippet", label: copy.contextMenu.newSnippet, Icon: FilePlus, onClick: () => setCreating("snippet") }]
+        ...(onOpenCreateModal
+          ? [{ id: "new-snippet", label: copy.contextMenu.newSnippet, Icon: FilePlus, onClick: () => onOpenCreateModal(parentKey) }]
           : []),
       ],
     },
@@ -317,10 +315,10 @@ export function FolderView({
                       {copy.forms.folderTitle}
                     </button>
                   )}
-                  {onCreateSnippetInline && (
+                  {onOpenCreateModal && (
                     <button
                       type="button"
-                      onClick={() => setCreating("snippet")}
+                      onClick={() => onOpenCreateModal(parentKey)}
                       className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.08] px-3 py-1.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/25 hover:bg-ink/[0.12] hover:text-ink sm:flex-initial"
                     >
                       <FilePlus size={14} className="opacity-80" />
@@ -335,13 +333,11 @@ export function FolderView({
           {/* ── Inline create input ────────────────────────────────────────── */}
           {creating && (
             <InlineCreate
-              type={creating}
               copy={copy}
               onCancel={() => setCreating(null)}
               onCommit={(value) => {
                 setCreating(null);
-                if (creating === "folder") void onCreateFolder?.(parentKey, value);
-                else void onCreateSnippetInline?.(parentKey, value);
+                void onCreateFolder?.(parentKey, value);
               }}
             />
           )}
@@ -456,12 +452,10 @@ export function FolderView({
 /* ─────────────────────────── InlineCreate ────────────────────────────────── */
 
 function InlineCreate({
-  type,
   copy,
   onCommit,
   onCancel,
 }: {
-  type: "folder" | "snippet";
   copy: Dictionary;
   onCommit: (value: string) => void;
   onCancel: () => void;
@@ -479,22 +473,9 @@ function InlineCreate({
     else onCancel();
   }
 
-  const placeholder = type === "folder" ? copy.forms.folderName : copy.forms.snippetNamePlaceholder;
-
-  // Live-detect the language from the typed name so the icon mirrors the
-  // extension as you type (VS Code-style), like the rest of the app. Falls back
-  // to the generic code icon until a recognized extension appears.
-  const detected = type === "snippet" ? detectLanguageFromTitle(value) : null;
-
   return (
     <div className="flex items-center gap-2.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-2">
-      {type === "folder" ? (
-        <Folder size={15} className="shrink-0 text-ink/30" />
-      ) : detected ? (
-        <LanguageIcon language={detected} size={15} className="shrink-0" />
-      ) : (
-        <FileCode2 size={15} className="shrink-0 text-ink/30" />
-      )}
+      <Folder size={15} className="shrink-0 text-ink/30" />
       <input
         ref={inputRef}
         type="text"
@@ -506,7 +487,7 @@ function InlineCreate({
           if (e.key === "Enter") commit();
           if (e.key === "Escape") onCancel();
         }}
-        placeholder={placeholder}
+        placeholder={copy.forms.folderName}
         className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-ink/25 outline-none"
       />
     </div>

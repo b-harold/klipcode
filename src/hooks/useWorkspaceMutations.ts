@@ -4,7 +4,6 @@ import { db, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
 import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord, SyncStatus } from "@/lib/types";
 import { isDescendantOrSelf } from "@/components/Aside/utils";
-import { DEFAULT_LANGUAGE, detectLanguageFromTitle, normalizeTitleExtension } from "@/lib/constants/languages";
 import { resolveSnippetRename } from "@/lib/utils";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import type { Dictionary } from "@/i18n";
@@ -73,7 +72,7 @@ export function useWorkspaceMutations({
     language: string;
     folderId: string;
     code: string;
-  }) {
+  }): Promise<string | undefined> {
     if (!data.code.trim()) return;
 
     const snippetId = crypto.randomUUID();
@@ -98,6 +97,7 @@ export function useWorkspaceMutations({
     setSnippetStatus(snippetId, "editing");
     refreshWorkspace();
     syncAfterMutation(snippetId);
+    return snippetId;
   }
 
   /** Resolve a "/"-separated chain of folder names under `startParentId`,
@@ -137,66 +137,6 @@ export function useWorkspaceMutations({
     }
     if (newFolders.length > 0) await db.folders.bulkPut(newFolders);
     return parentId;
-  }
-
-  /** Create a single empty snippet from a filename-style title, then select it. */
-  async function createSnippetRecord(
-    folderId: string | null,
-    title: string,
-    timestamp: string
-  ) {
-    const snippetId = crypto.randomUUID();
-
-    await db.snippets.put({
-      id: snippetId,
-      ownerId: user?.id ?? null,
-      folderId: folderId ?? null,
-      title: normalizeTitleExtension(title) || copy.snippetCard.untitled,
-      // Infer the syntax from a filename-style title (e.g. `style.css`) so the
-      // user doesn't have to pick a language manually; fall back to the default.
-      language: detectLanguageFromTitle(title) ?? DEFAULT_LANGUAGE,
-      code: "",
-      isPinnedAside: false,
-      isPinnedHome: false,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      dirty: true,
-      lastSyncedAt: null,
-      deletedAt: null,
-    });
-
-    setSnippetStatus(snippetId, "editing");
-    refreshWorkspace();
-    setSelectedSnippetId(snippetId);
-    syncAfterMutation(snippetId);
-  }
-
-  async function handleCreateSnippetInline(folderId: string | null, title: string) {
-    const timestamp = new Date().toISOString();
-    const start = folderId ?? null;
-
-    // VS Code-style path: `scripts/index.js` creates the `scripts` folder (and
-    // any missing intermediates) then the file inside it. A trailing slash
-    // (`scripts/js/`) means the whole path is folders, with no file created.
-    const hasTrailingSlash = /\/\s*$/.test(title);
-    const segments = splitPath(title);
-
-    if (hasTrailingSlash || segments.length > 1) {
-      const fileSegment = hasTrailingSlash ? null : segments[segments.length - 1];
-      const folderSegments = hasTrailingSlash ? segments : segments.slice(0, -1);
-      const parentId = await ensureFolderPath(folderSegments, start, timestamp);
-
-      if (!fileSegment) {
-        refreshWorkspace();
-        if (user && supabaseConfigured) scheduleCloudSync();
-        return;
-      }
-
-      await createSnippetRecord(parentId, fileSegment, timestamp);
-      return;
-    }
-
-    await createSnippetRecord(start, title, timestamp);
   }
 
   async function handleUpdateSnippet(
@@ -830,7 +770,6 @@ export function useWorkspaceMutations({
 
   return {
     handleCreateSnippet,
-    handleCreateSnippetInline,
     handleUpdateSnippet,
     handleDeleteSnippet,
     handleRestoreSnippet,

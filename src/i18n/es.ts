@@ -44,6 +44,9 @@ export const es = {
     title: "KlipCode",
     subtitle: "Gestor de snippets multidispositivo.",
   },
+  common: {
+    close: "Cerrar",
+  },
   auth: {
     statusLabel: "Estado de sesión",
     signedIn: "Sesión iniciada",
@@ -78,6 +81,8 @@ export const es = {
     snippetCodePlaceholder: "Escribe o pega tu codigo aqui...",
     submitFolder: "Crear carpeta",
     submitSnippet: "Crear snippet",
+    snippetCreated: "Snippet creado",
+    open: "Abrir",
   },
   workspace: {
     loading: "Cargando contenido local...",

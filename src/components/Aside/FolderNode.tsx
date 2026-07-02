@@ -7,7 +7,6 @@ import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
 import { NewFolderInput } from "./NewFolderInput";
-import { NewSnippetInput } from "./NewSnippetInput";
 import { SnippetNode } from "./SnippetNode";
 import { STEP, sortByPinThenAlpha } from "./utils";
 
@@ -27,7 +26,6 @@ export function FolderNode({
 
   const isRenaming = ctx.renamingId === folder.id;
   const isCreatingHere = ctx.creatingFolderParentId === folder.id;
-  const isCreatingSnippetHere = ctx.creatingSnippetFolderId === folder.id;
 
   const childFolders = sortByPinThenAlpha(
     folders.filter((f) => f.parentId === folder.id),
@@ -40,12 +38,12 @@ export function FolderNode({
 
   const prevCreating = useRef(false);
   useEffect(() => {
-    // Intentional: auto-expand this folder the moment inline creation starts
-    // here. A synchronize-on-transition effect, guarded by the prev-state ref.
+    // Intentional: auto-expand this folder the moment inline folder creation
+    // starts here. A synchronize-on-transition effect, guarded by the prev ref.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if ((isCreatingHere || isCreatingSnippetHere) && !prevCreating.current) setIsOpen(true);
-    prevCreating.current = isCreatingHere || isCreatingSnippetHere;
-  }, [isCreatingHere, isCreatingSnippetHere]);
+    if (isCreatingHere && !prevCreating.current) setIsOpen(true);
+    prevCreating.current = isCreatingHere;
+  }, [isCreatingHere]);
 
   function openContextMenu(e: React.MouseEvent) {
     e.preventDefault();
@@ -80,7 +78,7 @@ export function FolderNode({
     isDropTarget ? "bg-ink/[0.07] text-foreground ring-1 ring-inset ring-ink/[0.18]" : "",
   ].filter(Boolean).join(" ");
   const hasChildren = childFolders.length > 0 || childSnippets.length > 0;
-  const isAnyCreatingHere = isCreatingHere || isCreatingSnippetHere;
+  const isAnyCreatingHere = isCreatingHere;
 
   return (
     <div>
@@ -214,9 +212,6 @@ export function FolderNode({
           )}
           {isCreatingHere && (
             <NewFolderInput depth={depth + 1} parentId={folder.id} />
-          )}
-          {isCreatingSnippetHere && (
-            <NewSnippetInput depth={depth + 1} folderId={folder.id} />
           )}
           {childFolders.map((child) => (
             <FolderNode

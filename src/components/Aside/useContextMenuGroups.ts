@@ -32,7 +32,7 @@ interface UseContextMenuGroupsArgs {
   onCopy: (entry: ClipboardEntry) => void;
   setRenamingId: (id: string | null) => void;
   setCreatingFolderParentId: (id: string | null | undefined) => void;
-  setCreatingSnippetFolderId: (id: string | null | undefined) => void;
+  onOpenCreateModal: (folderId: string | null) => void;
   /** Ids in the current multi-selection — drives whether a row's menu acts on the
    *  whole set or just that row. */
   selectedIds: ReadonlySet<string>;
@@ -57,7 +57,7 @@ export function useContextMenuGroups({
   onCopy,
   setRenamingId,
   setCreatingFolderParentId,
-  setCreatingSnippetFolderId,
+  onOpenCreateModal,
   selectedIds,
   getSelectedItems,
   clearSelection,
@@ -94,7 +94,7 @@ export function useContextMenuGroups({
                 id: "new-snippet",
                 label: cm.newSnippet,
                 Icon: FilePlus,
-                onClick: () => setCreatingSnippetFolderId(null),
+                onClick: () => onOpenCreateModal(null),
               },
             ],
           },
@@ -137,7 +137,7 @@ export function useContextMenuGroups({
                 id: "new-snippet",
                 label: cm.newSnippet,
                 Icon: FilePlus,
-                onClick: () => setCreatingSnippetFolderId(id),
+                onClick: () => onOpenCreateModal(id),
               },
             ],
           },
@@ -232,6 +232,6 @@ export function useContextMenuGroups({
 
       return [];
     },
-    [clipboard, copy.contextMenu, folders, snippets, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onDeleteMany, onCut, onCopy, setRenamingId, setCreatingFolderParentId, setCreatingSnippetFolderId, selectedIds, getSelectedItems, clearSelection],
+    [clipboard, copy.contextMenu, folders, snippets, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onDeleteMany, onCut, onCopy, setRenamingId, setCreatingFolderParentId, onOpenCreateModal, selectedIds, getSelectedItems, clearSelection],
   );
 }

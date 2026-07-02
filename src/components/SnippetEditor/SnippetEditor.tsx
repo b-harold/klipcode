@@ -155,12 +155,10 @@ export function SnippetEditor({
   const [showPreview, setShowPreview] = useState(isMarkdown && markdownPreviewByDefault);
 
   const handleTogglePreview = useCallback(() => {
-    setShowPreview((prev) => {
-      const next = !prev;
-      onMarkdownPreviewChange?.(next);
-      return next;
-    });
-  }, [onMarkdownPreviewChange]);
+    const next = !showPreview;
+    setShowPreview(next);
+    onMarkdownPreviewChange?.(next);
+  }, [showPreview, onMarkdownPreviewChange]);
 
   // Per-field debounce timers
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

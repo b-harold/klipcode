@@ -344,6 +344,109 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23cccccc'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M10.072 8.024L5.715 3.667l.618-.62L11 7.716v.618L6.333 13l-.618-.619 4.357-4.357z'/%3E%3C/svg%3E");
 }
 
+/* ─── Autocomplete popup (VS Code-style suggest widget) ──────────────────────
+   The tooltip lives inside .cm-editor, so it inherits the code font. Panel
+   chrome comes from the shared elevated-surface tokens; symbol icon colors
+   approximate VS Code's codicon palette in both themes. */
+.cm-tooltip.cm-tooltip-autocomplete {
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--panel-border) !important;
+  border-radius: 8px;
+  box-shadow: var(--popover-shadow);
+  overflow: hidden;
+  padding: 3px;
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul {
+  font-family: inherit !important;
+  font-size: 12px !important;
+  max-height: 16em !important;
+  min-width: 14em;
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul > li {
+  display: flex !important;
+  align-items: center;
+  padding: 2.5px 8px 2.5px 5px !important;
+  border-radius: 5px;
+  color: rgba(var(--ink-rgb), 0.72);
+  line-height: 1.4;
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: rgba(var(--ink-rgb), 0.08) !important;
+  color: var(--ink) !important;
+}
+
+/* Letters that match what's typed — VS Code's blue highlight */
+.cm-tooltip-autocomplete .cm-completionMatchedText {
+  text-decoration: none !important;
+  color: #4fc1ff;
+  font-weight: 600;
+}
+
+:root[data-theme="light"] .cm-tooltip-autocomplete .cm-completionMatchedText {
+  color: #0066bf;
+}
+
+/* Optional signature/detail text after the label */
+.cm-tooltip-autocomplete .cm-completionDetail {
+  color: rgba(var(--ink-rgb), 0.4);
+  font-style: normal !important;
+  margin-left: 0.8em;
+}
+
+/* Symbol icons: keep the library's glyphs, recolored per type like VS Code */
+.cm-tooltip-autocomplete .cm-completionIcon {
+  flex: none;
+  width: 1.2em;
+  margin-right: 7px;
+  opacity: 1 !important;
+  text-align: center;
+  color: rgba(var(--ink-rgb), 0.45);
+}
+
+/* The default keyword glyph is a key emoji — swap it for a plain marker */
+.cm-completionIcon-keyword::after {
+  content: "k" !important;
+}
+
+.cm-completionIcon-function::after,
+.cm-completionIcon-method::after {
+  color: #b180d7;
+}
+
+.cm-completionIcon-variable::after,
+.cm-completionIcon-property::after,
+.cm-completionIcon-interface::after {
+  color: #75beff;
+}
+
+.cm-completionIcon-class::after,
+.cm-completionIcon-type::after,
+.cm-completionIcon-enum::after,
+.cm-completionIcon-constant::after {
+  color: #ee9d28;
+}
+
+:root[data-theme="light"] .cm-completionIcon-function::after,
+:root[data-theme="light"] .cm-completionIcon-method::after {
+  color: #652d90;
+}
+
+:root[data-theme="light"] .cm-completionIcon-variable::after,
+:root[data-theme="light"] .cm-completionIcon-property::after,
+:root[data-theme="light"] .cm-completionIcon-interface::after {
+  color: #007acc;
+}
+
+:root[data-theme="light"] .cm-completionIcon-class::after,
+:root[data-theme="light"] .cm-completionIcon-type::after,
+:root[data-theme="light"] .cm-completionIcon-enum::after,
+:root[data-theme="light"] .cm-completionIcon-constant::after {
+  color: #a35b00;
+}
+
 /* ─── Markdown WYSIWYG editor (TipTap / ProseMirror) ─────────────────────────
    Notion-like document styling for the rich Markdown view. Built from the theme
    "ink" tokens so it flips with light/dark automatically. The editor root carries

@@ -51,3 +51,33 @@ export function buildPageMetadata({
     },
   };
 }
+
+/**
+ * JSON-LD `WebApplication` schema for the landing page. Free (price 0) local-first
+ * web app — eligible for rich results in Search.
+ */
+export function buildWebApplicationJsonLd({
+  locale,
+  name,
+  description,
+}: {
+  locale: Locale;
+  name: string;
+  description: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name,
+    description,
+    url: `${siteUrl}${localeHref(locale)}`,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Web",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    inLanguage: locale,
+  };
+}

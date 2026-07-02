@@ -5,46 +5,47 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://klipcode.com";
 
 const url = (path: string) => `${siteUrl}${path}`;
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
+// lastmod only carries weight with Google when it actually reflects real
+// content changes — a fresh `new Date()` on every build/request makes Google
+// ignore it. Bump this constant when the indexed pages meaningfully change.
+const LAST_UPDATED = new Date("2026-07-02");
 
+const languages = (path: string) => ({
+  en: url(localeHref("en", path)),
+  es: url(localeHref("es", path)),
+  "x-default": url(localeHref("en", path)),
+});
+
+export default function sitemap(): MetadataRoute.Sitemap {
   // English is prefix-less (localeHref("en", ...)); Spanish keeps /es.
   return [
     {
       url: url(localeHref("en")),
-      lastModified: now,
+      lastModified: LAST_UPDATED,
       changeFrequency: "monthly",
       priority: 1,
-      alternates: {
-        languages: { en: url(localeHref("en")), es: url(localeHref("es")) },
-      },
+      alternates: { languages: languages("") },
     },
     {
       url: url(localeHref("es")),
-      lastModified: now,
+      lastModified: LAST_UPDATED,
       changeFrequency: "monthly",
       priority: 1,
-      alternates: {
-        languages: { en: url(localeHref("en")), es: url(localeHref("es")) },
-      },
+      alternates: { languages: languages("") },
     },
     {
       url: url(localeHref("en", "/app")),
-      lastModified: now,
+      lastModified: LAST_UPDATED,
       changeFrequency: "weekly",
       priority: 0.8,
-      alternates: {
-        languages: { en: url(localeHref("en", "/app")), es: url(localeHref("es", "/app")) },
-      },
+      alternates: { languages: languages("/app") },
     },
     {
       url: url(localeHref("es", "/app")),
-      lastModified: now,
+      lastModified: LAST_UPDATED,
       changeFrequency: "weekly",
       priority: 0.8,
-      alternates: {
-        languages: { en: url(localeHref("en", "/app")), es: url(localeHref("es", "/app")) },
-      },
+      alternates: { languages: languages("/app") },
     },
   ];
 }

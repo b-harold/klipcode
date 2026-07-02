@@ -9,7 +9,7 @@ import { AppCtaLink } from "@/components/AppCtaLink";
 import { LandingHeroImage } from "@/components/LandingHeroImage";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { isLocale, localeHref, type Locale } from "@/lib/locale";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, buildWebApplicationJsonLd } from "@/lib/seo";
 import { Logo } from "@/ui/Logo";
 import { GitHubIcon } from "@/components/Aside/GitHubIcon";
 
@@ -101,6 +101,12 @@ export default async function LandingPage({
   const appHref = localeHref(loc, "/app");
   const altLocale: Locale = loc === "es" ? "en" : "es";
 
+  const jsonLd = buildWebApplicationJsonLd({
+    locale: loc,
+    name: "KlipCode",
+    description: t.meta.home.description,
+  });
+
   const features = [
     { icon: <IconBolt />, ...l.features.quickSave },
     { icon: <IconClipboard />, ...l.features.instantCopy },
@@ -112,6 +118,11 @@ export default async function LandingPage({
 
   return (
     <div className="relative min-h-full overflow-x-clip">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* ─── Grid background ──────────────────────────────────────────────── */}
       <div aria-hidden="true" className="landing-grid pointer-events-none absolute inset-0" />
 

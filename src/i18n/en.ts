@@ -413,7 +413,7 @@ export const en = {
         "Save, organize, and instantly copy your code snippets across every device. Local-first, works offline, no sign-up required. Optional GitHub sync keeps everything backed up.",
     },
     app: {
-      title: "Your Snippets",
+      title: "Snippet Manager App",
       description:
         "Your KlipCode workspace: create, organize, and copy code snippets instantly. Works fully offline, with optional GitHub cloud sync across devices.",
     },

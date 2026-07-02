@@ -414,7 +414,7 @@ export const es = {
         "Guarda, organiza y copia al instante tus fragmentos de código en todos tus dispositivos. Funciona sin conexión y sin necesidad de registro. Sincronización opcional con GitHub.",
     },
     app: {
-      title: "Tus Snippets",
+      title: "App de Snippets de Código",
       description:
         "Tu espacio de trabajo KlipCode: crea, organiza y copia fragmentos de código al instante. Funciona sin conexión, con sincronización opcional en la nube vía GitHub.",
     },

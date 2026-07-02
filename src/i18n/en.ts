@@ -296,6 +296,12 @@ export const en = {
       label: "Default language",
       description: "Pre-selected language when creating a snippet",
     },
+    codeWrap: {
+      label: "Long lines",
+      description: "Scroll horizontally or wrap onto the next line",
+      scroll: "Scroll",
+      wrap: "Wrap",
+    },
   },
   trash: {
     title: "Trash",

@@ -375,6 +375,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
               onUpdate={mutations.handleUpdateSnippet}
               markdownPreviewByDefault={preferences.markdownPreviewByDefault}
               defaultCodeLanguage={preferences.defaultLanguage}
+              codeWrap={preferences.codeWrap}
               onMarkdownPreviewChange={(open) =>
                 updatePreferences({ markdownPreviewByDefault: open })
               }
@@ -446,6 +447,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
                 folders={folders}
                 defaultFolderId={newSnippetDefaultFolderId}
                 defaultLanguage={preferences.defaultLanguage}
+                codeWrap={preferences.codeWrap}
                 focusNonce={newSnippetFocusNonce}
                 onCreateSnippet={mutations.handleCreateSnippet}
               />

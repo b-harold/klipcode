@@ -205,6 +205,22 @@ export function PreferencesDialog({
               />
             }
           />
+
+          {/* Long code lines: horizontal scroll vs soft wrap */}
+          <Row
+            title={t.codeWrap.label}
+            description={t.codeWrap.description}
+            control={
+              <Segmented<"scroll" | "wrap">
+                value={preferences.codeWrap ? "wrap" : "scroll"}
+                onChange={(value) => onChangePreferences({ codeWrap: value === "wrap" })}
+                options={[
+                  { value: "scroll", label: t.codeWrap.scroll },
+                  { value: "wrap", label: t.codeWrap.wrap },
+                ]}
+              />
+            }
+          />
         </div>
       </div>
     </div>,

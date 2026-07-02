@@ -107,6 +107,8 @@ export interface SnippetEditorProps {
   markdownPreviewByDefault?: boolean;
   /** User's default language, pre-selected on code blocks inserted in Markdown. */
   defaultCodeLanguage?: LanguageId;
+  /** Soft-wrap long code lines instead of scrolling horizontally. */
+  codeWrap?: boolean;
   /** Persisted when the user flips the preview/source toggle — the chosen side
    *  becomes the default side Markdown snippets open on. */
   onMarkdownPreviewChange?: (open: boolean) => void;
@@ -132,6 +134,7 @@ export function SnippetEditor({
   onUpdate,
   markdownPreviewByDefault = true,
   defaultCodeLanguage = "plaintext",
+  codeWrap = false,
   onMarkdownPreviewChange,
   menuButton,
   readOnly = false,
@@ -409,6 +412,7 @@ export function SnippetEditor({
             height="100%"
             fontSize={14}
             gutterBackground="var(--background)"
+            lineWrapping={codeWrap}
           />
         </div>
       )}

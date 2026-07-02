@@ -297,6 +297,12 @@ export const es = {
       label: "Lenguaje por defecto",
       description: "Lenguaje preseleccionado al crear un snippet",
     },
+    codeWrap: {
+      label: "Líneas largas",
+      description: "Scroll horizontal o ajustar a la línea siguiente",
+      scroll: "Scroll",
+      wrap: "Ajustar",
+    },
   },
   trash: {
     title: "Papelera",

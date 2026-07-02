@@ -16,6 +16,8 @@ interface NewSnippetProps {
   folders: FolderRecord[];
   defaultFolderId?: string | null;
   defaultLanguage?: LanguageId;
+  /** Soft-wrap long code lines instead of scrolling horizontally. */
+  codeWrap?: boolean;
   /** Bumped when a keyboard shortcut opens this form; focuses the title field. */
   focusNonce?: number;
   onCreateSnippet: (data: {
@@ -31,6 +33,7 @@ export function NewSnippet({
   folders,
   defaultFolderId,
   defaultLanguage = DEFAULT_LANGUAGE,
+  codeWrap = false,
   focusNonce = 0,
   onCreateSnippet,
 }: NewSnippetProps) {
@@ -144,6 +147,7 @@ export function NewSnippet({
             height="200px"
             fontSize={13}
             gutterBackground="var(--surface)"
+            lineWrapping={codeWrap}
           />
         </div>
 

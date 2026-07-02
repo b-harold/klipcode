@@ -1,8 +1,5 @@
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
-import { getDictionary } from "@/i18n";
-import { isLocale, localeHref } from "@/lib/locale";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const geistSans = Geist({
@@ -15,46 +12,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://klipcode.com";
-
 export async function generateStaticParams() {
   return [{ locale: "en" }, { locale: "es" }];
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  const { locale } = await params;
-  const loc = isLocale(locale) ? locale : "en";
-  const dict = getDictionary(loc);
-  const canonical = `${siteUrl}${localeHref(loc)}`;
-
-  return {
-    alternates: {
-      canonical,
-      languages: {
-        en: `${siteUrl}${localeHref("en")}`,
-        es: `${siteUrl}${localeHref("es")}`,
-        "x-default": `${siteUrl}${localeHref("en")}`,
-      },
-    },
-    openGraph: {
-      type: "website",
-      url: canonical,
-      title: `KlipCode — ${dict.app.subtitle}`,
-      description: dict.landing.hero.subtitle,
-      siteName: "KlipCode",
-      locale: loc === "es" ? "es_ES" : "en_US",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `KlipCode — ${dict.app.subtitle}`,
-      description: dict.landing.hero.subtitle,
-    },
-  };
-}
+// Canonical/hreflang and Open Graph/Twitter metadata are page-specific (they
+// must point at the page's own URL, not the locale root) so each page under
+// this layout defines its own via generateMetadata + buildPageMetadata.
 
 export default async function LocaleLayout({
   children,

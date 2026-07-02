@@ -400,6 +400,23 @@ export const es = {
     description: "Se ha producido un error inesperado. Puedes intentarlo de nuevo.",
     retry: "Reintentar",
   },
+  notFound: {
+    title: "Página no encontrada",
+    description: "La página que buscas no existe o ha sido movida.",
+    backHome: "Volver al inicio",
+  },
+  meta: {
+    home: {
+      title: "KlipCode — Snippets de Código con Sincronización en la Nube",
+      description:
+        "Guarda, organiza y copia al instante tus fragmentos de código en todos tus dispositivos. Funciona sin conexión y sin necesidad de registro. Sincronización opcional con GitHub.",
+    },
+    app: {
+      title: "Tus Snippets",
+      description:
+        "Tu espacio de trabajo KlipCode: crea, organiza y copia fragmentos de código al instante. Funciona sin conexión, con sincronización opcional en la nube vía GitHub.",
+    },
+  },
   seed: {
     folderName: "bienvenido",
     snippetName: "klipcode",

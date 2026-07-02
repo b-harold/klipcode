@@ -399,6 +399,23 @@ export const en = {
     description: "An unexpected error occurred. You can try again.",
     retry: "Try again",
   },
+  notFound: {
+    title: "Page not found",
+    description: "The page you're looking for doesn't exist or has been moved.",
+    backHome: "Back to home",
+  },
+  meta: {
+    home: {
+      title: "KlipCode — Code Snippet Manager with Cloud Sync",
+      description:
+        "Save, organize, and instantly copy your code snippets across every device. Local-first, works offline, no sign-up required. Optional GitHub sync keeps everything backed up.",
+    },
+    app: {
+      title: "Your Snippets",
+      description:
+        "Your KlipCode workspace: create, organize, and copy code snippets instantly. Works fully offline, with optional GitHub cloud sync across devices.",
+    },
+  },
   seed: {
     folderName: "welcome",
     snippetName: "klipcode",

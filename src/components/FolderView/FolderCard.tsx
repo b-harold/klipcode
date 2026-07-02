@@ -124,8 +124,8 @@ export function FolderCard({
       : [];
 
   const meta = [
-    snippetCount > 0 ? `${snippetCount} ${copy.folderView.snippetLabel}` : null,
-    subFolderCount > 0 ? `${subFolderCount} ${copy.folderView.subFolderLabel}` : null,
+    snippetCount > 0 ? copy.folderView.snippetCount(snippetCount) : null,
+    subFolderCount > 0 ? copy.folderView.folderCount(subFolderCount) : null,
   ]
     .filter(Boolean)
     .join(" · ");

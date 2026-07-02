@@ -8,6 +8,7 @@ import type { ClipboardEntry, FolderRecord, SnippetRecord } from "@/lib/types";
 import { SPACE_ROOT_ID } from "@/lib/navigation";
 import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
+import { ViewHeader, EmptyState, CardSection } from "@/components/ViewShell/ViewShell";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import { detectLanguageFromTitle } from "@/lib/constants/languages";
@@ -131,13 +132,9 @@ export function FolderView({
   const folderTitle = isRootSpace ? copy.aside.mySpace : (currentFolder?.name ?? copy.aside.mySpace);
 
   const metaParts = [
-    childFolders.length > 0
-      ? `${childFolders.length} ${copy.folderView.subFolderLabel}`
-      : null,
-    folderSnippets.length > 0
-      ? `${folderSnippets.length} ${copy.folderView.snippetLabel}`
-      : null,
-  ].filter(Boolean);
+    childFolders.length > 0 ? copy.folderView.folderCount(childFolders.length) : null,
+    folderSnippets.length > 0 ? copy.folderView.snippetCount(folderSnippets.length) : null,
+  ];
 
   const path = isRootSpace ? [] : getFolderPath(folderId, folders);
 
@@ -205,49 +202,43 @@ export function FolderView({
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-8 pt-6 sm:gap-10 sm:px-6">
         {/* ── Folder header ──────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.04]">
-              {isRootSpace ? (
+          <ViewHeader
+            icon={
+              isRootSpace ? (
                 <Layers size={20} className="text-ink/40" />
               ) : (
                 <FolderOpen size={20} className="text-ink/40" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">
-                {folderTitle}
-              </h1>
-              {metaParts.length > 0 && (
-                <p className="mt-0.5 text-sm text-muted">{metaParts.join(" · ")}</p>
-              )}
-            </div>
-
-            {/* ── Create actions ───────────────────────────────────────────── */}
-            {canCreate && (
-              <div className="flex w-full shrink-0 items-center gap-2 sm:ml-auto sm:w-auto">
-                {onCreateFolder && (
-                  <button
-                    type="button"
-                    onClick={() => setCreating("folder")}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-1.5 text-[13px] font-medium text-ink/60 transition-colors hover:border-ink/15 hover:bg-ink/[0.06] hover:text-ink/90 sm:flex-initial"
-                  >
-                    <FolderPlus size={14} className="opacity-70" />
-                    {copy.forms.folderTitle}
-                  </button>
-                )}
-                {onCreateSnippetInline && (
-                  <button
-                    type="button"
-                    onClick={() => setCreating("snippet")}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.08] px-3 py-1.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/25 hover:bg-ink/[0.12] hover:text-ink sm:flex-initial"
-                  >
-                    <FilePlus size={14} className="opacity-80" />
-                    {copy.forms.snippetTitle}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+              )
+            }
+            title={folderTitle}
+            metaParts={metaParts}
+            actions={
+              canCreate ? (
+                <>
+                  {onCreateFolder && (
+                    <button
+                      type="button"
+                      onClick={() => setCreating("folder")}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-1.5 text-[13px] font-medium text-ink/60 transition-colors hover:border-ink/15 hover:bg-ink/[0.06] hover:text-ink/90 sm:flex-initial"
+                    >
+                      <FolderPlus size={14} className="opacity-70" />
+                      {copy.forms.folderTitle}
+                    </button>
+                  )}
+                  {onCreateSnippetInline && (
+                    <button
+                      type="button"
+                      onClick={() => setCreating("snippet")}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.08] px-3 py-1.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/25 hover:bg-ink/[0.12] hover:text-ink sm:flex-initial"
+                    >
+                      <FilePlus size={14} className="opacity-80" />
+                      {copy.forms.snippetTitle}
+                    </button>
+                  )}
+                </>
+              ) : undefined
+            }
+          />
 
           {/* ── Inline create input ────────────────────────────────────────── */}
           {creating && (
@@ -279,73 +270,61 @@ export function FolderView({
 
         {/* ── Empty state ────────────────────────────────────────────────── */}
         {isEmpty && !creating && (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-ink/[0.07] py-20">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.03]">
-              <FileCode2 size={22} className="text-ink/20" />
-            </div>
-            <p className="text-sm text-ink/30">{copy.folderView.empty}</p>
-          </div>
+          <EmptyState
+            icon={<FileCode2 size={22} className="text-ink/20" />}
+            message={copy.folderView.empty}
+          />
         )}
 
         {/* ── Sub-folders ────────────────────────────────────────────────── */}
         {childFolders.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/30">
-              {copy.folderView.subFolders}
-            </h2>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {childFolders.map((folder) => (
-                <FolderCard
-                  key={folder.id}
-                  folder={folder}
-                  snippetCount={snippetCountMap.get(folder.id) ?? 0}
-                  subFolderCount={subFolderCountMap.get(folder.id) ?? 0}
-                  copy={copy}
-                  onClick={() => onNavigateFolder(folder.id)}
-                  onOpenInNewTab={() => window.open(`/?folder=${folder.id}`, "_blank", "noopener,noreferrer")}
-                  onPinAside={onPinFolder ? (pinned) => void onPinFolder(folder.id, "aside", pinned) : undefined}
-                  onRename={onRenameFolder ? (name) => void onRenameFolder(folder.id, name) : undefined}
-                  onDelete={onDeleteFolder ? () => void onDeleteFolder(folder.id) : undefined}
-                  onCut={onCutFolder ? () => onCutFolder(folder.id) : undefined}
-                  onCopy={onCopyFolder ? () => onCopyFolder(folder.id) : undefined}
-                  onPaste={onPaste ? () => void onPaste(folder.id) : undefined}
-                  hasPaste={hasPaste}
-                />
-              ))}
-            </div>
-          </section>
+          <CardSection title={copy.folderView.subFolders} variant="folders">
+            {childFolders.map((folder) => (
+              <FolderCard
+                key={folder.id}
+                folder={folder}
+                snippetCount={snippetCountMap.get(folder.id) ?? 0}
+                subFolderCount={subFolderCountMap.get(folder.id) ?? 0}
+                copy={copy}
+                onClick={() => onNavigateFolder(folder.id)}
+                onOpenInNewTab={() => window.open(`/?folder=${folder.id}`, "_blank", "noopener,noreferrer")}
+                onPinAside={onPinFolder ? (pinned) => void onPinFolder(folder.id, "aside", pinned) : undefined}
+                onRename={onRenameFolder ? (name) => void onRenameFolder(folder.id, name) : undefined}
+                onDelete={onDeleteFolder ? () => void onDeleteFolder(folder.id) : undefined}
+                onCut={onCutFolder ? () => onCutFolder(folder.id) : undefined}
+                onCopy={onCopyFolder ? () => onCopyFolder(folder.id) : undefined}
+                onPaste={onPaste ? () => void onPaste(folder.id) : undefined}
+                hasPaste={hasPaste}
+              />
+            ))}
+          </CardSection>
         )}
 
         {/* ── Snippets grid ──────────────────────────────────────────────── */}
         {folderSnippets.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/30">
-              {copy.folderView.snippets}
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {folderSnippets.map((snippet) => (
-                <SnippetCard
-                  key={snippet.id}
-                  snippet={snippet}
-                  folderName={null}
-                  copy={copy}
-                  enableDrag
-                  onSelect={() => onSelectSnippet(snippet.id)}
-                  onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
-                  onUnpinAside={onPinSnippet ? () => void onPinSnippet(snippet.id, "aside", false) : undefined}
-                  onPinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}
-                  onPinHome={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "home", pinned) : undefined}
-                  onRename={onRenameSnippet ? (title) => void onRenameSnippet(snippet.id, title) : undefined}
-                  onDelete={onDeleteSnippet ? () => void onDeleteSnippet(snippet.id) : undefined}
-                  onCut={onCutSnippet ? () => onCutSnippet(snippet.id) : undefined}
-                  onCopy={onCopySnippet ? () => onCopySnippet(snippet.id) : undefined}
-                  onPaste={onPaste ? () => void onPaste(snippet.folderId) : undefined}
-                  hasPaste={hasPaste}
-                  className="w-full shrink"
-                />
-              ))}
-            </div>
-          </section>
+          <CardSection title={copy.folderView.snippets} variant="snippets">
+            {folderSnippets.map((snippet) => (
+              <SnippetCard
+                key={snippet.id}
+                snippet={snippet}
+                folderName={null}
+                copy={copy}
+                enableDrag
+                onSelect={() => onSelectSnippet(snippet.id)}
+                onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
+                onUnpinAside={onPinSnippet ? () => void onPinSnippet(snippet.id, "aside", false) : undefined}
+                onPinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}
+                onPinHome={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "home", pinned) : undefined}
+                onRename={onRenameSnippet ? (title) => void onRenameSnippet(snippet.id, title) : undefined}
+                onDelete={onDeleteSnippet ? () => void onDeleteSnippet(snippet.id) : undefined}
+                onCut={onCutSnippet ? () => onCutSnippet(snippet.id) : undefined}
+                onCopy={onCopySnippet ? () => onCopySnippet(snippet.id) : undefined}
+                onPaste={onPaste ? () => void onPaste(snippet.folderId) : undefined}
+                hasPaste={hasPaste}
+                className="w-full shrink"
+              />
+            ))}
+          </CardSection>
         )}
 
       </div>

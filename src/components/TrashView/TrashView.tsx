@@ -10,6 +10,7 @@ import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
 import { FolderCard } from "@/components/FolderView/FolderCard";
 import { getFolderPath, buildSnippetCountMap, buildSubFolderCountMap } from "@/components/FolderView/utils";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
+import { ViewHeader, EmptyState, CardSection } from "@/components/ViewShell/ViewShell";
 
 export interface TrashViewProps {
   /** `TRASH_ROOT_ID` for the trash root, or a trashed folder id when drilling in. */
@@ -85,7 +86,7 @@ export function TrashView({
   const metaParts = [
     childFolders.length > 0 ? copy.trash.folderCount(childFolders.length) : null,
     folderSnippets.length > 0 ? copy.trash.snippetCount(folderSnippets.length) : null,
-  ].filter(Boolean);
+  ];
 
   // Breadcrumbs: Trash → …trashed ancestors… → current.
   const path = isRoot ? [] : getFolderPath(folderId, folders);
@@ -115,106 +116,88 @@ export function TrashView({
     <main className="flex-1 overflow-y-auto">
       <Breadcrumbs items={breadcrumbItems} leading={menuButton} />
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-8 pt-6">
-        {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.04]">
-              {isRoot ? (
-                <Trash2 size={20} className="text-ink/40" />
-              ) : (
-                <FolderOpen size={20} className="text-ink/40" />
-              )}
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
-              {metaParts.length > 0 && (
-                <p className="mt-0.5 text-sm text-muted">{metaParts.join(" · ")}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Bulk actions live at the trash root only. */}
-          {isRoot && !isTrashEmpty && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onRestoreAll}
-                className="flex items-center gap-1.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-1.5 text-[13px] font-medium text-ink/70 transition-colors hover:bg-ink/[0.07] hover:text-foreground"
-              >
-                <RotateCcw size={14} />
-                {copy.trash.restoreAll}
-              </button>
-              <button
-                type="button"
-                onClick={onEmptyTrash}
-                className="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/[0.08] px-3 py-1.5 text-[13px] font-medium text-red-400/90 transition-colors hover:bg-red-500/15 hover:text-red-300"
-              >
-                <Trash2 size={14} />
-                {copy.trash.emptyTrash}
-              </button>
-            </div>
-          )}
-        </div>
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-8 pt-6 sm:gap-10 sm:px-6">
+        {/* ── Header (bulk actions live at the trash root only) ──────────── */}
+        <ViewHeader
+          icon={
+            isRoot ? (
+              <Trash2 size={20} className="text-ink/40" />
+            ) : (
+              <FolderOpen size={20} className="text-ink/40" />
+            )
+          }
+          title={title}
+          metaParts={metaParts}
+          actions={
+            isRoot && !isTrashEmpty ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onRestoreAll}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-1.5 text-[13px] font-medium text-ink/70 transition-colors hover:bg-ink/[0.07] hover:text-foreground sm:flex-initial"
+                >
+                  <RotateCcw size={14} />
+                  {copy.trash.restoreAll}
+                </button>
+                <button
+                  type="button"
+                  onClick={onEmptyTrash}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/[0.08] px-3 py-1.5 text-[13px] font-medium text-red-400/90 transition-colors hover:bg-red-500/15 hover:text-red-300 sm:flex-initial"
+                >
+                  <Trash2 size={14} />
+                  {copy.trash.emptyTrash}
+                </button>
+              </>
+            ) : undefined
+          }
+        />
 
         {/* ── Empty state ─────────────────────────────────────────────────── */}
         {isEmpty && (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-ink/[0.07] py-20">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.03]">
-              <Trash2 size={22} className="text-ink/20" />
-            </div>
-            <p className="text-sm text-ink/30">{copy.trash.empty}</p>
-          </div>
+          <EmptyState
+            icon={<Trash2 size={22} className="text-ink/20" />}
+            message={copy.trash.empty}
+          />
         )}
 
         {/* ── Sub-folders ─────────────────────────────────────────────────── */}
         {childFolders.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/30">
-              {copy.folderView.subFolders}
-            </h2>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {childFolders.map((folder) => (
-                <FolderCard
-                  key={folder.id}
-                  folder={folder}
-                  snippetCount={snippetCountMap.get(folder.id) ?? 0}
-                  subFolderCount={subFolderCountMap.get(folder.id) ?? 0}
-                  copy={copy}
-                  onClick={() => onNavigateFolder(folder.id)}
-                  trashActions={{
-                    onRestore: () => onRestoreFolder(folder.id),
-                    onDeletePermanently: () => onPermanentlyDeleteFolder(folder.id),
-                  }}
-                />
-              ))}
-            </div>
-          </section>
+          <CardSection title={copy.folderView.subFolders} variant="folders">
+            {childFolders.map((folder) => (
+              <FolderCard
+                key={folder.id}
+                folder={folder}
+                snippetCount={snippetCountMap.get(folder.id) ?? 0}
+                subFolderCount={subFolderCountMap.get(folder.id) ?? 0}
+                copy={copy}
+                onClick={() => onNavigateFolder(folder.id)}
+                trashActions={{
+                  onRestore: () => onRestoreFolder(folder.id),
+                  onDeletePermanently: () => onPermanentlyDeleteFolder(folder.id),
+                }}
+              />
+            ))}
+          </CardSection>
         )}
 
         {/* ── Snippets ────────────────────────────────────────────────────── */}
         {folderSnippets.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/30">
-              {copy.folderView.snippets}
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {folderSnippets.map((snippet) => (
-                <SnippetCard
-                  key={snippet.id}
-                  snippet={snippet}
-                  folderName={null}
-                  copy={copy}
-                  onSelect={() => onSelectSnippet(snippet.id)}
-                  trashActions={{
-                    onRestore: () => onRestoreSnippet(snippet.id),
-                    onDeletePermanently: () => onPermanentlyDeleteSnippet(snippet.id),
-                  }}
-                  className="w-full shrink"
-                />
-              ))}
-            </div>
-          </section>
+          <CardSection title={copy.folderView.snippets} variant="snippets">
+            {folderSnippets.map((snippet) => (
+              <SnippetCard
+                key={snippet.id}
+                snippet={snippet}
+                folderName={null}
+                copy={copy}
+                onSelect={() => onSelectSnippet(snippet.id)}
+                trashActions={{
+                  onRestore: () => onRestoreSnippet(snippet.id),
+                  onDeletePermanently: () => onPermanentlyDeleteSnippet(snippet.id),
+                }}
+                className="w-full shrink"
+              />
+            ))}
+          </CardSection>
         )}
       </div>
     </main>

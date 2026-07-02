@@ -9,6 +9,7 @@ export interface GlobalShortcutHandlers {
   onCopyCurrent: () => void;
   onToggleSidebar: () => void;
   onCloseEditor: () => void;
+  onUndoDelete: () => void;
   /** Whether a snippet editor is currently open (gates copy/close). */
   hasOpenSnippet: boolean;
   /** Whether a modal overlay (search/help/confirm) is open (gates Esc). */
@@ -77,8 +78,18 @@ export function useGlobalShortcuts(handlers: GlobalShortcutHandlers) {
         return;
       }
 
-      // ── Bare-key shortcuts: never hijack a focused text field ──
+      // ── Shortcuts below never fire while typing in a text field ──
       if (isEditableTarget(e.target)) return;
+
+      // Undo delete: restore the last trashed item(s). Deliberately after the
+      // editable-target check so inputs and CodeMirror keep their native undo,
+      // and skipped while an overlay is open so its state can't shift beneath it.
+      if (mod && !e.altKey && !e.shiftKey && key === "z" && !h.overlayOpen) {
+        e.preventDefault();
+        h.onUndoDelete();
+        return;
+      }
+
       if (e.key === "?") {
         e.preventDefault();
         h.onToggleHelp();

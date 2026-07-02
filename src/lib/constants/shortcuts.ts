@@ -18,6 +18,7 @@ export type ShortcutId =
   | "help"
   | "copyCurrent"
   | "closeEditor"
+  | "undoDelete"
   | "navigateList";
 
 export type ShortcutSection = "general" | "editor" | "navigation";
@@ -40,6 +41,7 @@ export const SHORTCUTS: ShortcutDescriptor[] = [
   { id: "createSnippet", section: "general", mod: true, keys: ["↵"] },
   { id: "toggleSidebar", section: "general", mod: true, keys: ["B"] },
   { id: "help", section: "general", mod: true, keys: ["/"] },
+  { id: "undoDelete", section: "general", mod: true, keys: ["Z"] },
   { id: "copyCurrent", section: "editor", mod: true, alt: true, keys: ["C"] },
   { id: "closeEditor", section: "editor", keys: ["Esc"] },
   { id: "navigateList", section: "navigation", keys: ["↑", "↓"] },

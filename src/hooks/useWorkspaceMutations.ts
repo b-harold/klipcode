@@ -14,6 +14,18 @@ function splitPath(input: string): string[] {
   return input.split("/").map((segment) => segment.trim()).filter(Boolean);
 }
 
+/** One trash operation, as recorded for undo (Ctrl/⌘+Z): exactly the record ids
+ *  it newly trashed, plus the `deletedAt` stamp it wrote. Undo only reverts rows
+ *  whose `deletedAt` still matches the stamp — anything restored, purged, or
+ *  re-trashed by a later operation is left alone. */
+interface UndoDeleteEntry {
+  deletedAt: string;
+  folderIds: string[];
+  snippetIds: string[];
+}
+
+const MAX_UNDO_ENTRIES = 20;
+
 interface UseWorkspaceMutationsOptions {
   copy: Dictionary;
   user: User | null;
@@ -48,6 +60,7 @@ export function useWorkspaceMutations({
   setSnippetStatus,
 }: UseWorkspaceMutationsOptions) {
   const updateTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const undoStackRef = useRef<UndoDeleteEntry[]>([]);
 
   // Cleanup debounce timers on unmount
   useEffect(() => {
@@ -56,6 +69,18 @@ export function useWorkspaceMutations({
       for (const timer of timers.values()) clearTimeout(timer);
     };
   }, []);
+
+  // The undo stack belongs to one workspace: drop it when the owner changes
+  // (sign-in/out) so Ctrl+Z can't resurrect records across accounts.
+  useEffect(() => {
+    undoStackRef.current = [];
+  }, [user?.id]);
+
+  function pushUndoEntry(entry: UndoDeleteEntry) {
+    if (entry.folderIds.length === 0 && entry.snippetIds.length === 0) return;
+    undoStackRef.current.push(entry);
+    if (undoStackRef.current.length > MAX_UNDO_ENTRIES) undoStackRef.current.shift();
+  }
 
   function syncAfterMutation(snippetId?: string) {
     if (user && supabaseConfigured) {
@@ -189,6 +214,7 @@ export function useWorkspaceMutations({
     // trash syncs to other devices). It's hidden from the workspace either way.
     const now = new Date().toISOString();
     await db.snippets.update(id, { deletedAt: now, updatedAt: now, dirty: true });
+    if (!existing.deletedAt) pushUndoEntry({ deletedAt: now, folderIds: [], snippetIds: [id] });
 
     if (selectedSnippetId === id) setSelectedSnippetId(null);
     refreshWorkspace();
@@ -315,6 +341,11 @@ export function useWorkspaceMutations({
       await db.snippets.bulkPut(
         snippetsInSubtree.map((s) => ({ ...s, deletedAt: s.deletedAt ?? now, updatedAt: now, dirty: true }))
       );
+    });
+    pushUndoEntry({
+      deletedAt: now,
+      folderIds: foldersInSubtree.filter((f) => !f.deletedAt).map((f) => f.id),
+      snippetIds: snippetsInSubtree.filter((s) => !s.deletedAt).map((s) => s.id),
     });
 
     if (selectedSnippetId && snippetsInSubtree.some((s) => s.id === selectedSnippetId)) {
@@ -481,6 +512,68 @@ export function useWorkspaceMutations({
 
     refreshWorkspace();
     if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  /** Undo the most recent trash operation (Ctrl/⌘+Z): restore exactly the rows
+   *  that operation trashed. Rows the user has since restored, purged, or
+   *  re-trashed are skipped (their `deletedAt` no longer matches the entry); an
+   *  entry with nothing left to revert falls through to the one below it.
+   *  Returns whether anything was actually restored. */
+  async function handleUndoDelete(): Promise<boolean> {
+    while (undoStackRef.current.length > 0) {
+      const entry = undoStackRef.current.pop()!;
+      const [folderRows, snippetRows] = await Promise.all([
+        db.folders.bulkGet(entry.folderIds),
+        db.snippets.bulkGet(entry.snippetIds),
+      ]);
+      const foldersToRestore = folderRows.filter(
+        (f): f is FolderRecord => !!f && f.deletedAt === entry.deletedAt
+      );
+      const snippetsToRestore = snippetRows.filter(
+        (s): s is SnippetRecord => !!s && s.deletedAt === entry.deletedAt
+      );
+      if (foldersToRestore.length === 0 && snippetsToRestore.length === 0) continue;
+
+      // A parent reference is kept only if it points into this restored batch or
+      // at a live folder; a purged or still-trashed container detaches to root so
+      // nothing comes back invisible.
+      const allFolders = await db.folders.toArray();
+      const validParentIds = new Set([
+        ...foldersToRestore.map((f) => f.id),
+        ...allFolders.filter((f) => !f.deletedAt).map((f) => f.id),
+      ]);
+
+      const now = new Date().toISOString();
+      await db.transaction("rw", [db.folders, db.snippets], async () => {
+        if (foldersToRestore.length > 0) {
+          await db.folders.bulkPut(
+            foldersToRestore.map((f) => ({
+              ...f,
+              deletedAt: null,
+              dirty: true,
+              updatedAt: now,
+              parentId: f.parentId && validParentIds.has(f.parentId) ? f.parentId : null,
+            }))
+          );
+        }
+        if (snippetsToRestore.length > 0) {
+          await db.snippets.bulkPut(
+            snippetsToRestore.map((s) => ({
+              ...s,
+              deletedAt: null,
+              dirty: true,
+              updatedAt: now,
+              folderId: s.folderId && validParentIds.has(s.folderId) ? s.folderId : null,
+            }))
+          );
+        }
+      });
+
+      refreshWorkspace();
+      if (user && supabaseConfigured) scheduleCloudSync();
+      return true;
+    }
+    return false;
   }
 
   async function handleRenameFolder(id: string, name: string) {
@@ -672,6 +765,11 @@ export function useWorkspaceMutations({
         );
       }
     });
+    pushUndoEntry({
+      deletedAt: now,
+      folderIds: foldersToTrash.filter((f) => !f.deletedAt).map((f) => f.id),
+      snippetIds: snippetsToTrash.filter((s) => !s.deletedAt).map((s) => s.id),
+    });
 
     if (selectedSnippetId && snippetIdsToTrash.has(selectedSnippetId)) setSelectedSnippetId(null);
 
@@ -791,5 +889,6 @@ export function useWorkspaceMutations({
     handlePermanentlyDeleteMany,
     handleEmptyTrash,
     handleRestoreAll,
+    handleUndoDelete,
   };
 }

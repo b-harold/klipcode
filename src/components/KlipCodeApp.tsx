@@ -132,6 +132,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [copyNonce, setCopyNonce] = useState(0);
+  const [undoNonce, setUndoNonce] = useState(0);
   const [pendingEmptyTrash, setPendingEmptyTrash] = useState(false);
 
   /* ── Create-snippet modal + "open it?" toast ─────────────────────────── */
@@ -259,6 +260,11 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     },
     onToggleSidebar: () => setSidebarOpen((v) => !v),
     onCloseEditor: () => navigate(base),
+    onUndoDelete: () => {
+      void mutations.handleUndoDelete().then((undone) => {
+        if (undone) setUndoNonce((n) => n + 1);
+      });
+    },
     hasOpenSnippet: !!selectedSnippet,
     overlayOpen: searchOpen || helpOpen || prefsOpen || pendingEmptyTrash || createModalOpen,
   });
@@ -528,6 +534,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     )}
 
     <CopyToast nonce={copyNonce} message={copy.snippetEditor.codeCopied} />
+    <CopyToast nonce={undoNonce} message={copy.trash.undoRestored} />
 
     {createModalOpen && (
       <CreateSnippetModal

@@ -205,6 +205,11 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     : null;
   // A trashed snippet opens read-only with restore / delete-permanently actions.
   const selectedSnippetTrashed = !!selectedSnippet?.deletedAt;
+  // Both workspace and trash must be loaded before concluding a ?snippet= id
+  // is missing rather than just not-yet-fetched (mirrors the folder-validity
+  // effect above).
+  const snippetNotFound =
+    !!selectedSnippetId && !selectedSnippet && workspaceQuery.isSuccess && trashQuery.isSuccess;
 
   // The preferred default folder for new snippets, validated against the live
   // workspace — a stored id whose folder was deleted falls back to root.
@@ -392,6 +397,25 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
               }
             />
           </div>
+        ) : snippetNotFound ? (
+          <main className="flex flex-1 flex-col overflow-y-auto">
+            {menuButton && (
+              <div className="sticky top-0 z-10 flex h-11 items-center border-b border-transparent px-3">
+                {menuButton}
+              </div>
+            )}
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+              <p className="text-sm font-medium text-ink/70">{copy.workspace.snippetNotFoundTitle}</p>
+              <p className="max-w-sm text-sm text-ink/50">{copy.workspace.snippetNotFoundDescription}</p>
+              <button
+                type="button"
+                onClick={() => navigate(base)}
+                className="rounded-md bg-ink/10 px-4 py-2 text-sm text-ink/80 transition-colors hover:bg-ink/15"
+              >
+                {copy.notFound.backHome}
+              </button>
+            </div>
+          </main>
         ) : isTrashView ? (
           <TrashView
             folderId={selectedFolderId!}

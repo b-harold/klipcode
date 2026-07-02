@@ -88,6 +88,8 @@ export const en = {
     emptyFolder: "This folder has no content.",
     rootOption: "Root",
     pinnedBadge: "Pinned",
+    snippetNotFoundTitle: "Snippet not found",
+    snippetNotFoundDescription: "This snippet doesn't exist or has been deleted.",
   },
   snippetCard: {
     title: "Title",

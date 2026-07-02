@@ -89,6 +89,8 @@ export const es = {
     emptyFolder: "Esta carpeta no tiene contenido.",
     rootOption: "Raiz",
     pinnedBadge: "Fijado",
+    snippetNotFoundTitle: "Snippet no encontrado",
+    snippetNotFoundDescription: "Este snippet no existe o ha sido eliminado.",
   },
   snippetCard: {
     title: "Titulo",

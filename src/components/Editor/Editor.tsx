@@ -3,8 +3,10 @@
 import { useState, useEffect, type CSSProperties } from "react";
 import CodeMirror, {
   EditorView,
+  keymap,
   type ReactCodeMirrorRef,
 } from "@uiw/react-codemirror";
+import { acceptCompletion } from "@codemirror/autocomplete";
 import { vscodeDark, vscodeLight } from "@uiw/codemirror-theme-vscode";
 import {
   foldGutter,
@@ -12,7 +14,7 @@ import {
   LanguageDescription,
   type Language,
 } from "@codemirror/language";
-import type { Extension } from "@codemirror/state";
+import { Prec, type Extension } from "@codemirror/state";
 import { useTheme } from "@/hooks/useTheme";
 import {
   vscodeDarkMarkdown,
@@ -55,8 +57,50 @@ const appendLineOnClickBelow = EditorView.domEventHandlers({
   },
 });
 
+// Accept the highlighted completion with Tab, like VS Code. Prec.highest is
+// required because @uiw/react-codemirror enables indentWithTab by default and
+// unshifts it to the front of the keymap stack; without boosting precedence,
+// that binding would swallow Tab (indenting) before this handler runs.
+// acceptCompletion returns false when no suggestion popup is open, so Tab falls
+// through to its normal indentation behaviour the rest of the time.
+const acceptCompletionOnTab = Prec.highest(
+  keymap.of([{ key: "Tab", run: acceptCompletion }]),
+);
+
 // Module-level cache so repeated language loads are instant
 const extensionCache = new Map<string, Extension[]>();
+
+// Languages whose grammar ships no completion source of its own (legacy
+// stream modes and bare lang-* grammars). They get VS Code-style word-based
+// suggestions from the document plus the curated keyword lists in
+// ./completions. Languages absent here either bring their own completions
+// (javascript, html, css, python, sql…) or shouldn't complete at all
+// (markdown prose).
+const FALLBACK_COMPLETION_LANGUAGES = new Set([
+  "java", "c", "cpp", "php", "json", "xml", "bash", "yaml", "go", "rust",
+  "csharp", "ruby", "swift", "kotlin", "dart", "scala", "groovy", "lua",
+  "haskell", "erlang", "r", "powershell", "toml", "scss", "dockerfile",
+]);
+
+// javascript()'s LanguageSupport already registers keyword/snippet completions
+// and scope-aware local completions; scopeCompletionSource(globalThis) adds
+// the runtime's ambient globals (console., document., JSON. …) on top, which
+// is the closest we get to VS Code's IntelliSense without a language server.
+async function loadJavaScript(config?: {
+  jsx?: boolean;
+  typescript?: boolean;
+}): Promise<Extension[]> {
+  const { javascript, scopeCompletionSource } = await import(
+    "@codemirror/lang-javascript"
+  );
+  const support = javascript(config);
+  return [
+    support,
+    support.language.data.of({
+      autocomplete: scopeCompletionSource(globalThis),
+    }),
+  ];
+}
 
 async function loadExtension(language: string): Promise<Extension[]> {
   const cached = extensionCache.get(language);
@@ -66,23 +110,19 @@ async function loadExtension(language: string): Promise<Extension[]> {
 
   switch (language) {
     case "javascript": {
-      const { javascript } = await import("@codemirror/lang-javascript");
-      extensions = [javascript()];
+      extensions = await loadJavaScript();
       break;
     }
     case "typescript": {
-      const { javascript } = await import("@codemirror/lang-javascript");
-      extensions = [javascript({ typescript: true })];
+      extensions = await loadJavaScript({ typescript: true });
       break;
     }
     case "tsx": {
-      const { javascript } = await import("@codemirror/lang-javascript");
-      extensions = [javascript({ jsx: true, typescript: true })];
+      extensions = await loadJavaScript({ jsx: true, typescript: true });
       break;
     }
     case "jsx": {
-      const { javascript } = await import("@codemirror/lang-javascript");
-      extensions = [javascript({ jsx: true })];
+      extensions = await loadJavaScript({ jsx: true });
       break;
     }
     case "svelte": {
@@ -320,6 +360,20 @@ async function loadExtension(language: string): Promise<Extension[]> {
       extensions = [];
   }
 
+  if (FALLBACK_COMPLETION_LANGUAGES.has(language) && extensions.length > 0) {
+    const { wordAndKeywordCompletion, LANGUAGE_KEYWORDS } = await import(
+      "./completions"
+    );
+    const lang = extensions[0];
+    const base = lang instanceof LanguageSupport ? lang.language : (lang as Language);
+    extensions = [
+      ...extensions,
+      base.data.of({
+        autocomplete: wordAndKeywordCompletion(LANGUAGE_KEYWORDS[language]),
+      }),
+    ];
+  }
+
   extensionCache.set(language, extensions);
   return extensions;
 }
@@ -396,7 +450,7 @@ const EDIT_SETUP = {
   highlightActiveLine: true,
   bracketMatching: true,
   closeBrackets: true,
-  autocompletion: false,
+  autocompletion: true,
   foldGutter: false, // handled manually via customFoldGutter extension
   indentOnInput: true,
   tabSize: 2,
@@ -486,7 +540,12 @@ export function Editor({
       extensions={[
         ...(readOnly
           ? extensions
-          : [...extensions, customFoldGutter, appendLineOnClickBelow]),
+          : [
+              acceptCompletionOnTab,
+              ...extensions,
+              customFoldGutter,
+              appendLineOnClickBelow,
+            ]),
         ...(lineWrapping ? [EditorView.lineWrapping] : []),
       ]}
       editable={!readOnly}

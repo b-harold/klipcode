@@ -3,8 +3,10 @@
 import { useState, useEffect, type CSSProperties } from "react";
 import CodeMirror, {
   EditorView,
+  keymap,
   type ReactCodeMirrorRef,
 } from "@uiw/react-codemirror";
+import { acceptCompletion } from "@codemirror/autocomplete";
 import { vscodeDark, vscodeLight } from "@uiw/codemirror-theme-vscode";
 import {
   foldGutter,
@@ -12,7 +14,7 @@ import {
   LanguageDescription,
   type Language,
 } from "@codemirror/language";
-import type { Extension } from "@codemirror/state";
+import { Prec, type Extension } from "@codemirror/state";
 import { useTheme } from "@/hooks/useTheme";
 import {
   vscodeDarkMarkdown,
@@ -54,6 +56,16 @@ const appendLineOnClickBelow = EditorView.domEventHandlers({
     return true;
   },
 });
+
+// Accept the highlighted completion with Tab, like VS Code. Prec.highest is
+// required because @uiw/react-codemirror enables indentWithTab by default and
+// unshifts it to the front of the keymap stack; without boosting precedence,
+// that binding would swallow Tab (indenting) before this handler runs.
+// acceptCompletion returns false when no suggestion popup is open, so Tab falls
+// through to its normal indentation behaviour the rest of the time.
+const acceptCompletionOnTab = Prec.highest(
+  keymap.of([{ key: "Tab", run: acceptCompletion }]),
+);
 
 // Module-level cache so repeated language loads are instant
 const extensionCache = new Map<string, Extension[]>();
@@ -525,7 +537,12 @@ export function Editor({
       extensions={
         readOnly
           ? extensions
-          : [...extensions, customFoldGutter, appendLineOnClickBelow]
+          : [
+              acceptCompletionOnTab,
+              ...extensions,
+              customFoldGutter,
+              appendLineOnClickBelow,
+            ]
       }
       editable={!readOnly}
       readOnly={readOnly}

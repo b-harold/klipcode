@@ -202,10 +202,10 @@ export function FolderView({
     >
       <Breadcrumbs items={breadcrumbItems} leading={menuButton} />
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-8 pt-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-8 pt-6 sm:gap-10 sm:px-6">
         {/* ── Folder header ──────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.04]">
               {isRootSpace ? (
                 <Layers size={20} className="text-ink/40" />
@@ -213,7 +213,7 @@ export function FolderView({
                 <FolderOpen size={20} className="text-ink/40" />
               )}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">
                 {folderTitle}
               </h1>
@@ -224,12 +224,12 @@ export function FolderView({
 
             {/* ── Create actions ───────────────────────────────────────────── */}
             {canCreate && (
-              <div className="ml-auto flex shrink-0 items-center gap-2">
+              <div className="flex w-full shrink-0 items-center gap-2 sm:ml-auto sm:w-auto">
                 {onCreateFolder && (
                   <button
                     type="button"
                     onClick={() => setCreating("folder")}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-1.5 text-[13px] font-medium text-ink/60 transition-colors hover:border-ink/15 hover:bg-ink/[0.06] hover:text-ink/90"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-1.5 text-[13px] font-medium text-ink/60 transition-colors hover:border-ink/15 hover:bg-ink/[0.06] hover:text-ink/90 sm:flex-initial"
                   >
                     <FolderPlus size={14} className="opacity-70" />
                     {copy.forms.folderTitle}
@@ -239,7 +239,7 @@ export function FolderView({
                   <button
                     type="button"
                     onClick={() => setCreating("snippet")}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.08] px-3 py-1.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/25 hover:bg-ink/[0.12] hover:text-ink"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-ink/15 bg-ink/[0.08] px-3 py-1.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink/25 hover:bg-ink/[0.12] hover:text-ink sm:flex-initial"
                   >
                     <FilePlus size={14} className="opacity-80" />
                     {copy.forms.snippetTitle}

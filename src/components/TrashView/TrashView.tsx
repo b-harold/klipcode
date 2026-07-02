@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { FolderOpen, RotateCcw, Trash2 } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
-import type { FolderRecord, SnippetRecord } from "@/lib/types";
+import type { FolderRecord, SelectedItem, SnippetRecord } from "@/lib/types";
 import { TRASH_ROOT_ID } from "@/lib/navigation";
+import { isEditableTarget } from "@/lib/constants/shortcuts";
+import { useMultiSelection } from "@/hooks/useMultiSelection";
 import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
 import { FolderCard } from "@/components/FolderView/FolderCard";
 import { getFolderPath, buildSnippetCountMap, buildSubFolderCountMap } from "@/components/FolderView/utils";
@@ -27,6 +29,9 @@ export interface TrashViewProps {
   onPermanentlyDeleteSnippet: (id: string) => void;
   onRestoreFolder: (id: string) => void;
   onPermanentlyDeleteFolder: (id: string) => void;
+  /** Restore / permanently delete the whole multi-selection at once. */
+  onRestoreMany: (items: SelectedItem[]) => void;
+  onPermanentlyDeleteMany: (items: SelectedItem[]) => void;
   onRestoreAll: () => void;
   onEmptyTrash: () => void;
   menuButton?: ReactNode;
@@ -44,6 +49,8 @@ export function TrashView({
   onPermanentlyDeleteSnippet,
   onRestoreFolder,
   onPermanentlyDeleteFolder,
+  onRestoreMany,
+  onPermanentlyDeleteMany,
   onRestoreAll,
   onEmptyTrash,
   menuButton,
@@ -74,9 +81,68 @@ export function TrashView({
   const snippetCountMap = useMemo(() => buildSnippetCountMap(snippets), [snippets]);
   const subFolderCountMap = useMemo(() => buildSubFolderCountMap(folders), [folders]);
 
+  /* ── Multi-selection (⌘/Ctrl+click, Shift+click, ⌘/Ctrl+A — like the aside) ── */
+
+  const {
+    selectedIds,
+    containerRef: selectionContainerRef,
+    activateItem,
+    selectAll,
+    clear: clearSelection,
+    isItemSelected,
+    selectForMenu,
+    getSelectedItems,
+  } = useMultiSelection({
+    folders,
+    snippets,
+    selectSnippet: onSelectSnippet,
+    selectFolder: onNavigateFolder,
+  });
+
+  // Navigating within the trash drops the selection — its cards are gone.
+  useEffect(() => {
+    clearSelection();
+  }, [folderId, clearSelection]);
+
   // A drilled-in folder that is no longer trashed (e.g. just restored) → go home.
   if (!isRoot && !currentFolder) {
     return null;
+  }
+
+  /** The card's menu/drag acts on the whole set only when the card is part of a
+   *  multi-selection (mirrors the aside's batch semantics). */
+  const isBatchSelected = (id: string) => isItemSelected(id) && selectedIds.size > 1;
+
+  function batchOrSingle(id: string, batch: (items: SelectedItem[]) => void, single: () => void) {
+    if (isBatchSelected(id)) {
+      const items = getSelectedItems();
+      clearSelection();
+      batch(items);
+    } else {
+      single();
+    }
+  }
+
+  function handleCanvasKeyDown(e: React.KeyboardEvent) {
+    if (isEditableTarget(e.target)) return;
+    const mod = e.metaKey || e.ctrlKey;
+
+    if (mod && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      selectAll();
+      return;
+    }
+
+    if (selectedIds.size === 0) return;
+
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      const items = getSelectedItems();
+      clearSelection();
+      onPermanentlyDeleteMany(items);
+      return;
+    }
+    if (e.key === "Escape") clearSelection();
   }
 
   const isEmpty = childFolders.length === 0 && folderSnippets.length === 0;
@@ -113,10 +179,22 @@ export function TrashView({
       ];
 
   return (
-    <main className="flex-1 overflow-y-auto">
+    <main
+      className="flex-1 overflow-y-auto"
+      onKeyDown={handleCanvasKeyDown}
+      onClick={(e) => {
+        // Clicking empty canvas (anywhere outside a card) clears the selection.
+        if (selectedIds.size > 0 && !(e.target as HTMLElement).closest("[data-selectable-id]")) {
+          clearSelection();
+        }
+      }}
+    >
       <Breadcrumbs items={breadcrumbItems} leading={menuButton} />
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-8 pt-6 sm:gap-10 sm:px-6">
+      <div
+        ref={selectionContainerRef}
+        className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-8 pt-6 sm:gap-10 sm:px-6"
+      >
         {/* ── Header (bulk actions live at the trash root only) ──────────── */}
         <ViewHeader
           icon={
@@ -170,10 +248,15 @@ export function TrashView({
                 snippetCount={snippetCountMap.get(folder.id) ?? 0}
                 subFolderCount={subFolderCountMap.get(folder.id) ?? 0}
                 copy={copy}
-                onClick={() => onNavigateFolder(folder.id)}
+                selected={isItemSelected(folder.id)}
+                dragItems={isBatchSelected(folder.id) ? getSelectedItems() : undefined}
+                onMenuOpen={() => selectForMenu(folder.id)}
+                onClick={(e) => activateItem(e, { id: folder.id, type: "folder" })}
                 trashActions={{
-                  onRestore: () => onRestoreFolder(folder.id),
-                  onDeletePermanently: () => onPermanentlyDeleteFolder(folder.id),
+                  onRestore: () =>
+                    batchOrSingle(folder.id, onRestoreMany, () => onRestoreFolder(folder.id)),
+                  onDeletePermanently: () =>
+                    batchOrSingle(folder.id, onPermanentlyDeleteMany, () => onPermanentlyDeleteFolder(folder.id)),
                 }}
               />
             ))}
@@ -189,10 +272,15 @@ export function TrashView({
                 snippet={snippet}
                 folderName={null}
                 copy={copy}
-                onSelect={() => onSelectSnippet(snippet.id)}
+                selected={isItemSelected(snippet.id)}
+                dragItems={isBatchSelected(snippet.id) ? getSelectedItems() : undefined}
+                onMenuOpen={() => selectForMenu(snippet.id)}
+                onSelect={(e) => activateItem(e, { id: snippet.id, type: "snippet" })}
                 trashActions={{
-                  onRestore: () => onRestoreSnippet(snippet.id),
-                  onDeletePermanently: () => onPermanentlyDeleteSnippet(snippet.id),
+                  onRestore: () =>
+                    batchOrSingle(snippet.id, onRestoreMany, () => onRestoreSnippet(snippet.id)),
+                  onDeletePermanently: () =>
+                    batchOrSingle(snippet.id, onPermanentlyDeleteMany, () => onPermanentlyDeleteSnippet(snippet.id)),
                 }}
                 className="w-full shrink"
               />

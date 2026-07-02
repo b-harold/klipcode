@@ -11,7 +11,7 @@ import { ShortcutHint } from "@/ui/ShortcutHint";
 
 import type { AsideProps, AsideCtxShape, MenuTarget } from "./types";
 import { sortByPinThenAlpha } from "./utils";
-import { useTreeSelection } from "./useTreeSelection";
+import { useMultiSelection } from "@/hooks/useMultiSelection";
 import { AsideCtx } from "./AsideContext";
 import { AsideHeader } from "./AsideHeader";
 import { FolderNode } from "./FolderNode";
@@ -87,7 +87,7 @@ export function Aside({
     selectForMenu,
     getSelectedItems,
     pasteTargetFolderId,
-  } = useTreeSelection({
+  } = useMultiSelection({
     folders,
     snippets,
     selectSnippet: onSelectSnippet,

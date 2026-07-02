@@ -118,8 +118,8 @@ export function FolderNode({
           style={{ paddingLeft }}
           role="button"
           tabIndex={0}
-          data-tree-id={folder.id}
-          data-tree-type="folder"
+          data-selectable-id={folder.id}
+          data-selectable-type="folder"
           onClick={(e) => ctx.activateItem(e, { id: folder.id, type: "folder" })}
           onKeyDown={(e) => {
             if (e.target !== e.currentTarget) return;

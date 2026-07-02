@@ -12,8 +12,9 @@ export interface DraggingItem {
   id: string;
   /** Where the drag started: the live workspace, or the trash detail view. */
   origin: "workspace" | "trash";
-  /** Present when a multi-selection is being dragged as a batch (always from the
-   *  workspace). `id`/`type` mirror the grabbed row; `items` is the whole set. */
+  /** Present when a multi-selection is being dragged as a batch (from the
+   *  workspace or the trash). `id`/`type` mirror the grabbed row; `items` is
+   *  the whole set. */
   items?: SelectedItem[];
 }
 
@@ -62,6 +63,8 @@ interface DragProviderProps {
   onTrashMany: (items: SelectedItem[]) => void;
   /** Restore a trashed item into a folder (drag from trash onto the tree). */
   onRestoreItem: (item: DraggingItem, targetFolderId: string | null) => void;
+  /** Restore a whole trashed multi-selection into a folder. */
+  onRestoreMany: (items: SelectedItem[], targetFolderId: string | null) => void;
   children: ReactNode;
 }
 
@@ -73,6 +76,7 @@ export function DragProvider({
   onTrashItem,
   onTrashMany,
   onRestoreItem,
+  onRestoreMany,
   children,
 }: DragProviderProps) {
   const [dragging, setDragging] = useState<DraggingItem | null>(null);
@@ -86,7 +90,7 @@ export function DragProvider({
     };
   }, [dragging]);
 
-  /** A multi-selection drag (always from the workspace). */
+  /** A multi-selection drag (from the workspace or the trash). */
   const draggingItems = dragging?.items && dragging.items.length > 1 ? dragging.items : null;
 
   function canDropOnFolder(folderId: string): boolean {
@@ -109,7 +113,8 @@ export function DragProvider({
   function dropOnFolder(targetFolderId: string | null) {
     if (!dragging) return;
     if (dragging.origin === "trash") {
-      onRestoreItem(dragging, targetFolderId);
+      if (draggingItems) onRestoreMany(draggingItems, targetFolderId);
+      else onRestoreItem(dragging, targetFolderId);
       setDragging(null);
       setDragOverId(null);
       return;

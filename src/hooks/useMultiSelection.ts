@@ -5,7 +5,7 @@ import type { MouseEvent as ReactMouseEvent, KeyboardEvent as ReactKeyboardEvent
 
 import type { FolderRecord, SelectedItem, SnippetRecord } from "@/lib/types";
 
-interface UseTreeSelectionOptions {
+interface UseMultiSelectionOptions {
   folders: FolderRecord[];
   snippets: SnippetRecord[];
   /** Open a snippet in the main view (plain click). */
@@ -15,7 +15,8 @@ interface UseTreeSelectionOptions {
 }
 
 /**
- * VS Code–style multi-selection for the sidebar tree.
+ * VS Code–style multi-selection for a collection of selectable items — the
+ * sidebar tree rows and the folder-view card grid both use it.
  *
  * A plain click selects a single item and opens it. ⌘/Ctrl+click toggles an item
  * in the selection without opening it; Shift+click selects the range between the
@@ -23,19 +24,20 @@ interface UseTreeSelectionOptions {
  * selected ids drives the batch operations (delete / cut / copy / drag-move).
  *
  * Visible order (for Ctrl+A and Shift ranges) is read straight from the DOM via
- * the `data-tree-id` attributes on each row, so it always reflects which folders
- * are currently expanded without having to lift that local state up.
+ * the `data-selectable-id` attributes each item must carry, scoped to the
+ * container behind `containerRef` — so it always reflects what's currently
+ * rendered (expanded folders, current grid) without lifting that state up.
  */
-export function useTreeSelection({
+export function useMultiSelection({
   folders,
   snippets,
   selectSnippet,
   selectFolder,
-}: UseTreeSelectionOptions) {
+}: UseMultiSelectionOptions) {
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
   /** Last single-clicked/toggled item — the pivot for Shift range selection. */
   const anchorRef = useRef<string | null>(null);
-  /** The scrollable tree container; queried for visible rows in DOM order. */
+  /** The scrollable container; queried for visible items in DOM order. */
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const resolveType = useCallback(
@@ -46,8 +48,8 @@ export function useTreeSelection({
   const getOrderedVisibleIds = useCallback((): string[] => {
     const root = containerRef.current;
     if (!root) return [];
-    return Array.from(root.querySelectorAll<HTMLElement>("[data-tree-id]"))
-      .map((el) => el.dataset.treeId)
+    return Array.from(root.querySelectorAll<HTMLElement>("[data-selectable-id]"))
+      .map((el) => el.dataset.selectableId)
       .filter((id): id is string => Boolean(id));
   }, []);
 
@@ -105,10 +107,10 @@ export function useTreeSelection({
   const isItemSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds]);
 
   /**
-   * Prime the selection for a right-click / "more" menu on `id`. Right-clicking a
-   * row that's already part of the multi-selection keeps the whole set (so the
+   * Prime the selection for a right-click / "more" menu on `id`. Right-clicking an
+   * item that's already part of the multi-selection keeps the whole set (so the
    * menu's batch actions cover it); right-clicking outside the selection collapses
-   * it to just that row, so the highlighted items always match what the menu acts on.
+   * it to just that item, so the highlighted items always match what the menu acts on.
    */
   const selectForMenu = useCallback((id: string) => {
     setSelectedIds((prev) => (prev.has(id) ? prev : new Set([id])));

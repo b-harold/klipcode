@@ -783,6 +783,51 @@ export function useWorkspaceMutations({
     if (user && supabaseConfigured) scheduleCloudSync();
   }
 
+  /** The selection tops: items not covered by another selected folder's subtree.
+   *  A covered item travels with its ancestor's restore/purge, so acting on it
+   *  separately would duplicate the operation (or detach it from its folder). */
+  async function selectionTops(items: SelectedItem[]): Promise<SelectedItem[]> {
+    const allFolders = await db.folders.toArray();
+    const covered = new Set<string>();
+    const selectedFolderIds = items.filter((i) => i.type === "folder").map((i) => i.id);
+    for (const fid of selectedFolderIds) {
+      for (const id of collectFolderSubtree(fid, allFolders)) {
+        if (id !== fid) covered.add(id);
+      }
+    }
+    const tops: SelectedItem[] = [];
+    for (const item of items) {
+      if (item.type === "folder") {
+        if (!covered.has(item.id)) tops.push(item);
+      } else {
+        const snippet = await db.snippets.get(item.id);
+        if (!snippet) continue;
+        const parent = snippet.folderId;
+        if (!parent || (!covered.has(parent) && !selectedFolderIds.includes(parent))) tops.push(item);
+      }
+    }
+    return tops;
+  }
+
+  /** Restore every selected trashed item at once. With `targetFolderId` (a batch
+   *  drag onto the tree), the tops land there; otherwise each returns to its
+   *  original parent like the single-item restores. */
+  async function handleRestoreMany(items: SelectedItem[], targetFolderId?: string | null) {
+    for (const item of await selectionTops(items)) {
+      if (item.type === "folder") await handleRestoreFolder(item.id, targetFolderId);
+      else await handleRestoreSnippet(item.id, targetFolderId);
+    }
+  }
+
+  /** Permanently remove every selected trashed item (and selected folders'
+   *  subtrees) at once. */
+  async function handlePermanentlyDeleteMany(items: SelectedItem[]) {
+    for (const item of await selectionTops(items)) {
+      if (item.type === "folder") await handlePermanentlyDeleteFolder(item.id);
+      else await handlePermanentlyDeleteSnippet(item.id);
+    }
+  }
+
   return {
     handleCreateSnippet,
     handleCreateSnippetInline,
@@ -803,6 +848,8 @@ export function useWorkspaceMutations({
     handlePaste,
     handleDeleteMany,
     handleMoveMany,
+    handleRestoreMany,
+    handlePermanentlyDeleteMany,
     handleEmptyTrash,
     handleRestoreAll,
   };

@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Clipboard, FileCode2, FilePlus, Folder, FolderOpen, FolderPlus, Layers } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
-import type { ClipboardEntry, FolderRecord, SnippetRecord } from "@/lib/types";
+import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord } from "@/lib/types";
 import { SPACE_ROOT_ID } from "@/lib/navigation";
+import { isEditableTarget } from "@/lib/constants/shortcuts";
+import { useMultiSelection } from "@/hooks/useMultiSelection";
 import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 import { ViewHeader, EmptyState, CardSection } from "@/components/ViewShell/ViewShell";
@@ -31,12 +33,13 @@ export interface FolderViewProps {
   onPinFolder?: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   onDeleteSnippet?: (id: string) => Promise<void>;
   onRenameSnippet?: (id: string, title: string) => Promise<void>;
-  onCutSnippet?: (id: string) => void;
-  onCopySnippet?: (id: string) => void;
   onDeleteFolder?: (id: string) => Promise<void>;
   onRenameFolder?: (id: string, name: string) => Promise<void>;
-  onCutFolder?: (id: string) => void;
-  onCopyFolder?: (id: string) => void;
+  /** Cut/copy one item or the whole multi-selection into the app clipboard. */
+  onCut?: (entry: ClipboardEntry) => void;
+  onCopy?: (entry: ClipboardEntry) => void;
+  /** Soft-delete the whole multi-selection at once. */
+  onDeleteMany?: (items: SelectedItem[]) => Promise<void>;
   onPaste?: (targetFolderId: string | null) => Promise<void>;
   onCreateFolder?: (parentId: string | null, name: string) => Promise<void>;
   onCreateSnippetInline?: (folderId: string | null, title: string) => Promise<void>;
@@ -56,12 +59,11 @@ export function FolderView({
   onPinFolder,
   onDeleteSnippet,
   onRenameSnippet,
-  onCutSnippet,
-  onCopySnippet,
   onDeleteFolder,
   onRenameFolder,
-  onCutFolder,
-  onCopyFolder,
+  onCut,
+  onCopy,
+  onDeleteMany,
   onPaste,
   onCreateFolder,
   onCreateSnippetInline,
@@ -124,9 +126,89 @@ export function FolderView({
   const snippetCountMap = useMemo(() => buildSnippetCountMap(snippets), [snippets]);
   const subFolderCountMap = useMemo(() => buildSubFolderCountMap(folders), [folders]);
 
+  /* ── Multi-selection (⌘/Ctrl+click, Shift+click, ⌘/Ctrl+A — like the aside) ── */
+
+  const {
+    selectedIds,
+    containerRef: selectionContainerRef,
+    activateItem,
+    selectAll,
+    clear: clearSelection,
+    isItemSelected,
+    selectForMenu,
+    getSelectedItems,
+    pasteTargetFolderId,
+  } = useMultiSelection({
+    folders,
+    snippets,
+    selectSnippet: onSelectSnippet,
+    selectFolder: onNavigateFolder,
+  });
+
+  // Navigating to another folder drops the selection — its cards are gone.
+  useEffect(() => {
+    clearSelection();
+  }, [folderId, clearSelection]);
+
   // Bail out only after all hooks have run, so hook order stays stable across
   // renders (a missing folder otherwise skips the useMemo calls above).
   if (!isRootSpace && !currentFolder) return null;
+
+  /** The card's menu/drag acts on the whole set only when the card is part of a
+   *  multi-selection (mirrors the aside's batch semantics). */
+  const isBatchSelected = (id: string) => isItemSelected(id) && selectedIds.size > 1;
+
+  const clipboardEntryFor = (type: "cut" | "copy", item: SelectedItem): ClipboardEntry => ({
+    type,
+    items: (isBatchSelected(item.id) ? getSelectedItems() : [item]).map((i) => ({
+      itemType: i.type,
+      id: i.id,
+    })),
+  });
+
+  async function handleBatchDelete() {
+    const items = getSelectedItems();
+    if (items.length === 0 || !onDeleteMany) return;
+    clearSelection();
+    await onDeleteMany(items);
+  }
+
+  function handleCanvasKeyDown(e: React.KeyboardEvent) {
+    // Never hijack the rename / inline-create inputs that live inside the view.
+    if (isEditableTarget(e.target)) return;
+    const mod = e.metaKey || e.ctrlKey;
+    const key = e.key.toLowerCase();
+
+    if (mod && key === "a") {
+      e.preventDefault();
+      selectAll();
+      return;
+    }
+
+    if (selectedIds.size === 0) return;
+
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      void handleBatchDelete();
+      return;
+    }
+    if (mod && key === "c" && onCopy) {
+      e.preventDefault();
+      onCopy({ type: "copy", items: getSelectedItems().map((i) => ({ itemType: i.type, id: i.id })) });
+      return;
+    }
+    if (mod && key === "x" && onCut) {
+      e.preventDefault();
+      onCut({ type: "cut", items: getSelectedItems().map((i) => ({ itemType: i.type, id: i.id })) });
+      return;
+    }
+    if (mod && key === "v" && onPaste) {
+      e.preventDefault();
+      void onPaste(pasteTargetFolderId());
+      return;
+    }
+    if (e.key === "Escape") clearSelection();
+  }
 
   const isEmpty = childFolders.length === 0 && folderSnippets.length === 0;
   const folderTitle = isRootSpace ? copy.aside.mySpace : (currentFolder?.name ?? copy.aside.mySpace);
@@ -190,6 +272,13 @@ export function FolderView({
   return (
     <main
       className="flex-1 overflow-y-auto"
+      onKeyDown={handleCanvasKeyDown}
+      onClick={(e) => {
+        // Clicking empty canvas (anywhere outside a card) clears the selection.
+        if (selectedIds.size > 0 && !(e.target as HTMLElement).closest("[data-selectable-id]")) {
+          clearSelection();
+        }
+      }}
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = canDropOnCurrentFolder ? "move" : "none"; }}
       onDragEnter={(e) => { e.preventDefault(); drag.enterDropTarget(dropTargetSentinel); }}
       onDrop={(e) => { e.preventDefault(); drag.dropOnFolder(parentKey); }}
@@ -199,7 +288,10 @@ export function FolderView({
     >
       <Breadcrumbs items={breadcrumbItems} leading={menuButton} />
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-8 pt-6 sm:gap-10 sm:px-6">
+      <div
+        ref={selectionContainerRef}
+        className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-8 pt-6 sm:gap-10 sm:px-6"
+      >
         {/* ── Folder header ──────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
           <ViewHeader
@@ -286,13 +378,23 @@ export function FolderView({
                 snippetCount={snippetCountMap.get(folder.id) ?? 0}
                 subFolderCount={subFolderCountMap.get(folder.id) ?? 0}
                 copy={copy}
-                onClick={() => onNavigateFolder(folder.id)}
+                selected={isItemSelected(folder.id)}
+                dragItems={isBatchSelected(folder.id) ? getSelectedItems() : undefined}
+                onMenuOpen={() => selectForMenu(folder.id)}
+                onClick={(e) => activateItem(e, { id: folder.id, type: "folder" })}
                 onOpenInNewTab={() => window.open(`/?folder=${folder.id}`, "_blank", "noopener,noreferrer")}
                 onPinAside={onPinFolder ? (pinned) => void onPinFolder(folder.id, "aside", pinned) : undefined}
                 onRename={onRenameFolder ? (name) => void onRenameFolder(folder.id, name) : undefined}
-                onDelete={onDeleteFolder ? () => void onDeleteFolder(folder.id) : undefined}
-                onCut={onCutFolder ? () => onCutFolder(folder.id) : undefined}
-                onCopy={onCopyFolder ? () => onCopyFolder(folder.id) : undefined}
+                onDelete={
+                  onDeleteFolder
+                    ? () => {
+                        if (isBatchSelected(folder.id) && onDeleteMany) void handleBatchDelete();
+                        else void onDeleteFolder(folder.id);
+                      }
+                    : undefined
+                }
+                onCut={onCut ? () => onCut(clipboardEntryFor("cut", { id: folder.id, type: "folder" })) : undefined}
+                onCopy={onCopy ? () => onCopy(clipboardEntryFor("copy", { id: folder.id, type: "folder" })) : undefined}
                 onPaste={onPaste ? () => void onPaste(folder.id) : undefined}
                 hasPaste={hasPaste}
               />
@@ -310,15 +412,25 @@ export function FolderView({
                 folderName={null}
                 copy={copy}
                 enableDrag
-                onSelect={() => onSelectSnippet(snippet.id)}
+                selected={isItemSelected(snippet.id)}
+                dragItems={isBatchSelected(snippet.id) ? getSelectedItems() : undefined}
+                onMenuOpen={() => selectForMenu(snippet.id)}
+                onSelect={(e) => activateItem(e, { id: snippet.id, type: "snippet" })}
                 onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
                 onUnpinAside={onPinSnippet ? () => void onPinSnippet(snippet.id, "aside", false) : undefined}
                 onPinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}
                 onPinHome={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "home", pinned) : undefined}
                 onRename={onRenameSnippet ? (title) => void onRenameSnippet(snippet.id, title) : undefined}
-                onDelete={onDeleteSnippet ? () => void onDeleteSnippet(snippet.id) : undefined}
-                onCut={onCutSnippet ? () => onCutSnippet(snippet.id) : undefined}
-                onCopy={onCopySnippet ? () => onCopySnippet(snippet.id) : undefined}
+                onDelete={
+                  onDeleteSnippet
+                    ? () => {
+                        if (isBatchSelected(snippet.id) && onDeleteMany) void handleBatchDelete();
+                        else void onDeleteSnippet(snippet.id);
+                      }
+                    : undefined
+                }
+                onCut={onCut ? () => onCut(clipboardEntryFor("cut", { id: snippet.id, type: "snippet" })) : undefined}
+                onCopy={onCopy ? () => onCopy(clipboardEntryFor("copy", { id: snippet.id, type: "snippet" })) : undefined}
                 onPaste={onPaste ? () => void onPaste(snippet.folderId) : undefined}
                 hasPaste={hasPaste}
                 className="w-full shrink"

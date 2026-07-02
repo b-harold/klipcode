@@ -5,7 +5,7 @@ import { useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/i18n";
-import type { FolderRecord } from "@/lib/types";
+import type { FolderRecord, SelectedItem } from "@/lib/types";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
@@ -62,7 +62,9 @@ export interface FolderCardProps {
   snippetCount: number;
   subFolderCount: number;
   copy: Dictionary;
-  onClick: () => void;
+  /** Click / Enter / Space on the card. Receives the event so the parent can
+   *  route ⌘/Ctrl/Shift+click to multi-selection instead of navigating. */
+  onClick: (event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => void;
   onOpenInNewTab?: () => void;
   onPinAside?: (pinned: boolean) => void;
   onRename?: (newName: string) => void;
@@ -71,6 +73,13 @@ export interface FolderCardProps {
   onCopy?: () => void;
   onPaste?: () => void;
   hasPaste?: boolean;
+  /** Part of the parent view's multi-selection — renders highlighted. */
+  selected?: boolean;
+  /** When the card belongs to a multi-selection, the whole set to drag as a batch. */
+  dragItems?: SelectedItem[];
+  /** Called right before the context/"more" menu opens, so the parent can sync
+   *  its multi-selection with the card the menu will act on. */
+  onMenuOpen?: () => void;
   /** When set, the card renders in trash mode: drag is disabled and the menu
    *  offers restore / delete-permanently instead of the normal actions. */
   trashActions?: { onRestore: () => void; onDeletePermanently: () => void };
@@ -92,6 +101,9 @@ export function FolderCard({
   onCopy,
   onPaste,
   hasPaste,
+  selected,
+  dragItems,
+  onMenuOpen,
   trashActions,
 }: FolderCardProps) {
   const [isRenaming, setIsRenaming] = useState(false);
@@ -101,7 +113,10 @@ export function FolderCard({
   const isTrash = !!trashActions;
 
   const drag = useDragCtx();
-  const isDraggingThis = drag.dragging?.id === folder.id && drag.dragging.type === "folder";
+  const isDraggingThis =
+    drag.dragging !== null &&
+    ((drag.dragging.id === folder.id && drag.dragging.type === "folder") ||
+      Boolean(drag.dragging.items?.some((it) => it.id === folder.id)));
   // Trashed folders are draggable (to restore onto the tree) but never drop
   // targets themselves.
   const isDropTarget = !isTrash && drag.dragOverId === folder.id && drag.canDropOnFolder(folder.id);
@@ -131,9 +146,10 @@ export function FolderCard({
     .join(" · ");
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      onClick();
+      onClick(event);
     }
   };
 
@@ -146,6 +162,7 @@ export function FolderCard({
       setMenuAnchor(null);
       return;
     }
+    onMenuOpen?.();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     openMenuAt(rect.left, rect.bottom + 4);
   };
@@ -154,6 +171,7 @@ export function FolderCard({
     if (!hasMenu) return;
     event.preventDefault();
     event.stopPropagation();
+    onMenuOpen?.();
     openMenuAt(event.clientX, event.clientY);
   };
 
@@ -168,11 +186,13 @@ export function FolderCard({
       role="button"
       tabIndex={0}
       draggable
+      data-selectable-id={folder.id}
+      data-selectable-type="folder"
       onClick={onClick}
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
       onDragStart={(e) => {
-        drag.startDrag("folder", folder.id, isTrash ? "trash" : "workspace");
+        drag.startDrag("folder", folder.id, isTrash ? "trash" : "workspace", dragItems);
         e.dataTransfer.effectAllowed = "move";
       }}
       onDragEnd={() => drag.endDrag()}
@@ -198,7 +218,9 @@ export function FolderCard({
           : "active:cursor-grabbing",
         isDropTarget
           ? "border-ink/30 bg-ink/[0.06] ring-1 ring-inset ring-ink/20"
-          : "border-ink/[0.06] hover:border-ink/[0.12] hover:bg-surface-hover",
+          : selected
+            ? "border-ink/30 bg-ink/[0.05] hover:bg-surface-hover"
+            : "border-ink/[0.06] hover:border-ink/[0.12] hover:bg-surface-hover",
       )}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">

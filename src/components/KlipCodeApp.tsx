@@ -317,6 +317,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         if (item.type === "folder") void mutations.handleRestoreFolder(item.id, targetFolderId);
         else void mutations.handleRestoreSnippet(item.id, targetFolderId);
       }}
+      onRestoreMany={(items, targetFolderId) => void mutations.handleRestoreMany(items, targetFolderId)}
     >
     <div className="flex h-screen overflow-hidden">
       <Aside
@@ -429,6 +430,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             onPermanentlyDeleteSnippet={(id) => void mutations.handlePermanentlyDeleteSnippet(id)}
             onRestoreFolder={(id) => void mutations.handleRestoreFolder(id)}
             onPermanentlyDeleteFolder={(id) => void mutations.handlePermanentlyDeleteFolder(id)}
+            onRestoreMany={(items) => void mutations.handleRestoreMany(items)}
+            onPermanentlyDeleteMany={(items) => void mutations.handlePermanentlyDeleteMany(items)}
             onRestoreAll={() => void mutations.handleRestoreAll()}
             onEmptyTrash={() => setPendingEmptyTrash(true)}
             menuButton={menuButton}
@@ -447,12 +450,11 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             onPinFolder={mutations.handlePinFolder}
             onDeleteSnippet={mutations.handleDeleteSnippet}
             onRenameSnippet={mutations.handleRenameSnippet}
-            onCutSnippet={(id) => setClipboard({ type: "cut", items: [{ itemType: "snippet", id }] })}
-            onCopySnippet={(id) => setClipboard({ type: "copy", items: [{ itemType: "snippet", id }] })}
             onDeleteFolder={mutations.handleDeleteFolder}
             onRenameFolder={mutations.handleRenameFolder}
-            onCutFolder={(id) => setClipboard({ type: "cut", items: [{ itemType: "folder", id }] })}
-            onCopyFolder={(id) => setClipboard({ type: "copy", items: [{ itemType: "folder", id }] })}
+            onCut={setClipboard}
+            onCopy={(entry) => setClipboard({ ...entry, type: "copy" })}
+            onDeleteMany={mutations.handleDeleteMany}
             onPaste={mutations.handlePaste}
             onCreateFolder={mutations.handleCreateFolder}
             onCreateSnippetInline={mutations.handleCreateSnippetInline}

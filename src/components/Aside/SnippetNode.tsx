@@ -103,8 +103,8 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
     <div
       role="button"
       tabIndex={0}
-      data-tree-id={snippet.id}
-      data-tree-type="snippet"
+      data-selectable-id={snippet.id}
+      data-selectable-type="snippet"
       onClick={(e) => ctx.activateItem(e, { id: snippet.id, type: "snippet" })}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {

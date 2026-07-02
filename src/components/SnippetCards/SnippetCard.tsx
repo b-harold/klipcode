@@ -4,7 +4,7 @@ import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 import type { Dictionary } from "@/i18n";
-import type { SnippetRecord } from "@/lib/types";
+import type { SelectedItem, SnippetRecord } from "@/lib/types";
 import { cn, getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
@@ -25,7 +25,9 @@ interface SnippetCardProps {
   snippet: SnippetRecord;
   folderName: string | null;
   copy: Dictionary;
-  onSelect: () => void;
+  /** Click on the card/title. Receives the event so the parent can route
+   *  ⌘/Ctrl/Shift+click to multi-selection instead of opening. */
+  onSelect: (event: MouseEvent<HTMLButtonElement>) => void;
   onOpenInNewTab?: () => void;
   onNavigateFolder?: () => void;
   onUnpinHome?: () => void;
@@ -40,6 +42,13 @@ interface SnippetCardProps {
   hasPaste?: boolean;
   className?: string;
   enableDrag?: boolean;
+  /** Part of the parent view's multi-selection — renders highlighted. */
+  selected?: boolean;
+  /** When the card belongs to a multi-selection, the whole set to drag as a batch. */
+  dragItems?: SelectedItem[];
+  /** Called right before the context/"more" menu opens, so the parent can sync
+   *  its multi-selection with the card the menu will act on. */
+  onMenuOpen?: () => void;
   /** When set, the card renders in trash mode: the menu offers restore /
    *  delete-permanently instead of the normal actions, and it can be dragged onto
    *  the tree to restore. It stays clickable (opens read-only in the editor). */
@@ -65,6 +74,9 @@ export function SnippetCard({
   hasPaste,
   className,
   enableDrag,
+  selected,
+  dragItems,
+  onMenuOpen,
   trashActions,
 }: SnippetCardProps) {
   const [copied, setCopied] = useState(false);
@@ -79,7 +91,11 @@ export function SnippetCard({
   const canDrag = enableDrag || isTrash;
 
   const drag = useDragCtx();
-  const isDraggingThis = canDrag && drag.dragging?.id === snippet.id && drag.dragging.type === "snippet";
+  const isDraggingThis =
+    canDrag &&
+    drag.dragging !== null &&
+    ((drag.dragging.id === snippet.id && drag.dragging.type === "snippet") ||
+      Boolean(drag.dragging.items?.some((it) => it.id === snippet.id)));
 
   const cm = copy.contextMenu;
   const hasMenu = isTrash || !!(onOpenInNewTab || onPinAside || onPinHome || onRename || onDelete || onCut || onCopy);
@@ -207,6 +223,7 @@ export function SnippetCard({
       setMenuAnchor(null);
       return;
     }
+    onMenuOpen?.();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     openMenuAt(rect.left, rect.bottom + 4);
   };
@@ -215,6 +232,7 @@ export function SnippetCard({
     if (!hasMenu) return;
     event.preventDefault();
     event.stopPropagation();
+    onMenuOpen?.();
     openMenuAt(event.clientX, event.clientY);
   };
 
@@ -238,15 +256,20 @@ export function SnippetCard({
   return (
     <article
       data-snippet-card=""
+      data-selectable-id={snippet.id}
+      data-selectable-type="snippet"
       draggable={canDrag}
       onContextMenu={handleContextMenu}
       onDragStart={canDrag ? (e) => {
-        drag.startDrag("snippet", snippet.id, isTrash ? "trash" : "workspace");
+        drag.startDrag("snippet", snippet.id, isTrash ? "trash" : "workspace", dragItems);
         e.dataTransfer.effectAllowed = "move";
       } : undefined}
       onDragEnd={canDrag ? () => drag.endDrag() : undefined}
       className={cn(
-        "group relative flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-ink/[0.06] bg-surface transition-colors hover:border-ink/[0.12] hover:bg-surface-hover has-[[data-card-open]:focus-visible]:ring-2 has-[[data-card-open]:focus-visible]:ring-ink/20 cursor-pointer",
+        "group relative flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border bg-surface transition-colors hover:bg-surface-hover has-[[data-card-open]:focus-visible]:ring-2 has-[[data-card-open]:focus-visible]:ring-ink/20 cursor-pointer",
+        selected
+          ? "border-ink/30 bg-ink/[0.05]"
+          : "border-ink/[0.06] hover:border-ink/[0.12]",
         canDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "active:cursor-grabbing"),
         className,
       )}

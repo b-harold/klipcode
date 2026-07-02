@@ -482,6 +482,8 @@ export interface EditorProps {
   placeholder?: string;
   fontSize?: number;
   gutterBackground?: string;
+  /** Soft-wrap long lines instead of scrolling horizontally. */
+  lineWrapping?: boolean;
   /** Exposes the underlying CodeMirror instance (e.g. to imperatively focus it). */
   editorRef?: React.Ref<ReactCodeMirrorRef>;
 }
@@ -495,6 +497,7 @@ export function Editor({
   placeholder,
   fontSize = 13,
   gutterBackground,
+  lineWrapping = false,
   editorRef,
 }: EditorProps) {
   const [extensions, setExtensions] = useState<Extension[]>([]);
@@ -534,16 +537,17 @@ export function Editor({
       value={value}
       onChange={onChange}
       theme={cmTheme}
-      extensions={
-        readOnly
+      extensions={[
+        ...(readOnly
           ? extensions
           : [
               acceptCompletionOnTab,
               ...extensions,
               customFoldGutter,
               appendLineOnClickBelow,
-            ]
-      }
+            ]),
+        ...(lineWrapping ? [EditorView.lineWrapping] : []),
+      ]}
       editable={!readOnly}
       readOnly={readOnly}
       placeholder={placeholder}

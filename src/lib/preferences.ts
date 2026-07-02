@@ -13,6 +13,8 @@ export interface Preferences {
   defaultLanguage: LanguageId;
   /** Render Markdown snippets as a Notion-like preview by default instead of source. */
   markdownPreviewByDefault: boolean;
+  /** Soft-wrap long code lines in the editor instead of scrolling horizontally. */
+  codeWrap: boolean;
 }
 
 const STORAGE_KEY = "klipcode:preferences";
@@ -21,6 +23,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   defaultFolderId: null,
   defaultLanguage: DEFAULT_LANGUAGE,
   markdownPreviewByDefault: false,
+  codeWrap: false,
 };
 
 export function readPreferences(): Preferences {
@@ -33,6 +36,7 @@ export function readPreferences(): Preferences {
       defaultFolderId: parsed.defaultFolderId ?? null,
       defaultLanguage: parsed.defaultLanguage ?? DEFAULT_LANGUAGE,
       markdownPreviewByDefault: parsed.markdownPreviewByDefault ?? false,
+      codeWrap: parsed.codeWrap ?? false,
     };
   } catch {
     return DEFAULT_PREFERENCES;

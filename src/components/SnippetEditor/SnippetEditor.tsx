@@ -107,6 +107,8 @@ export interface SnippetEditorProps {
   markdownPreviewByDefault?: boolean;
   /** User's default language, pre-selected on code blocks inserted in Markdown. */
   defaultCodeLanguage?: LanguageId;
+  /** Soft-wrap long code lines instead of scrolling horizontally. */
+  codeWrap?: boolean;
   /** Persisted when the user flips the preview/source toggle — the chosen side
    *  becomes the default side Markdown snippets open on. */
   onMarkdownPreviewChange?: (open: boolean) => void;
@@ -132,6 +134,7 @@ export function SnippetEditor({
   onUpdate,
   markdownPreviewByDefault = true,
   defaultCodeLanguage = "plaintext",
+  codeWrap = false,
   onMarkdownPreviewChange,
   menuButton,
   readOnly = false,
@@ -152,12 +155,10 @@ export function SnippetEditor({
   const [showPreview, setShowPreview] = useState(isMarkdown && markdownPreviewByDefault);
 
   const handleTogglePreview = useCallback(() => {
-    setShowPreview((prev) => {
-      const next = !prev;
-      onMarkdownPreviewChange?.(next);
-      return next;
-    });
-  }, [onMarkdownPreviewChange]);
+    const next = !showPreview;
+    setShowPreview(next);
+    onMarkdownPreviewChange?.(next);
+  }, [showPreview, onMarkdownPreviewChange]);
 
   // Per-field debounce timers
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -409,6 +410,7 @@ export function SnippetEditor({
             height="100%"
             fontSize={14}
             gutterBackground="var(--background)"
+            lineWrapping={codeWrap}
           />
         </div>
       )}

@@ -103,6 +103,7 @@ export const en = {
     code: "Code",
     status: "Status",
     untitled: "Untitled",
+    generatingTitle: "Naming snippet…",
   },
   sync: {
     editing: "Editing...",
@@ -177,6 +178,7 @@ export const en = {
   snippetEditor: {
     back: "Back",
     titlePlaceholder: "Untitled",
+    generatingTitle: "Naming snippet…",
     syncEditing: "Editing...",
     syncSaving: "Saving...",
     syncSavedLocal: "Saved locally",
@@ -303,6 +305,11 @@ export const en = {
     defaultLanguage: {
       label: "Default language",
       description: "Pre-selected language when creating a snippet",
+    },
+    autoGenerateTitle: {
+      label: "Auto-generate names",
+      description: "Name untitled snippets automatically with AI",
+      lockedHint: "Sign in to name snippets automatically with AI",
     },
     codeWrap: {
       label: "Long lines",

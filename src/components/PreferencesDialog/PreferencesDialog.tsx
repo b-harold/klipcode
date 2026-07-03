@@ -2,13 +2,14 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Settings } from "lucide-react";
+import { Lock, Settings } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
 import type { FolderRecord } from "@/lib/types";
 import type { Preferences } from "@/lib/preferences";
 import type { Locale } from "@/lib/locale";
 import type { Theme } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 import { LANGUAGES, type LanguageId } from "@/lib/constants/languages";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { FolderSelect } from "@/ui/FolderSelect";
@@ -19,6 +20,9 @@ interface PreferencesDialogProps {
   theme: Theme;
   folders: FolderRecord[];
   preferences: Preferences;
+  /** Whether a user is signed in — AI naming is auth-gated, so its toggle locks
+   *  when anonymous. */
+  isAuthenticated: boolean;
   onChangePreferences: (patch: Partial<Preferences>) => void;
   onChangeLocale: (locale: Locale) => void;
   onChangeTheme: (theme: Theme) => void;
@@ -58,6 +62,43 @@ function Segmented<T extends string>({
   );
 }
 
+/** An on/off switch. When `disabled` it dims and stops responding — used to gate
+ *  the AI-naming preference behind sign-in. */
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+  label,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
+        checked ? "bg-ink/80" : "bg-ink/15",
+        disabled ? "cursor-not-allowed opacity-40" : "hover:brightness-110",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block h-4 w-4 rounded-full shadow transition-transform",
+          checked ? "translate-x-4 bg-background" : "translate-x-0.5 bg-ink",
+        )}
+      />
+    </button>
+  );
+}
+
 /** A labelled preference row: title + helper text on the left, control on the right. */
 function Row({
   title,
@@ -90,6 +131,7 @@ export function PreferencesDialog({
   theme,
   folders,
   preferences,
+  isAuthenticated,
   onChangePreferences,
   onChangeLocale,
   onChangeTheme,
@@ -205,6 +247,31 @@ export function PreferencesDialog({
               />
             }
           />
+
+          {/* Auto-generate a name for untitled snippets (AI, sign-in gated) */}
+          <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 text-[13px] text-foreground/90">
+                {t.autoGenerateTitle.label}
+                {!isAuthenticated && (
+                  <Lock size={11} className="shrink-0 text-ink/30" aria-hidden="true" />
+                )}
+              </p>
+              <p className="mt-0.5 text-[12px] text-ink/35">
+                {isAuthenticated
+                  ? t.autoGenerateTitle.description
+                  : t.autoGenerateTitle.lockedHint}
+              </p>
+            </div>
+            <div className="shrink-0">
+              <Toggle
+                checked={preferences.autoGenerateTitle}
+                disabled={!isAuthenticated}
+                onChange={(value) => onChangePreferences({ autoGenerateTitle: value })}
+                label={t.autoGenerateTitle.label}
+              />
+            </div>
+          </div>
 
           {/* Long code lines: horizontal scroll vs soft wrap */}
           <Row

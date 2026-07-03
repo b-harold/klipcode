@@ -22,6 +22,7 @@ import {
 import { Editor } from "@/components/Editor/Editor";
 import { MarkdownEditor } from "@/components/MarkdownPreview/MarkdownEditor";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
+import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGeneration";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip } from "@/ui/Tooltip";
@@ -141,6 +142,7 @@ export function SnippetEditor({
   trashActions,
 }: SnippetEditorProps) {
   const editorCopy = copy.snippetEditor;
+  const isGeneratingTitle = useIsGeneratingTitle(snippet.id);
 
   const isMarkdown = snippet.language === "markdown";
 
@@ -257,7 +259,9 @@ export function SnippetEditor({
     {
       id: snippet.id,
       icon: <LanguageIcon language={snippet.language} size={12} className="shrink-0" />,
-      label: snippet.title.trim() ? (
+      label: isGeneratingTitle ? (
+        <GeneratingTitle label={editorCopy.generatingTitle} />
+      ) : snippet.title.trim() ? (
         snippet.title
       ) : (
         <span className="text-ink/25">{editorCopy.titlePlaceholder}</span>

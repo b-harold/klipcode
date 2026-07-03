@@ -6,6 +6,7 @@ import type { SnippetRecord } from "@/lib/types";
 import { getSnippetDisplayName, getSnippetFileName, resolveSnippetRename } from "@/lib/utils";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
+import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGeneration";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
 import { STEP, suppressRowDragStart } from "./utils";
@@ -56,6 +57,7 @@ function RenameRow({
 export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth: number }) {
   const ctx = useAsideCtx();
   const isRenaming = ctx.renamingId === snippet.id;
+  const isGeneratingTitle = useIsGeneratingTitle(snippet.id);
 
   const displayName = getSnippetDisplayName(snippet.title, snippet.language, ctx.copy.snippetCard.untitled);
 
@@ -125,7 +127,11 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
     >
       <span className="flex min-w-0 flex-1 items-center gap-1.5">
         <LanguageIcon language={snippet.language} size={13} className="shrink-0" />
-        <TruncateTooltip text={displayName} className="flex-1 truncate leading-none" />
+        {isGeneratingTitle ? (
+          <GeneratingTitle label={ctx.copy.snippetCard.generatingTitle} className="flex-1 leading-none" />
+        ) : (
+          <TruncateTooltip text={displayName} className="flex-1 truncate leading-none" />
+        )}
       </span>
       <ItemActions onMore={openMoreMenu} label={ctx.copy.contextMenu.moreOptions} />
       {snippet.isPinnedAside && (

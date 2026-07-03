@@ -104,6 +104,7 @@ export const es = {
     code: "Codigo",
     status: "Estado",
     untitled: "Sin titulo",
+    generatingTitle: "Nombrando snippet…",
   },
   sync: {
     editing: "Cambiando...",
@@ -178,6 +179,7 @@ export const es = {
   snippetEditor: {
     back: "Volver",
     titlePlaceholder: "Sin título",
+    generatingTitle: "Nombrando snippet…",
     syncEditing: "Cambiando...",
     syncSaving: "Guardando...",
     syncSavedLocal: "Guardado en local",
@@ -304,6 +306,11 @@ export const es = {
     defaultLanguage: {
       label: "Lenguaje por defecto",
       description: "Lenguaje preseleccionado al crear un snippet",
+    },
+    autoGenerateTitle: {
+      label: "Generar nombres automáticamente",
+      description: "Nombra los snippets sin título automáticamente con IA",
+      lockedHint: "Inicia sesión para nombrar snippets automáticamente con IA",
     },
     codeWrap: {
       label: "Líneas largas",

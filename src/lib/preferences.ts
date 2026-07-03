@@ -15,6 +15,9 @@ export interface Preferences {
   markdownPreviewByDefault: boolean;
   /** Soft-wrap long code lines in the editor instead of scrolling horizontally. */
   codeWrap: boolean;
+  /** Ask Workers AI to name untitled snippets on creation. Requires being signed
+   *  in (the generation endpoint is auth-gated); ignored while anonymous. */
+  autoGenerateTitle: boolean;
 }
 
 const STORAGE_KEY = "klipcode:preferences";
@@ -24,6 +27,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   defaultLanguage: DEFAULT_LANGUAGE,
   markdownPreviewByDefault: false,
   codeWrap: false,
+  autoGenerateTitle: true,
 };
 
 export function readPreferences(): Preferences {
@@ -37,6 +41,7 @@ export function readPreferences(): Preferences {
       defaultLanguage: parsed.defaultLanguage ?? DEFAULT_LANGUAGE,
       markdownPreviewByDefault: parsed.markdownPreviewByDefault ?? false,
       codeWrap: parsed.codeWrap ?? false,
+      autoGenerateTitle: parsed.autoGenerateTitle ?? true,
     };
   } catch {
     return DEFAULT_PREFERENCES;

@@ -31,6 +31,7 @@ import { CreatedSnippetToast } from "@/components/CreatedSnippetToast/CreatedSni
 import { DragProvider } from "@/components/DragContext";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
+import { TitleGenerationProvider } from "@/components/TitleGeneration";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 import { FolderView } from "@/components/FolderView/FolderView";
 import { TrashView } from "@/components/TrashView/TrashView";
@@ -135,6 +136,22 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const [undoNonce, setUndoNonce] = useState(0);
   const [pendingEmptyTrash, setPendingEmptyTrash] = useState(false);
 
+  /* ── AI title generation state ────────────────────────────────────────────
+     Snippets whose name Workers AI is currently inferring in the background, so
+     the tree/cards/editor can shimmer a placeholder instead of "Untitled". */
+  const [titleGeneratingIds, setTitleGeneratingIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+  const setTitleGenerating = useCallback((id: string, on: boolean) => {
+    setTitleGeneratingIds((prev) => {
+      if (prev.has(id) === on) return prev;
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
   /* ── Create-snippet modal + "open it?" toast ─────────────────────────── */
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -191,6 +208,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     scheduleCloudSync: sync.scheduleCloudSync,
     settleLocally: sync.settleLocally,
     setSnippetStatus: sync.setSnippetStatus,
+    setTitleGenerating,
+    autoGenerateTitle: preferences.autoGenerateTitle,
   });
 
   /* ── First-visit seeding ────────────────────────────────────────────────── */
@@ -313,6 +332,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   }
 
   return (
+    <TitleGenerationProvider ids={titleGeneratingIds}>
     <DragProvider
       folders={folders}
       onMoveFolder={mutations.handleMoveFolder}
@@ -526,6 +546,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         theme={theme}
         folders={folders}
         preferences={preferences}
+        isAuthenticated={!!auth.user}
         onChangePreferences={updatePreferences}
         onChangeLocale={handleChangeLocale}
         onChangeTheme={setTheme}
@@ -583,5 +604,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       />
     )}
     </DragProvider>
+    </TitleGenerationProvider>
   );
 }

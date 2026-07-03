@@ -11,6 +11,7 @@ import { useDragCtx } from "@/components/DragContext";
 import { suppressModifierDragStart } from "@/hooks/useMultiSelection";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
+import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGeneration";
 
 function buildPreviewLines(code: string) {
   const lines = code.split("\n").slice(0, 8);
@@ -252,6 +253,7 @@ export function SnippetCard({
   }, []);
 
   const displayName = getSnippetDisplayName(snippet.title, snippet.language, copy.snippetCard.untitled);
+  const isGeneratingTitle = useIsGeneratingTitle(snippet.id);
   const previewLines = buildPreviewLines(snippet.code);
 
   return (
@@ -298,10 +300,17 @@ export function SnippetCard({
               type="button"
               data-card-open=""
               onClick={onSelect}
-              aria-label={displayName}
+              aria-label={isGeneratingTitle ? copy.snippetCard.generatingTitle : displayName}
               className="min-w-0 flex-1 text-left outline-none focus-visible:outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']"
             >
-              <TruncateTooltip text={displayName} className="relative z-10 block truncate text-sm font-medium text-foreground" placement="bottom" />
+              {isGeneratingTitle ? (
+                <GeneratingTitle
+                  label={copy.snippetCard.generatingTitle}
+                  className="relative z-10 text-sm font-medium"
+                />
+              ) : (
+                <TruncateTooltip text={displayName} className="relative z-10 block truncate text-sm font-medium text-foreground" placement="bottom" />
+              )}
             </button>
           )}
         </div>

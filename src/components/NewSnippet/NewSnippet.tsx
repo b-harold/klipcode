@@ -42,6 +42,10 @@ export function NewSnippet({
   embedded = false,
   onCreateSnippet,
 }: NewSnippetProps) {
+  // When embedded in a dialog host (the create-snippet modal), portalled
+  // dropdowns must render above the dialog layer instead of the base menu layer.
+  const menuZIndex = embedded ? "var(--z-dialog-menu)" : undefined;
+
   const [title, setTitle] = useState("");
   const [language, setLanguage] = useState<LanguageId>(defaultLanguage);
   const [folderId, setFolderId] = useState(defaultFolderId ?? "");
@@ -138,6 +142,7 @@ export function NewSnippet({
             value={language}
             onChange={setLanguage}
             copy={copy.languageSelect}
+            menuZIndex={menuZIndex}
           />
         </div>
 
@@ -164,6 +169,7 @@ export function NewSnippet({
             folders={folders}
             rootLabel={copy.workspace.rootOption}
             copy={copy.folderSelect}
+            menuZIndex={menuZIndex}
           />
 
           <button

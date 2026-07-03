@@ -16,10 +16,10 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-// `remoteBindings: false` keeps local `next dev`/`next build` working without
-// a `wrangler login` session. The `ai` binding has no local emulation and
-// would otherwise force a remote proxy session (and thus a login) just to
-// load the Next.js config; with it disabled, `env.AI` is simply unavailable
-// locally and the /api/generate-title route degrades gracefully (its callers
-// already tolerate that, same as every other optional Supabase/cloud path).
-import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev({ remoteBindings: false }));
+// Remote bindings are enabled so `env.AI` works in local `next dev` — Workers
+// AI has no local emulation and must proxy to Cloudflare. Only bindings marked
+// `"remote": true` in wrangler.jsonc (currently just `ai`) use the remote
+// proxy; everything else stays local. This needs a `wrangler login` session;
+// without one the /api/generate-title route still degrades gracefully (its
+// callers tolerate failure, same as every other optional Supabase/cloud path).
+import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev({ remoteBindings: true }));

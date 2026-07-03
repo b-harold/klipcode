@@ -55,3 +55,19 @@ export function resolveSnippetRename(
     language: (LANGUAGES.find((l) => l.id === currentLanguage)?.id ?? DEFAULT_LANGUAGE) as LanguageId,
   };
 }
+
+/** Lines/characters fed to the AI title generator — enough for it to infer
+ *  intent from a snippet without shipping arbitrarily large payloads. */
+const AI_TITLE_PROMPT_MAX_LINES = 60;
+const AI_TITLE_PROMPT_MAX_CHARS = 4000;
+
+/**
+ * Trims a snippet's code down to the leading slice used to prompt the AI
+ * title generator, capped in both lines and characters.
+ */
+export function truncateCodeForTitlePrompt(code: string): string {
+  const leadingLines = code.split("\n").slice(0, AI_TITLE_PROMPT_MAX_LINES).join("\n");
+  return leadingLines.length > AI_TITLE_PROMPT_MAX_CHARS
+    ? leadingLines.slice(0, AI_TITLE_PROMPT_MAX_CHARS)
+    : leadingLines;
+}

@@ -233,6 +233,35 @@ body {
   animation: klipcode-tooltip-in 0.15s ease-out;
 }
 
+/* ─── AI title generation shimmer ────────────────────────────────────────────
+   Shown in place of a snippet's name while Workers AI is inferring one. A light
+   sweep travels across the text (clipped to the glyphs) to read as "working". */
+@keyframes klipcode-title-shimmer {
+  0%   { background-position: 200% 50%; }
+  100% { background-position: -200% 50%; }
+}
+
+.klipcode-title-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    rgba(var(--ink-rgb), 0.3) 30%,
+    rgba(var(--ink-rgb), 0.85) 50%,
+    rgba(var(--ink-rgb), 0.3) 70%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: klipcode-title-shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .klipcode-title-shimmer {
+    animation: none;
+    color: rgb(var(--ink-rgb) / 0.55);
+  }
+}
+
 .cm-editor .cm-scroller {
   font-family: inherit !important;
 }

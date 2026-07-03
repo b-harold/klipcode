@@ -48,6 +48,7 @@ next-env.d.ts
 .dev.vars*
 !.dev.vars.example
 !.env.example
+cloudflare-env.d.ts
 
 # local supabase migrations (schema lives in db-structure.sql)
 .sb-migrations/

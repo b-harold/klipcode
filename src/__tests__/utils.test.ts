@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { cn, getSnippetDisplayName, getSnippetFileName, resolveSnippetRename } from "@/lib/utils";
+import {
+  cn,
+  getSnippetDisplayName,
+  getSnippetFileName,
+  resolveSnippetRename,
+  truncateCodeForTitlePrompt,
+} from "@/lib/utils";
 import { LANGUAGES } from "@/lib/constants/languages";
 
 // ── cn() ──────────────────────────────────────────────────────────────────────
@@ -141,5 +147,31 @@ describe("resolveSnippetRename()", () => {
       title: "README.md",
       language: "markdown",
     });
+  });
+});
+
+// ── truncateCodeForTitlePrompt() ──────────────────────────────────────────────
+
+describe("truncateCodeForTitlePrompt()", () => {
+  it("returns short code unchanged", () => {
+    const code = "function add(a, b) {\n  return a + b;\n}";
+    expect(truncateCodeForTitlePrompt(code)).toBe(code);
+  });
+
+  it("caps at 60 lines", () => {
+    const code = Array.from({ length: 200 }, (_, i) => `line ${i}`).join("\n");
+    const result = truncateCodeForTitlePrompt(code);
+    expect(result.split("\n")).toHaveLength(60);
+    expect(result.split("\n")[59]).toBe("line 59");
+  });
+
+  it("caps at 4000 characters even within the line limit", () => {
+    const code = "x".repeat(50) + "\n".repeat(59) + "y".repeat(50000);
+    const result = truncateCodeForTitlePrompt(code);
+    expect(result.length).toBeLessThanOrEqual(4000);
+  });
+
+  it("handles empty code", () => {
+    expect(truncateCodeForTitlePrompt("")).toBe("");
   });
 });

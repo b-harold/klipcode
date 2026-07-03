@@ -7,17 +7,33 @@ import { truncateCodeForTitlePrompt } from "@/lib/utils";
 // so there's no reason to reach for a bigger (slower, costlier) one.
 const TITLE_MODEL = "@cf/meta/llama-3.2-3b-instruct";
 
-const SYSTEM_PROMPT = `You are a title generator embedded in a code-snippet manager. You will be shown the language and the first lines of a code snippet. Reply with ONLY a short, descriptive title for it: 2 to 6 words, Title Case, no surrounding quotes, no trailing punctuation, no markdown, no filler words like "Snippet", "Code", "Untitled", or the language name by itself. Infer the purpose from function/class/variable names, comments, imports, or overall structure — name what the code DOES, not what it IS. If the snippet is too short or generic to name meaningfully, reply with exactly: Untitled. Output the title text and absolutely nothing else — no explanation, no reasoning.`;
+const SYSTEM_PROMPT = `You are a filename generator embedded in a code-snippet manager. You will be shown the language and the first lines of a code snippet. Reply with ONLY a short name for it: 2 to 3 words, no spaces, no file extension, no quotes, no punctuation, no markdown. Infer the purpose from function/class/variable names, comments, imports, or overall structure — name what the code DOES, never a prose description.
 
-const MAX_TITLE_CHARS = 80;
+ALWAYS return a name, even for very short or trivial snippets — there is no such thing as "unnameable". If there is only a single statement, name its main identifier, value, or action (e.g. \`const port = 3000\` → "define-port", \`background: red\` → "red-background", \`print("hi")\` → "print_hi"). Never refuse, never reply "untitled", never leave it blank, never explain.
 
+Pick the casing convention idiomatic to what the code is:
+- A React/Vue/Svelte component, or any class → PascalCase, e.g. UserCard, EventEmitter
+- A hook or composable (a "use…" function) → camelCase, e.g. useDebounce, useFetchUser
+- Python code → snake_case, e.g. fetch_user_data, parse_config
+- Anything else (config, CSS, HTML, SQL, shell, plain functions/scripts) → kebab-case, e.g. eslint-config, format-date
+
+Do NOT include filler words like "snippet", "code", or the language name by itself. Output the name and absolutely nothing else — no explanation, no reasoning.`;
+
+const MAX_TITLE_CHARS = 48;
+
+// Normalize the model output into a single filename-like token while PRESERVING
+// its casing convention (PascalCase / camelCase / snake_case / kebab-case): keep
+// the first line only, strip wrapping quotes/markdown, collapse any stray
+// internal whitespace to a hyphen, and drop characters that don't belong in a name.
 function sanitizeTitle(raw: string): string {
   return raw
+    .split("\n")[0]
     .replace(/^["'`*_\s]+|["'`*_\s]+$/g, "")
-    .replace(/\s+/g, " ")
-    .replace(/[.:;,]+$/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/[^\p{L}\p{N}_-]+/gu, "")
+    .replace(/^[-_]+|[-_]+$/g, "")
     .slice(0, MAX_TITLE_CHARS)
-    .trim();
+    .replace(/[-_]+$/g, "");
 }
 
 async function isAuthenticated(request: Request): Promise<boolean> {
@@ -75,6 +91,9 @@ export async function POST(request: Request) {
       temperature: 0.3,
     });
 
+    // The prompt forbids "untitled"/blank, so these should be rare — a safety net
+    // for a stubborn model. When it trips, the caller keeps the "Untitled"
+    // placeholder rather than displaying a literal "untitled" title.
     const title = sanitizeTitle(result.response ?? "");
     if (!title || /^untitled$/i.test(title)) {
       return Response.json({ error: "no title" }, { status: 422 });

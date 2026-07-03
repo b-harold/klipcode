@@ -2,9 +2,10 @@ import { useEffect, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
 import { db, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord, SyncStatus } from "@/lib/types";
 import { isDescendantOrSelf } from "@/components/Aside/utils";
-import { resolveSnippetRename } from "@/lib/utils";
+import { resolveSnippetRename, truncateCodeForTitlePrompt } from "@/lib/utils";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import type { Dictionary } from "@/i18n";
 
@@ -90,6 +91,50 @@ export function useWorkspaceMutations({
     }
   }
 
+  /**
+   * For a registered user who left the title blank, ask Workers AI for a
+   * short title inferred from the code and apply it in the background — the
+   * snippet is already saved as "Untitled" so this never blocks creation.
+   * Silently gives up on any failure (no AI binding, signed-out mid-flight,
+   * network error, ...), leaving the placeholder title in place. Applies the
+   * result only if the title is still untouched, so a user rename in the
+   * meantime always wins.
+   */
+  async function generateAiTitle(snippetId: string, code: string, language: string) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken) return;
+
+    let title: string | undefined;
+    try {
+      const response = await fetch("/api/generate-title", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ code: truncateCodeForTitlePrompt(code), language }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) return;
+      const json = (await response.json()) as { title?: unknown };
+      title = typeof json.title === "string" ? json.title.trim() : undefined;
+    } catch {
+      return;
+    }
+    if (!title) return;
+
+    const current = await db.snippets.get(snippetId);
+    if (!current || current.deletedAt || current.title !== copy.snippetCard.untitled) return;
+
+    const updatedAt = new Date().toISOString();
+    await db.snippets.update(snippetId, { title, updatedAt, dirty: true });
+    patchSnippetInCache(snippetId, { title, updatedAt, dirty: true });
+    syncAfterMutation(snippetId);
+  }
+
   /* ── Snippet CRUD ─────────────────────────────────────────────────────── */
 
   async function handleCreateSnippet(data: {
@@ -102,13 +147,15 @@ export function useWorkspaceMutations({
 
     const snippetId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
+    const trimmedTitle = data.title.trim();
+    const language = data.language.trim();
 
     await db.snippets.put({
       id: snippetId,
       ownerId: user?.id ?? null,
       folderId: data.folderId || null,
-      title: data.title.trim() || copy.snippetCard.untitled,
-      language: data.language.trim(),
+      title: trimmedTitle || copy.snippetCard.untitled,
+      language,
       code: data.code,
       isPinnedAside: false,
       isPinnedHome: false,
@@ -122,6 +169,11 @@ export function useWorkspaceMutations({
     setSnippetStatus(snippetId, "editing");
     refreshWorkspace();
     syncAfterMutation(snippetId);
+
+    if (!trimmedTitle && user) {
+      void generateAiTitle(snippetId, data.code, language);
+    }
+
     return snippetId;
   }
 

@@ -22,9 +22,9 @@ export function PinnedIcon({
         <span
           role="img"
           aria-label={label}
-          className="absolute -bottom-1.5 -right-1.5 text-foreground"
+          className="absolute -bottom-0.5 -right-1 text-foreground"
         >
-          <Pin size={9} className="fill-current" />
+          <Pin size={8} className="fill-current" />
         </span>
       )}
     </span>

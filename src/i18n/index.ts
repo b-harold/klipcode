@@ -15,7 +15,7 @@ export function getDictionary(locale: "en" | "es") {
 type Widen<T> = T extends (...args: infer A) => infer R
   ? (...args: A) => Widen<R>
   : T extends readonly (infer E)[]
-    ? Widen<E>[]
+    ? readonly Widen<E>[]
     : T extends object
       ? { -readonly [K in keyof T]: Widen<T[K]> }
       : T extends string

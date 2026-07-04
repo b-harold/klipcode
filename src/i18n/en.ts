@@ -337,35 +337,45 @@ export const en = {
     nav: {
       openApp: "Open App",
       noSignUp: "No sign-up required",
+      features: "Features",
+      faq: "FAQ",
     },
     hero: {
-      title: "Your code snippets,\nalways within reach.",
-      titleBefore: "Your ",
-      titleHighlight: "code snippets",
-      titleAfter: ",\nalways within reach.",
+      badge: "Free · Open source · No sign-up",
+      title: "The code snippet manager\nthat stays out of your way.",
+      titleBefore: "The ",
+      titleHighlight: "code snippet manager",
+      titleAfter: "that stays out of your way.",
       subtitle:
-        "Save, organize, and access your favorite code snippets instantly from any device. Cloud sync included.",
+        "Save, organize, and copy your code snippets from any device. Local-first and free: it works offline, needs no account, and syncs through GitHub when you want it to.",
       cta: "Start now — free",
       ctaHint: "No account needed to begin",
     },
-    appPreview: "KlipCode application interface",
+    trust: {
+      offline: "Works 100% offline",
+      local: "Your snippets live on your device",
+      openSource: "Open source on GitHub",
+    },
+    appPreview:
+      "KlipCode snippet manager interface: folder sidebar and code editor with syntax highlighting",
     features: {
+      eyebrow: "Features",
       title: "Everything you need, nothing you don't",
       subtitle: "Built for developers who value speed and simplicity.",
       quickSave: {
         title: "Instant Save",
         description:
-          "Save a snippet in two clicks. No sign-up walls, no friction.",
+          "Save a code snippet in two clicks. No sign-up walls, no friction.",
       },
       instantCopy: {
         title: "One-click Copy",
         description:
-          "Copy any snippet to your clipboard instantly.",
+          "Copy any snippet to your clipboard instantly — no more digging through old projects and gists.",
       },
       folders: {
         title: "Nested Folders",
         description:
-          "Organize with hierarchical folders that match your mental model.",
+          "Organize your snippet library with hierarchical folders that match your mental model.",
       },
       dragAndDrop: {
         title: "Drag & Drop",
@@ -373,42 +383,82 @@ export const en = {
           "Rearrange snippets and folders by dragging them where you want.",
       },
       cloudSync: {
-        title: "Cloud Sync",
+        title: "GitHub Cloud Sync",
         description:
-          "Sign in with GitHub and sync across all your devices automatically.",
+          "Sign in with GitHub and your snippets sync across all your devices automatically.",
       },
       editor: {
-        title: "Advanced Editor",
+        title: "Advanced Code Editor",
         description:
-          "Syntax highlighting, auto-save, code formatting — all built in.",
+          "Syntax highlighting for 25+ languages, auto-save, and code formatting — all built in.",
       },
     },
     demos: {
+      eyebrow: "How it works",
+      title: "From paste to copy in seconds",
+      subtitle:
+        "No setup, no configuration. Open the app and start saving code snippets.",
       create: {
         title: "Create snippets in seconds",
         description:
-          "Pick a language, paste your code — done. No configuration required.",
+          "Pick a language, paste your code — done. Syntax highlighting and auto-save are built in.",
       },
       copy: {
         title: "Copy with one click",
         description:
-          "Every snippet is one click away from your clipboard.",
+          "Every snippet is one click away from your clipboard, on every device.",
       },
       move: {
         title: "Organize intuitively",
         description:
-          "Drag and drop to rearrange your entire workspace.",
+          "Drag and drop snippets and folders to arrange your workspace the way you think.",
       },
+    },
+    faq: {
+      eyebrow: "FAQ",
+      title: "Frequently asked questions",
+      subtitle: "Everything you might want to know before you start.",
+      items: [
+        {
+          q: "Is KlipCode free?",
+          a: "Yes — KlipCode is completely free and open source. There are no paid plans, no snippet limits, and no account required to use it.",
+        },
+        {
+          q: "Do I need an account to use KlipCode?",
+          a: "No. KlipCode is local-first: your snippets are stored in your browser and everything works without signing up. An optional GitHub sign-in enables cloud sync.",
+        },
+        {
+          q: "Does KlipCode work offline?",
+          a: "Yes. Snippets are saved on your device, so you can create, edit, and copy them with no internet connection. Changes sync automatically the next time you're online.",
+        },
+        {
+          q: "How do I sync snippets across devices?",
+          a: "Sign in with GitHub on each device. Your snippet library is backed up to the cloud and kept in sync automatically — edits on one device appear on the others.",
+        },
+        {
+          q: "Is my code private?",
+          a: "Your snippets stay on your device unless you enable cloud sync. With sync on, they're stored in a private database only your account can access — and the entire codebase is open source, so you can verify it.",
+        },
+        {
+          q: "Which programming languages are supported?",
+          a: "KlipCode highlights more than 25 languages — JavaScript, TypeScript, Python, Go, Rust, SQL, HTML, CSS, and more — plus a rich Markdown mode for notes and docs.",
+        },
+      ],
     },
     cta: {
       title: "Ready to organize your code?",
       subtitle:
-        "Start using KlipCode right now. No account, no setup, no limits.",
+        "Free, open source, and ready in seconds. No account, no setup, no limits.",
       button: "Launch KlipCode",
     },
     footer: {
-      tagline: "Multi-device snippet manager.",
+      tagline: "The local-first snippet manager for developers.",
+      description:
+        "KlipCode is a free, open-source code snippet manager. Save, organize, and sync code snippets across all your devices — it works offline and requires no account.",
       source: "Source",
+      product: "Product",
+      language: "Language",
+      github: "GitHub",
     },
   },
   error: {
@@ -423,9 +473,9 @@ export const en = {
   },
   meta: {
     home: {
-      title: "KlipCode — Code Snippet Manager with Cloud Sync",
+      title: "KlipCode — Free Open-Source Code Snippet Manager",
       description:
-        "Save, organize, and instantly copy your code snippets across every device. Local-first, works offline, no sign-up required. Optional GitHub sync keeps everything backed up.",
+        "Free, open-source code snippet manager. Save, organize, and copy snippets across all your devices — local-first, works offline, no sign-up, optional GitHub cloud sync.",
     },
     app: {
       title: "Snippet Manager App",

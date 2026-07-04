@@ -338,35 +338,45 @@ export const es = {
     nav: {
       openApp: "Abrir App",
       noSignUp: "Sin necesidad de registro",
+      features: "Características",
+      faq: "FAQ",
     },
     hero: {
-      title: "Tus snippets de código,\nsiempre a mano.",
-      titleBefore: "Tus ",
-      titleHighlight: "snippets de código",
-      titleAfter: ",\nsiempre a mano.",
+      badge: "Gratis · Open source · Sin registro",
+      title: "El gestor de snippets\nque no te frena.",
+      titleBefore: "El ",
+      titleHighlight: "gestor de snippets",
+      titleAfter: "que no te frena.",
       subtitle:
-        "Guarda, organiza y accede a tus fragmentos de código favoritos al instante desde cualquier dispositivo. Sincronización en la nube incluida.",
+        "Guarda, organiza y copia tus snippets de código desde cualquier dispositivo. Local-first y gratis: funciona sin conexión, no necesita cuenta y se sincroniza con GitHub cuando tú quieras.",
       cta: "Empieza ahora — gratis",
       ctaHint: "No necesitas cuenta para empezar",
     },
-    appPreview: "Interfaz de la aplicación KlipCode",
+    trust: {
+      offline: "Funciona 100% sin conexión",
+      local: "Tus snippets viven en tu dispositivo",
+      openSource: "Código abierto en GitHub",
+    },
+    appPreview:
+      "Interfaz del gestor de snippets KlipCode: barra lateral de carpetas y editor de código con resaltado de sintaxis",
     features: {
+      eyebrow: "Características",
       title: "Todo lo que necesitas, nada que sobre",
       subtitle: "Diseñado para desarrolladores que valoran la velocidad y la simplicidad.",
       quickSave: {
         title: "Guardado instantáneo",
         description:
-          "Guarda un snippet en dos clics. Sin formularios, sin fricción.",
+          "Guarda un snippet de código en dos clics. Sin formularios, sin fricción.",
       },
       instantCopy: {
         title: "Copia en un clic",
         description:
-          "Copia cualquier snippet al portapapeles al instante.",
+          "Copia cualquier snippet al portapapeles al instante — se acabó rebuscar en proyectos antiguos y gists.",
       },
       folders: {
         title: "Carpetas anidadas",
         description:
-          "Organiza con carpetas jerárquicas que se adaptan a tu modelo mental.",
+          "Organiza tu biblioteca de snippets con carpetas jerárquicas que se adaptan a tu modelo mental.",
       },
       dragAndDrop: {
         title: "Arrastrar y soltar",
@@ -374,42 +384,82 @@ export const es = {
           "Reorganiza snippets y carpetas arrastrándolos donde quieras.",
       },
       cloudSync: {
-        title: "Sincronización en la nube",
+        title: "Sincronización con GitHub",
         description:
-          "Inicia sesión con GitHub y sincroniza todos tus dispositivos automáticamente.",
+          "Inicia sesión con GitHub y tus snippets se sincronizan automáticamente en todos tus dispositivos.",
       },
       editor: {
-        title: "Editor avanzado",
+        title: "Editor de código avanzado",
         description:
-          "Resaltado de sintaxis, guardado automático, formateo — todo integrado.",
+          "Resaltado de sintaxis para más de 25 lenguajes, guardado automático y formateo — todo integrado.",
       },
     },
     demos: {
+      eyebrow: "Cómo funciona",
+      title: "De pegar a copiar en segundos",
+      subtitle:
+        "Sin configuración ni ajustes. Abre la app y empieza a guardar snippets de código.",
       create: {
         title: "Crea snippets en segundos",
         description:
-          "Elige un lenguaje, pega tu código — listo. Sin configuración.",
+          "Elige un lenguaje, pega tu código — listo. Resaltado de sintaxis y guardado automático integrados.",
       },
       copy: {
         title: "Copia con un clic",
         description:
-          "Cada snippet está a un clic de tu portapapeles.",
+          "Cada snippet está a un clic de tu portapapeles, en cualquier dispositivo.",
       },
       move: {
         title: "Organiza intuitivamente",
         description:
-          "Arrastra y suelta para reorganizar todo tu espacio de trabajo.",
+          "Arrastra y suelta snippets y carpetas para ordenar tu espacio de trabajo como tú piensas.",
       },
+    },
+    faq: {
+      eyebrow: "FAQ",
+      title: "Preguntas frecuentes",
+      subtitle: "Todo lo que quieras saber antes de empezar.",
+      items: [
+        {
+          q: "¿KlipCode es gratis?",
+          a: "Sí — KlipCode es totalmente gratuito y de código abierto. No hay planes de pago, ni límites de snippets, ni necesitas cuenta para usarlo.",
+        },
+        {
+          q: "¿Necesito una cuenta para usar KlipCode?",
+          a: "No. KlipCode es local-first: tus snippets se guardan en tu navegador y todo funciona sin registrarte. Iniciar sesión con GitHub es opcional y activa la sincronización en la nube.",
+        },
+        {
+          q: "¿KlipCode funciona sin conexión?",
+          a: "Sí. Los snippets se guardan en tu dispositivo, así que puedes crearlos, editarlos y copiarlos sin conexión a internet. Los cambios se sincronizan automáticamente la próxima vez que estés en línea.",
+        },
+        {
+          q: "¿Cómo sincronizo snippets entre dispositivos?",
+          a: "Inicia sesión con GitHub en cada dispositivo. Tu biblioteca de snippets se respalda en la nube y se mantiene sincronizada automáticamente — los cambios en un dispositivo aparecen en los demás.",
+        },
+        {
+          q: "¿Mi código es privado?",
+          a: "Tus snippets permanecen en tu dispositivo salvo que actives la sincronización. Con la sincronización activa, se guardan en una base de datos privada a la que solo accede tu cuenta — y todo el código es abierto, así que puedes comprobarlo.",
+        },
+        {
+          q: "¿Qué lenguajes de programación soporta?",
+          a: "KlipCode resalta más de 25 lenguajes — JavaScript, TypeScript, Python, Go, Rust, SQL, HTML, CSS y más — además de un modo Markdown enriquecido para notas y documentación.",
+        },
+      ],
     },
     cta: {
       title: "¿Listo para organizar tu código?",
       subtitle:
-        "Empieza a usar KlipCode ahora mismo. Sin cuenta, sin configuración, sin límites.",
+        "Gratis, open source y listo en segundos. Sin cuenta, sin configuración, sin límites.",
       button: "Abrir KlipCode",
     },
     footer: {
-      tagline: "Gestor de snippets multidispositivo.",
+      tagline: "El gestor de snippets local-first para desarrolladores.",
+      description:
+        "KlipCode es un gestor de snippets de código gratuito y de código abierto. Guarda, organiza y sincroniza fragmentos de código en todos tus dispositivos — funciona sin conexión y no requiere cuenta.",
       source: "Código fuente",
+      product: "Producto",
+      language: "Idioma",
+      github: "GitHub",
     },
   },
   error: {
@@ -424,9 +474,9 @@ export const es = {
   },
   meta: {
     home: {
-      title: "KlipCode — Snippets de Código con Sincronización en la Nube",
+      title: "KlipCode — Gestor de Snippets de Código Gratis y Open Source",
       description:
-        "Guarda, organiza y copia al instante tus fragmentos de código en todos tus dispositivos. Funciona sin conexión y sin necesidad de registro. Sincronización opcional con GitHub.",
+        "Gestor de snippets de código gratuito y open source. Guarda, organiza y copia fragmentos de código en todos tus dispositivos — funciona sin conexión, sin registro y con sincronización opcional vía GitHub.",
     },
     app: {
       title: "App de Snippets de Código",

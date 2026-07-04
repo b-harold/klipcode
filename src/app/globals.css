@@ -119,6 +119,11 @@ html { scrollbar-gutter: stable; }
 .landing-delay-2 { animation-delay: 0.2s; }
 .landing-delay-3 { animation-delay: 0.4s; }
 
+/* FAQ accordion answers slide in when the <details> opens */
+details[open] .landing-faq-answer {
+  animation: landing-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @keyframes gradient {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }

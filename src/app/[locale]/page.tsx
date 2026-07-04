@@ -9,7 +9,11 @@ import { AppCtaLink } from "@/components/AppCtaLink";
 import { LandingHeroImage } from "@/components/LandingHeroImage";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { isLocale, localeHref, type Locale } from "@/lib/locale";
-import { buildPageMetadata, buildWebApplicationJsonLd } from "@/lib/seo";
+import {
+  buildFaqJsonLd,
+  buildPageMetadata,
+  buildWebApplicationJsonLd,
+} from "@/lib/seo";
 import { Logo } from "@/ui/Logo";
 import { GitHubIcon } from "@/components/Aside/GitHubIcon";
 
@@ -87,6 +91,54 @@ function IconGlobe() {
   );
 }
 
+function IconCheck() {
+  return (
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
+function IconPlus() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      className="shrink-0 text-muted transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-open:rotate-45"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
+/* ── small building blocks ─────────────────────────────────────────────────── */
+
+function SectionHeading({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="mb-14 text-center">
+      <span className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted/70">
+        {eyebrow}
+      </span>
+      <h2 className="mt-3 text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+        {title}
+      </h2>
+      <p className="mx-auto mt-4 max-w-xl text-balance text-muted">{subtitle}</p>
+    </div>
+  );
+}
+
 /* ── page ──────────────────────────────────────────────────────────────────── */
 
 export default async function LandingPage({
@@ -105,7 +157,16 @@ export default async function LandingPage({
     locale: loc,
     name: "KlipCode",
     description: t.meta.home.description,
+    featureList: [
+      l.features.quickSave.title,
+      l.features.instantCopy.title,
+      l.features.folders.title,
+      l.features.dragAndDrop.title,
+      l.features.cloudSync.title,
+      l.features.editor.title,
+    ],
   });
+  const faqJsonLd = buildFaqJsonLd(l.faq.items);
 
   const features = [
     { icon: <IconBolt />, ...l.features.quickSave },
@@ -116,11 +177,45 @@ export default async function LandingPage({
     { icon: <IconCode />, ...l.features.editor },
   ];
 
+  const trustItems = [l.trust.offline, l.trust.local, l.trust.openSource];
+
+  const demos = [
+    {
+      step: "01",
+      title: l.demos.create.title,
+      description: l.demos.create.description,
+      src: "/landing/create-snippet.gif",
+      width: 1200,
+      height: 600,
+    },
+    {
+      step: "02",
+      title: l.demos.copy.title,
+      description: l.demos.copy.description,
+      src: "/landing/copy-snippets.gif",
+      width: 1200,
+      height: 800,
+    },
+    {
+      step: "03",
+      title: l.demos.move.title,
+      description: l.demos.move.description,
+      src: "/landing/move-elements.gif",
+      width: 450,
+      height: 300,
+      narrow: true,
+    },
+  ];
+
   return (
     <div className="relative min-h-full overflow-x-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
       {/* ─── Grid background ──────────────────────────────────────────────── */}
@@ -128,10 +223,27 @@ export default async function LandingPage({
 
       {/* ─── Navbar ───────────────────────────────────────────────────────── */}
       <LandingHeader>
-          <Link href={localeHref(loc)} className="flex items-center gap-2 text-foreground">
-            <Logo className="h-5 w-5" />
-            <span className="text-sm font-semibold tracking-tight">KlipCode</span>
-          </Link>
+          <div className="flex items-center gap-8">
+            <Link href={localeHref(loc)} className="flex items-center gap-2 text-foreground">
+              <Logo className="h-5 w-5" />
+              <span className="text-sm font-semibold tracking-tight">KlipCode</span>
+            </Link>
+
+            <div className="hidden items-center gap-6 md:flex">
+              <a
+                href="#features"
+                className="text-xs font-medium text-muted transition-colors hover:text-foreground"
+              >
+                {l.nav.features}
+              </a>
+              <a
+                href="#faq"
+                className="text-xs font-medium text-muted transition-colors hover:text-foreground"
+              >
+                {l.nav.faq}
+              </a>
+            </div>
+          </div>
 
           <div className="flex items-center gap-3">
             <LocaleSwitchLink
@@ -158,7 +270,7 @@ export default async function LandingPage({
       </LandingHeader>
 
       {/* ─── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative flex flex-col items-center px-4 pt-24 pb-14 sm:px-5 sm:pt-28 sm:pb-16 md:pt-36 md:pb-24">
+      <section className="relative flex flex-col items-center px-4 pt-24 pb-14 sm:px-5 sm:pt-28 sm:pb-16 md:pt-32 md:pb-24">
         {/* Subtle top gradient glow */}
         <div
           aria-hidden="true"
@@ -166,16 +278,28 @@ export default async function LandingPage({
           style={{ background: "radial-gradient(ellipse, var(--landing-glow) 0%, transparent 70%)" }}
         />
 
-        <h1 className="landing-fade-in relative max-w-3xl text-balance text-center text-4xl leading-[1.1] font-bold tracking-tight text-foreground whitespace-normal sm:text-5xl md:text-6xl md:whitespace-pre-line">
-          {l.hero.titleBefore}
-          <span className="relative inline font-mono bg-linear-to-r from-[#8400FF] via-[#00A3FF] to-[#8400FF] bg-size-[200%_auto] animate-gradient bg-clip-text text-transparent md:inline-block">
-            {l.hero.titleHighlight}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 -bottom-0.5 hidden h-px bg-linear-to-r from-[#8400FF]/0 via-[#4052FF]/60 to-[#8400FF]/0 md:block"
-            />
+        <span className="landing-fade-in relative inline-flex items-center gap-2 rounded-full border border-ink/10 bg-ink/3 px-3.5 py-1.5 text-[11px] font-medium tracking-wide text-muted sm:text-xs">
+          <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
           </span>
-          {l.hero.titleAfter}
+          {l.hero.badge}
+        </span>
+
+        {/* Explicit two-line structure: line 1 ("The " + highlight) is kept
+            together and sized so it always fits, avoiding an orphaned "The". */}
+        <h1 className="landing-fade-in relative mt-6 max-w-4xl text-center text-4xl leading-[1.15] font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          <span className="block text-balance">
+            {l.hero.titleBefore}
+            <span className="relative inline font-mono bg-linear-to-r from-[#8400FF] via-[#00A3FF] to-[#8400FF] bg-size-[200%_auto] animate-gradient bg-clip-text text-transparent md:inline-block">
+              {l.hero.titleHighlight}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 -bottom-0.5 hidden h-px bg-linear-to-r from-[#8400FF]/0 via-[#4052FF]/60 to-[#8400FF]/0 md:block"
+              />
+            </span>
+          </span>
+          <span className="block text-balance">{l.hero.titleAfter}</span>
         </h1>
 
         <p className="landing-fade-in landing-delay-1 mt-6 max-w-xl text-center text-base leading-relaxed text-muted sm:text-lg">
@@ -210,99 +334,101 @@ export default async function LandingPage({
             className="pointer-events-none absolute -bottom-1 left-0 h-24 w-full bg-linear-to-t from-background to-transparent"
           />
         </div>
+
+        {/* Trust strip */}
+        <ul className="landing-fade-in landing-delay-3 relative mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          {trustItems.map((item) => (
+            <li key={item} className="flex items-center gap-2 text-xs text-muted sm:text-[13px]">
+              <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-ink/6 text-foreground/80">
+                <IconCheck />
+              </span>
+              {item}
+            </li>
+          ))}
+        </ul>
       </section>
 
-      {/* ─── Demo sections ────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl space-y-20 px-4 py-16 sm:px-5 md:space-y-32 md:py-28">
-        {/* Create snippet */}
-        <div className="flex flex-col items-center gap-8 md:flex-row md:gap-16">
-          <div className="flex-1 space-y-4 text-center md:text-left">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              {l.demos.create.title}
-            </h2>
-            <p className="max-w-md text-muted leading-relaxed">
-              {l.demos.create.description}
-            </p>
-          </div>
-          <div className="flex-1">
-            <div className="overflow-hidden rounded-xl border border-ink/8">
-              <Image
-                src="/landing/create-snippet.gif"
-                alt={l.demos.create.title}
-                width={1200}
-                height={600}
-                className="w-full"
-                unoptimized
-              />
-            </div>
-          </div>
-        </div>
+      {/* ─── How it works ─────────────────────────────────────────────────── */}
+      <section id="how-it-works" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-5 md:py-28">
+        <SectionHeading
+          eyebrow={l.demos.eyebrow}
+          title={l.demos.title}
+          subtitle={l.demos.subtitle}
+        />
 
-        {/* Copy snippet — reversed */}
-        <div className="flex flex-col-reverse items-center gap-8 md:flex-row md:gap-16">
-          <div className="flex-1">
-            <div className="overflow-hidden rounded-xl border border-ink/8">
-              <Image
-                src="/landing/copy-snippets.gif"
-                alt={l.demos.copy.title}
-                width={1200}
-                height={800}
-                className="w-full"
-                unoptimized
-              />
-            </div>
-          </div>
-          <div className="flex-1 space-y-4 text-center md:text-left">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              {l.demos.copy.title}
-            </h2>
-            <p className="max-w-md text-muted leading-relaxed">
-              {l.demos.copy.description}
-            </p>
-          </div>
-        </div>
+        <div className="space-y-20 md:space-y-32">
+          {demos.map((demo, i) => {
+            const media = (
+              <div
+                className={
+                  demo.narrow
+                    ? "mx-auto w-full max-w-xs md:max-w-sm"
+                    : "w-full"
+                }
+              >
+                <div className="overflow-hidden rounded-xl border border-ink/8 bg-ink/2">
+                  <Image
+                    src={demo.src}
+                    alt={demo.title}
+                    width={demo.width}
+                    height={demo.height}
+                    className="w-full"
+                    unoptimized
+                  />
+                </div>
+              </div>
+            );
 
-        {/* Move elements */}
-        <div className="flex flex-col items-center gap-8 md:flex-row md:gap-16">
-          <div className="flex-1 space-y-4 text-center md:text-left">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              {l.demos.move.title}
-            </h2>
-            <p className="max-w-md text-muted leading-relaxed">
-              {l.demos.move.description}
-            </p>
-          </div>
-          <div className="w-full max-w-xs md:flex-1">
-            <div className="mx-auto overflow-hidden rounded-xl border border-ink/8 md:max-w-sm">
-              <Image
-                src="/landing/move-elements.gif"
-                alt={l.demos.move.title}
-                width={450}
-                height={300}
-                className="w-full"
-                unoptimized
-              />
-            </div>
-          </div>
+            const text = (
+              <div className="flex-1 space-y-4 text-center md:text-left">
+                <span className="font-mono text-xs font-medium tracking-[0.25em] text-muted/50">
+                  {demo.step}
+                </span>
+                <h3 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                  {demo.title}
+                </h3>
+                <p className="mx-auto max-w-md text-muted leading-relaxed md:mx-0">
+                  {demo.description}
+                </p>
+              </div>
+            );
+
+            // Alternate media side per row for editorial rhythm.
+            return i % 2 === 0 ? (
+              <div key={demo.step} className="flex flex-col items-center gap-8 md:flex-row md:gap-16">
+                {text}
+                <div className="flex-1">{media}</div>
+              </div>
+            ) : (
+              <div key={demo.step} className="flex flex-col-reverse items-center gap-8 md:flex-row md:gap-16">
+                <div className="flex-1">{media}</div>
+                {text}
+              </div>
+            );
+          })}
         </div>
       </section>
 
       {/* ─── Features grid ────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-5 md:py-28">
-        <div className="mb-14 text-center">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            {l.features.title}
-          </h2>
-          <p className="mt-4 text-muted">{l.features.subtitle}</p>
-        </div>
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-5 md:py-28">
+        <SectionHeading
+          eyebrow={l.features.eyebrow}
+          title={l.features.title}
+          subtitle={l.features.subtitle}
+        />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
             <div
               key={f.title}
-              className="group rounded-xl border border-ink/6 bg-ink/2 p-6 transition-colors hover:border-ink/10 hover:bg-ink/4"
+              className="group relative overflow-hidden rounded-xl border border-ink/6 bg-ink/2 p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/12 hover:bg-ink/4"
             >
-              <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg bg-ink/6 text-foreground">
+              {/* Hairline highlight along the top edge, revealed on hover */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-linear-to-r from-transparent via-ink/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              />
+              <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg bg-ink/6 text-foreground transition-colors duration-300 group-hover:bg-ink/10">
                 {f.icon}
               </div>
               <h3 className="mb-2 text-sm font-semibold text-foreground">
@@ -312,6 +438,29 @@ export default async function LandingPage({
                 {f.description}
               </p>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── FAQ ──────────────────────────────────────────────────────────── */}
+      <section id="faq" className="mx-auto max-w-3xl scroll-mt-24 px-4 py-16 sm:px-5 md:py-28">
+        <SectionHeading
+          eyebrow={l.faq.eyebrow}
+          title={l.faq.title}
+          subtitle={l.faq.subtitle}
+        />
+
+        <div className="border-t border-ink/6">
+          {l.faq.items.map((item) => (
+            <details key={item.q} className="group border-b border-ink/6">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-left text-[15px] font-medium text-foreground transition-colors hover:text-ink [&::-webkit-details-marker]:hidden">
+                {item.q}
+                <IconPlus />
+              </summary>
+              <p className="landing-faq-answer -mt-1 max-w-2xl pb-5 text-sm leading-relaxed text-muted">
+                {item.a}
+              </p>
+            </details>
           ))}
         </div>
       </section>
@@ -329,7 +478,7 @@ export default async function LandingPage({
         </div>
 
         <div className="relative mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {l.cta.title}
           </h2>
           <p className="mt-5 text-muted leading-relaxed">{l.cta.subtitle}</p>
@@ -343,13 +492,76 @@ export default async function LandingPage({
       </section>
 
       {/* ─── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-ink/6 px-4 py-8 sm:px-5">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2 text-muted">
-            <Logo className="h-4 w-4" />
-            <span className="text-xs">{l.footer.tagline}</span>
+      <footer className="border-t border-ink/6 px-4 py-12 sm:px-5">
+        <div className="mx-auto max-w-6xl">
+          <div className="flex flex-col gap-10 md:flex-row md:justify-between">
+            <div className="max-w-sm space-y-3">
+              <div className="flex items-center gap-2 text-foreground">
+                <Logo className="h-5 w-5" />
+                <span className="text-sm font-semibold tracking-tight">KlipCode</span>
+              </div>
+              <p className="text-sm text-muted">{l.footer.tagline}</p>
+              <p className="text-xs leading-relaxed text-muted/70">{l.footer.description}</p>
+            </div>
+
+            <div className="flex gap-16">
+              <div className="space-y-3">
+                <span className="block text-xs font-semibold uppercase tracking-wider text-muted/60">
+                  {l.footer.product}
+                </span>
+                <ul className="space-y-2.5 text-sm">
+                  <li>
+                    <Link href={appHref} className="text-muted transition-colors hover:text-foreground">
+                      {l.nav.openApp}
+                    </Link>
+                  </li>
+                  <li>
+                    <a href="#features" className="text-muted transition-colors hover:text-foreground">
+                      {l.nav.features}
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#faq" className="text-muted transition-colors hover:text-foreground">
+                      {l.nav.faq}
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://github.com/martinezharo/klipcode"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted transition-colors hover:text-foreground"
+                    >
+                      {l.footer.github}
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="space-y-3">
+                <span className="block text-xs font-semibold uppercase tracking-wider text-muted/60">
+                  {l.footer.language}
+                </span>
+                <ul className="space-y-2.5 text-sm">
+                  <li>
+                    <LocaleSwitchLink to="en" className="text-muted transition-colors hover:text-foreground">
+                      English
+                    </LocaleSwitchLink>
+                  </li>
+                  <li>
+                    <LocaleSwitchLink to="es" className="text-muted transition-colors hover:text-foreground">
+                      Español
+                    </LocaleSwitchLink>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
+
+          <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-ink/6 pt-6 sm:flex-row">
+            <span className="text-xs text-muted/60">
+              © {new Date().getFullYear()} KlipCode
+            </span>
             <a
               href="https://github.com/martinezharo/klipcode"
               target="_blank"

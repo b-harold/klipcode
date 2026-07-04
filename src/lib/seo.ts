@@ -60,10 +60,12 @@ export function buildWebApplicationJsonLd({
   locale,
   name,
   description,
+  featureList,
 }: {
   locale: Locale;
   name: string;
   description: string;
+  featureList?: string[];
 }) {
   return {
     "@context": "https://schema.org",
@@ -78,6 +80,26 @@ export function buildWebApplicationJsonLd({
       price: "0",
       priceCurrency: "USD",
     },
+    isAccessibleForFree: true,
+    screenshot: `${siteUrl}/landing/ui-dark-mode.webp`,
+    sameAs: ["https://github.com/martinezharo/klipcode"],
+    ...(featureList?.length ? { featureList } : {}),
     inLanguage: locale,
+  };
+}
+
+/**
+ * JSON-LD `FAQPage` schema built from the landing page's FAQ section, so the
+ * rendered questions and the structured data can never drift apart.
+ */
+export function buildFaqJsonLd(items: readonly { q: string; a: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
   };
 }

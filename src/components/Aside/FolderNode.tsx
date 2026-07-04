@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Folder, FolderOpen, Pin, PinOff } from "lucide-react";
+import { ChevronRight, Folder, FolderOpen } from "lucide-react";
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
+import { PinnedIcon } from "./PinnedIcon";
 import { NewFolderInput } from "./NewFolderInput";
 import { SnippetNode } from "./SnippetNode";
 import { STEP, sortByPinThenAlpha, suppressRowDragStart } from "./utils";
@@ -172,11 +173,13 @@ export function FolderNode({
             type="button"
             className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
           >
-            {isOpen && hasChildren ? (
-              <FolderOpen size={13} className="shrink-0 text-ink/25" />
-            ) : (
-              <Folder size={13} className="shrink-0 text-ink/25" />
-            )}
+            <PinnedIcon pinned={!!folder.isPinnedAside} label={ctx.copy.aside.pinned}>
+              {isOpen && hasChildren ? (
+                <FolderOpen size={13} className="shrink-0 text-ink/25" />
+              ) : (
+                <Folder size={13} className="shrink-0 text-ink/25" />
+              )}
+            </PinnedIcon>
             <TruncateTooltip text={folder.name} className="flex-1 truncate leading-none" />
           </button>
 
@@ -184,23 +187,6 @@ export function FolderNode({
             onMore={openMoreMenu}
             label={ctx.copy.contextMenu.moreOptions}
           />
-          {folder.isPinnedAside && (
-            <Tooltip content={ctx.copy.aside.unpin}>
-              <button
-                type="button"
-                aria-label={ctx.copy.aside.unpin}
-                data-no-drag=""
-                className="group/pin shrink-0 rounded p-px text-ink/30 transition-colors hover:text-ink/70"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void ctx.pinFolder(folder.id, "aside", false);
-                }}
-              >
-                <Pin size={10} className="block group-hover/pin:hidden" />
-                <PinOff size={10} className="hidden group-hover/pin:block" />
-              </button>
-            </Tooltip>
-          )}
         </div>
       )}
 

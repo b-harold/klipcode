@@ -127,6 +127,7 @@ export const en = {
     dropToRoot: "Move to root",
     dropToTrash: "Move to trash",
     unpin: "Unpin",
+    pinned: "Pinned",
     search: "Search",
     shortcuts: "Keyboard shortcuts",
     preferences: "Preferences",

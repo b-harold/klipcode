@@ -128,6 +128,7 @@ export const es = {
     dropToRoot: "Mover a raíz",
     dropToTrash: "Mover a la papelera",
     unpin: "Desfijar",
+    pinned: "Fijado",
     search: "Buscar",
     shortcuts: "Atajos de teclado",
     preferences: "Preferencias",

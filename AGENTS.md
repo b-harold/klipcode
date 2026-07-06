@@ -71,6 +71,12 @@ Build locale-aware URLs with `localeHref`/`localePrefix` from `src/lib/locale.ts
 
 `getSupabaseBrowserClient()` returns `null` when env vars are unset; every sync/auth path must tolerate null and degrade to local-only. The DB schema and RLS policies live in `db-structure.sql` (cloud columns are snake_case; `src/lib/sync.ts` maps to/from camelCase local records).
 
+### Cloud encryption
+
+Sensitive fields (`snippets.title`, `snippets.code`, `folders.name`) are encrypted client-side at the sync boundary in `src/lib/sync.ts` — **IndexedDB stays plaintext**; only what crosses to Supabase is ciphertext. Each row's `crypto_version` says how it is encoded: `0` = plaintext (legacy rows, or encryption unavailable), `1` = AES-256-GCM (`src/lib/crypto.ts`). Rows migrate progressively: every upload writes the current version, so records re-encrypt when created or edited; readers must keep handling version `0` forever. `language` is intentionally plaintext (indexed cloud-side, not sensitive).
+
+Keys: a random per-user DEK encrypts the data. It lives in `public.user_keys` wrapped by the master key (KEK), which exists only as the `ENCRYPTION_MASTER_KEY` Worker secret (base64, 32 bytes; `wrangler secret put` in prod, `.dev.vars` locally — see `.dev.vars.example`). The client fetches its unwrapped DEK from `/api/crypto/dek` via `src/lib/encryptionKey.ts` and holds it in memory only. Key-availability contract: a `CryptoKey` → encrypt; `null` → encryption unconfigured, sync in plaintext; a thrown error → transient, fail the sync so the retry loop handles it — **never fall back to plaintext on a transient error**. Fetched rows that can't be decoded (unknown version, missing key, failed decryption) are skipped, never written locally as garbage and never treated as remote deletions.
+
 ## Style Guide
 
 - **Aesthetics:** Minimalist, professional, dark theme. Inspired by Vercel/Linear.

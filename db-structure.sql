@@ -287,4 +287,37 @@ alter table public.folders
 alter table public.snippets
   add column if not exists crypto_version smallint not null default 0;
 
+-- Clave de cifrado (DEK) por usuario. Se guarda SIEMPRE envuelta (cifrada con
+-- AES-256-GCM) por la clave maestra ENCRYPTION_MASTER_KEY, que vive únicamente
+-- como secreto del Worker de Cloudflare — nunca en esta base de datos. Sin esa
+-- clave maestra, esta tabla no sirve para descifrar nada: un volcado de la BD
+-- solo contiene ciphertext. El route handler /api/crypto/dek es el único punto
+-- donde DEK y clave maestra se encuentran. Sin políticas de update/delete: la
+-- DEK de una cuenta es inmutable una vez creada (borrarla dejaría ilegibles
+-- los registros ya cifrados).
+create table if not exists public.user_keys (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  wrapped_dek text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.user_keys enable row level security;
+alter table public.user_keys force row level security;
+
+drop policy if exists user_keys_select_own on public.user_keys;
+create policy user_keys_select_own
+on public.user_keys
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists user_keys_insert_own on public.user_keys;
+create policy user_keys_insert_own
+on public.user_keys
+for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+grant select, insert on public.user_keys to authenticated;
+
 commit;

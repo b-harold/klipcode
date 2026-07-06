@@ -62,6 +62,26 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseBrowserClient: () => fakeClient,
 }));
 
+// ── Mocked encryption key ──────────────────────────────────────────────────────
+// `null` (the default) runs sync in plaintext mode, matching the pre-encryption
+// behavior every other test relies on; individual tests set a real key to
+// exercise the encrypted path.
+const cryptoTestState = vi.hoisted(() => ({ key: null as CryptoKey | null }));
+
+vi.mock("@/lib/encryptionKey", () => ({
+  getWorkspaceEncryptionKey: async () => cryptoTestState.key,
+  clearWorkspaceEncryptionKey: () => {
+    cryptoTestState.key = null;
+  },
+}));
+
+import {
+  CURRENT_CRYPTO_VERSION,
+  decryptString,
+  encryptString,
+  generateDekBytes,
+  importAesKey,
+} from "@/lib/crypto";
 import { db } from "@/lib/db";
 import {
   fetchCloudWorkspace,
@@ -125,6 +145,7 @@ function cloudFolder(folder: FolderRecord): CloudFolderRow {
     created_at: folder.createdAt,
     updated_at: folder.updatedAt,
     deleted_at: folder.deletedAt,
+    crypto_version: 0,
   };
 }
 
@@ -141,6 +162,7 @@ function cloudSnippet(snippet: SnippetRecord): CloudSnippetRow {
     created_at: snippet.createdAt,
     updated_at: snippet.updatedAt,
     deleted_at: snippet.deletedAt,
+    crypto_version: 0,
   };
 }
 
@@ -150,6 +172,7 @@ beforeEach(async () => {
   await db.tombstones.clear();
   cloud.folders = [];
   cloud.snippets = [];
+  cryptoTestState.key = null;
 });
 
 // ── Delete propagation (reconciliation) ─────────────────────────────────────────
@@ -395,5 +418,126 @@ describe("reconcileWorkspace() anonymous claim", () => {
     expect(cloud.folders.find((row) => row.id === seedFolder.id)?.owner_id).toBe(USER);
     expect(cloud.snippets.find((row) => row.id === editedSnippet.id)?.owner_id).toBe(USER);
     expect((await db.snippets.get(editedSnippet.id))?.ownerId).toBe(USER);
+  });
+});
+
+// ── Cloud encryption boundary ───────────────────────────────────────────────────
+
+describe("cloud encryption", () => {
+  async function withKey(): Promise<CryptoKey> {
+    const key = await importAesKey(generateDekBytes());
+    cryptoTestState.key = key;
+    return key;
+  }
+
+  it("uploads ciphertext with the current crypto_version while local data stays plaintext", async () => {
+    const key = await withKey();
+    const folder = makeFolder({ dirty: true, name: "Secret folder" });
+    const snippet = makeSnippet({ dirty: true, title: "API keys", code: "const token = 'hush';" });
+    await db.folders.add(folder);
+    await db.snippets.add(snippet);
+
+    await syncDirtyWorkspace(USER);
+
+    const folderRow = cloud.folders.find((row) => row.id === folder.id)!;
+    const snippetRow = cloud.snippets.find((row) => row.id === snippet.id)!;
+
+    expect(folderRow.crypto_version).toBe(CURRENT_CRYPTO_VERSION);
+    expect(snippetRow.crypto_version).toBe(CURRENT_CRYPTO_VERSION);
+    // Nothing sensitive crosses in plaintext…
+    expect(folderRow.name).not.toBe(folder.name);
+    expect(snippetRow.title).not.toBe(snippet.title);
+    expect(snippetRow.code).not.toContain("hush");
+    // …but it round-trips with the key. `language` intentionally stays clear.
+    expect(await decryptString(key, folderRow.name)).toBe(folder.name);
+    expect(await decryptString(key, snippetRow.title)).toBe(snippet.title);
+    expect(await decryptString(key, snippetRow.code)).toBe(snippet.code);
+    expect(snippetRow.language).toBe(snippet.language);
+
+    // The local source of truth is untouched by the boundary encryption.
+    expect((await db.snippets.get(snippet.id))?.code).toBe(snippet.code);
+    expect((await db.folders.get(folder.id))?.name).toBe(folder.name);
+  });
+
+  it("uploads plaintext with crypto_version 0 when no key is available", async () => {
+    const snippet = makeSnippet({ dirty: true });
+    await db.snippets.add(snippet);
+
+    await syncDirtyWorkspace(USER);
+
+    const row = cloud.snippets.find((r) => r.id === snippet.id)!;
+    expect(row.crypto_version).toBe(0);
+    expect(row.code).toBe(snippet.code);
+  });
+
+  it("decrypts encrypted rows and passes plaintext rows through on fetch (mixed workspace)", async () => {
+    const key = await withKey();
+
+    const legacy = makeSnippet({ title: "Legacy", code: "plain()" });
+    const secret = makeSnippet({ title: "Secret", code: "cipher()" });
+    const secretFolder = makeFolder({ name: "Vault" });
+
+    cloud.snippets = [
+      cloudSnippet(legacy),
+      {
+        ...cloudSnippet(secret),
+        title: await encryptString(key, secret.title),
+        code: await encryptString(key, secret.code),
+        crypto_version: CURRENT_CRYPTO_VERSION,
+      },
+    ];
+    cloud.folders = [
+      {
+        ...cloudFolder(secretFolder),
+        name: await encryptString(key, secretFolder.name),
+        crypto_version: CURRENT_CRYPTO_VERSION,
+      },
+    ];
+
+    await fetchCloudWorkspace(USER);
+
+    expect((await db.snippets.get(legacy.id))?.code).toBe("plain()");
+    expect((await db.snippets.get(secret.id))?.title).toBe("Secret");
+    expect((await db.snippets.get(secret.id))?.code).toBe("cipher()");
+    expect((await db.folders.get(secretFolder.id))?.name).toBe("Vault");
+  });
+
+  it("skips rows with an unknown future crypto_version without touching the local copy", async () => {
+    await withKey();
+
+    const local = makeSnippet({ title: "Kept", dirty: false });
+    await db.snippets.add(local);
+
+    // The same record was uploaded by a newer client with a scheme this build
+    // doesn't understand: it must be neither garbled locally nor deleted.
+    cloud.snippets = [{ ...cloudSnippet(local), title: "??", code: "??", crypto_version: 99 }];
+
+    await fetchCloudWorkspace(USER);
+
+    const stored = await db.snippets.get(local.id);
+    expect(stored?.title).toBe("Kept");
+  });
+
+  it("skips rows that fail to decrypt instead of storing garbage or deleting local data", async () => {
+    await withKey();
+    const otherKey = await importAesKey(generateDekBytes());
+
+    const local = makeSnippet({ title: "Intact", dirty: false });
+    await db.snippets.add(local);
+
+    cloud.snippets = [
+      {
+        ...cloudSnippet(local),
+        title: await encryptString(otherKey, "tampered"),
+        code: await encryptString(otherKey, "tampered"),
+        crypto_version: CURRENT_CRYPTO_VERSION,
+      },
+    ];
+
+    await fetchCloudWorkspace(USER);
+
+    const stored = await db.snippets.get(local.id);
+    expect(stored).toBeDefined();
+    expect(stored?.title).toBe("Intact");
   });
 });

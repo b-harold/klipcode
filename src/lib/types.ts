@@ -71,6 +71,7 @@ export interface SyncResult {
 export interface CloudFolderRow {
   id: string;
   owner_id: string;
+  /** Ciphertext when `crypto_version` > 0; plaintext when 0. */
   name: string;
   parent_id: string | null;
   is_pinned_aside: boolean;
@@ -78,20 +79,32 @@ export interface CloudFolderRow {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  /**
+   * Encryption scheme applied to this row's sensitive fields: 0 = plaintext
+   * (legacy rows, or encryption unavailable), 1 = AES-256-GCM via the per-user
+   * DEK (`src/lib/crypto.ts`). Rows migrate progressively: every upload writes
+   * the current version, so a record is re-encoded when created or edited.
+   */
+  crypto_version: number;
 }
 
 export interface CloudSnippetRow {
   id: string;
   owner_id: string;
   folder_id: string | null;
+  /** Ciphertext when `crypto_version` > 0; plaintext when 0. */
   title: string;
+  /** Ciphertext when `crypto_version` > 0; plaintext when 0. */
   code: string;
+  /** Always plaintext: indexed cloud-side and not sensitive. */
   language: string;
   is_pinned_aside: boolean;
   is_pinned_home: boolean;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  /** See {@link CloudFolderRow.crypto_version}. */
+  crypto_version: number;
 }
 
 /** A workspace item identified by its kind. Shared by multi-selection, batch

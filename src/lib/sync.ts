@@ -1,4 +1,11 @@
+import {
+  CRYPTO_VERSION_PLAINTEXT,
+  CURRENT_CRYPTO_VERSION,
+  decryptString,
+  encryptString,
+} from "@/lib/crypto";
 import { db, getDirtyWorkspace, getPendingTombstones } from "@/lib/db";
+import { getWorkspaceEncryptionKey } from "@/lib/encryptionKey";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type {
   CloudFolderRow,
@@ -7,6 +14,25 @@ import type {
   SnippetRecord,
   SyncResult,
 } from "@/lib/types";
+
+// ── Cloud encryption boundary ───────────────────────────────────────────────────
+// IndexedDB stays plaintext (it's the local source of truth and must work
+// offline); only what crosses to Supabase is encrypted. With a key, uploads
+// write ciphertext + `crypto_version: 1`; without one (`null` = encryption not
+// configured) they write plaintext + version 0, exactly the pre-encryption
+// shape. Downloads decode per-row based on `crypto_version`, so plaintext
+// legacy rows and encrypted rows coexist during the progressive migration.
+
+/**
+ * Whether a fetched row can be decoded here: plaintext always can; ciphertext
+ * needs the key and a version this build understands. Undecodable rows are
+ * skipped — never written locally as garbage, and never treated as deleted
+ * (they stay in the cloud id sets used by `reconcileDeletions`).
+ */
+function canDecodeRow(cryptoVersion: number, key: CryptoKey | null): boolean {
+  if (cryptoVersion === CRYPTO_VERSION_PLAINTEXT) return true;
+  return cryptoVersion <= CURRENT_CRYPTO_VERSION && key !== null;
+}
 
 function folderDepth(folder: FolderRecord, folderMap: Map<string, FolderRecord>): number {
   let depth = 0;
@@ -26,41 +52,52 @@ function folderDepth(folder: FolderRecord, folderMap: Map<string, FolderRecord>)
   return depth;
 }
 
-function mapFolderToCloud(folder: FolderRecord, userId: string) {
+async function mapFolderToCloud(
+  folder: FolderRecord,
+  userId: string,
+  key: CryptoKey | null
+): Promise<CloudFolderRow> {
   return {
     id: folder.id,
     owner_id: userId,
-    name: folder.name,
+    name: key ? await encryptString(key, folder.name) : folder.name,
     parent_id: folder.parentId,
     is_pinned_aside: folder.isPinnedAside,
     is_pinned_home: folder.isPinnedHome,
     created_at: folder.createdAt,
     updated_at: folder.updatedAt,
     deleted_at: folder.deletedAt,
+    crypto_version: key ? CURRENT_CRYPTO_VERSION : CRYPTO_VERSION_PLAINTEXT,
   };
 }
 
-function mapSnippetToCloud(snippet: SnippetRecord, userId: string) {
+async function mapSnippetToCloud(
+  snippet: SnippetRecord,
+  userId: string,
+  key: CryptoKey | null
+): Promise<CloudSnippetRow> {
   return {
     id: snippet.id,
     owner_id: userId,
     folder_id: snippet.folderId,
-    title: snippet.title,
-    code: snippet.code,
+    title: key ? await encryptString(key, snippet.title) : snippet.title,
+    code: key ? await encryptString(key, snippet.code) : snippet.code,
     language: snippet.language,
     is_pinned_aside: snippet.isPinnedAside,
     is_pinned_home: snippet.isPinnedHome,
     created_at: snippet.createdAt,
     updated_at: snippet.updatedAt,
     deleted_at: snippet.deletedAt,
+    crypto_version: key ? CURRENT_CRYPTO_VERSION : CRYPTO_VERSION_PLAINTEXT,
   };
 }
 
-function mapFolderToLocal(folder: CloudFolderRow): FolderRecord {
+async function mapFolderToLocal(folder: CloudFolderRow, key: CryptoKey | null): Promise<FolderRecord> {
+  const encrypted = folder.crypto_version !== CRYPTO_VERSION_PLAINTEXT;
   return {
     id: folder.id,
     ownerId: folder.owner_id,
-    name: folder.name,
+    name: encrypted ? await decryptString(key!, folder.name) : folder.name,
     parentId: folder.parent_id,
     isPinnedAside: folder.is_pinned_aside,
     isPinnedHome: folder.is_pinned_home,
@@ -72,13 +109,14 @@ function mapFolderToLocal(folder: CloudFolderRow): FolderRecord {
   };
 }
 
-function mapSnippetToLocal(snippet: CloudSnippetRow): SnippetRecord {
+async function mapSnippetToLocal(snippet: CloudSnippetRow, key: CryptoKey | null): Promise<SnippetRecord> {
+  const encrypted = snippet.crypto_version !== CRYPTO_VERSION_PLAINTEXT;
   return {
     id: snippet.id,
     ownerId: snippet.owner_id,
     folderId: snippet.folder_id,
-    title: snippet.title,
-    code: snippet.code,
+    title: encrypted ? await decryptString(key!, snippet.title) : snippet.title,
+    code: encrypted ? await decryptString(key!, snippet.code) : snippet.code,
     language: snippet.language,
     isPinnedAside: snippet.is_pinned_aside,
     isPinnedHome: snippet.is_pinned_home,
@@ -160,6 +198,14 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   const syncedSnippetIds: string[] = [];
   const localSnippetIds: string[] = [];
 
+  // Resolved before anything is uploaded: a transient key failure throws here
+  // and aborts the whole push (retried by the sync loop) — records are never
+  // silently uploaded in plaintext because the key was momentarily unreachable.
+  const encryptionKey =
+    dirtyWorkspace.folders.length > 0 || dirtyWorkspace.snippets.length > 0
+      ? await getWorkspaceEncryptionKey(userId)
+      : null;
+
   // Folders are upserted one depth level at a time (shallowest first). The cloud
   // FK `(owner_id, parent_id) → folders(owner_id, id)` means a child can't land
   // before its parent, but folders at the same depth are independent and go up in
@@ -180,7 +226,10 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
 
     const { error } = await supabase
       .from("folders")
-      .upsert(levelFolders.map((folder) => mapFolderToCloud(folder, userId)), { onConflict: "id" });
+      .upsert(
+        await Promise.all(levelFolders.map((folder) => mapFolderToCloud(folder, userId, encryptionKey))),
+        { onConflict: "id" }
+      );
 
     if (error) {
       throw error;
@@ -211,9 +260,12 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   if (snippetsToUpload.length > 0) {
     const { error } = await supabase
       .from("snippets")
-      .upsert(snippetsToUpload.map((snippet) => mapSnippetToCloud(snippet, userId)), {
-        onConflict: "id",
-      });
+      .upsert(
+        await Promise.all(
+          snippetsToUpload.map((snippet) => mapSnippetToCloud(snippet, userId, encryptionKey))
+        ),
+        { onConflict: "id" }
+      );
 
     if (error) {
       throw error;
@@ -240,12 +292,14 @@ export async function fetchCloudWorkspace(userId: string) {
     await Promise.all([
       supabase
         .from("folders")
-        .select("id, owner_id, name, parent_id, is_pinned_aside, is_pinned_home, created_at, updated_at, deleted_at")
+        .select(
+          "id, owner_id, name, parent_id, is_pinned_aside, is_pinned_home, created_at, updated_at, deleted_at, crypto_version"
+        )
         .eq("owner_id", userId),
       supabase
         .from("snippets")
         .select(
-          "id, owner_id, folder_id, title, code, language, is_pinned_aside, is_pinned_home, created_at, updated_at, deleted_at"
+          "id, owner_id, folder_id, title, code, language, is_pinned_aside, is_pinned_home, created_at, updated_at, deleted_at, crypto_version"
         )
         .eq("owner_id", userId),
     ]);
@@ -271,9 +325,32 @@ export async function fetchCloudWorkspace(userId: string) {
   const localFolderMap = new Map(localFolders.map((folder) => [folder.id, folder]));
   const localSnippetMap = new Map(localSnippets.map((snippet) => [snippet.id, snippet]));
 
+  const folderRows = folders as CloudFolderRow[];
+  const snippetRows = snippets as CloudSnippetRow[];
+
+  // The key is only fetched when some row actually needs decrypting, so
+  // plaintext-only workspaces never hit the key endpoint on pull. A transient
+  // key failure throws and fails the whole pull (retried later) rather than
+  // partially applying it.
+  const hasEncryptedRows =
+    folderRows.some((row) => row.crypto_version !== CRYPTO_VERSION_PLAINTEXT) ||
+    snippetRows.some((row) => row.crypto_version !== CRYPTO_VERSION_PLAINTEXT);
+  const encryptionKey = hasEncryptedRows ? await getWorkspaceEncryptionKey(userId) : null;
+
   const foldersToPut: FolderRecord[] = [];
-  for (const folderRow of folders as CloudFolderRow[]) {
-    const incomingFolder = mapFolderToLocal(folderRow);
+  for (const folderRow of folderRows) {
+    if (!canDecodeRow(folderRow.crypto_version, encryptionKey)) {
+      console.warn(`Skipping folder ${folderRow.id}: undecodable crypto_version ${folderRow.crypto_version}`);
+      continue;
+    }
+
+    let incomingFolder: FolderRecord;
+    try {
+      incomingFolder = await mapFolderToLocal(folderRow, encryptionKey);
+    } catch {
+      console.warn(`Skipping folder ${folderRow.id}: decryption failed`);
+      continue;
+    }
 
     if (tombstonedIds.has(incomingFolder.id)) {
       continue;
@@ -289,8 +366,19 @@ export async function fetchCloudWorkspace(userId: string) {
   }
 
   const snippetsToPut: SnippetRecord[] = [];
-  for (const snippetRow of snippets as CloudSnippetRow[]) {
-    const incomingSnippet = mapSnippetToLocal(snippetRow);
+  for (const snippetRow of snippetRows) {
+    if (!canDecodeRow(snippetRow.crypto_version, encryptionKey)) {
+      console.warn(`Skipping snippet ${snippetRow.id}: undecodable crypto_version ${snippetRow.crypto_version}`);
+      continue;
+    }
+
+    let incomingSnippet: SnippetRecord;
+    try {
+      incomingSnippet = await mapSnippetToLocal(snippetRow, encryptionKey);
+    } catch {
+      console.warn(`Skipping snippet ${snippetRow.id}: decryption failed`);
+      continue;
+    }
 
     if (tombstonedIds.has(incomingSnippet.id)) {
       continue;

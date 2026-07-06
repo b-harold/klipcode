@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
 import { clearOwnedData } from "@/lib/db";
+import { clearWorkspaceEncryptionKey } from "@/lib/encryptionKey";
 import { reconcileWorkspace } from "@/lib/sync";
 import type { Dictionary } from "@/i18n";
 
@@ -132,6 +133,8 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
       // Wipe this account's local data so it isn't readable on a shared machine.
       // Synced data comes back from the cloud on the next sign-in.
       if (signedOutUserId) await clearOwnedData(signedOutUserId);
+      // The in-memory encryption key goes with it.
+      clearWorkspaceEncryptionKey();
       setUser(null);
       setAccountMessage(supabaseConfigured ? copy.auth.localMode : copy.auth.notConfigured);
       refreshRef.current();

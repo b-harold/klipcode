@@ -6,7 +6,10 @@ import {
   DEFAULT_THEME,
   THEME_CHANGE_EVENT,
   THEME_STORAGE_KEY,
+  broadcastTheme,
   commitTheme,
+  getSystemTheme,
+  readStoredTheme,
   readTheme,
   type Theme,
 } from "@/lib/theme";
@@ -31,11 +34,24 @@ export function useTheme() {
     const onStorage = (e: StorageEvent) => {
       if (e.key === THEME_STORAGE_KEY) setThemeState(readTheme());
     };
+
+    // Follow the OS preference live, but only while the user hasn't made an
+    // explicit choice — a stored theme always wins over the browser default.
+    const mql =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-color-scheme: light)")
+        : null;
+    const onSystemChange = () => {
+      if (readStoredTheme() === null) broadcastTheme(getSystemTheme());
+    };
+
     window.addEventListener(THEME_CHANGE_EVENT, onBroadcast);
     window.addEventListener("storage", onStorage);
+    mql?.addEventListener("change", onSystemChange);
     return () => {
       window.removeEventListener(THEME_CHANGE_EVENT, onBroadcast);
       window.removeEventListener("storage", onStorage);
+      mql?.removeEventListener("change", onSystemChange);
     };
   }, []);
 

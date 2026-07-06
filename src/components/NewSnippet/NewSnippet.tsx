@@ -179,7 +179,7 @@ export function NewSnippet({
           >
             <Plus size={14} strokeWidth={2.5} />
             <span>{copy.forms.submitSnippet}</span>
-            <ShortcutHint id="createSnippet" tone="dark" className="ml-0.5" />
+            <ShortcutHint id="createSnippet" tone="dark" className="ml-0.5 max-lg:hidden" />
           </button>
         </div>
       </form>

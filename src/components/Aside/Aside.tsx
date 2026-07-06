@@ -333,7 +333,7 @@ export function Aside({
                 <Search size={14} className="shrink-0" />
                 <span>{copy.aside.search}</span>
               </span>
-              <ShortcutHint id="search" />
+              <ShortcutHint id="search" className="max-lg:hidden" />
             </button>
           </div>
 
@@ -505,7 +505,7 @@ export function Aside({
             <button
               type="button"
               onClick={onOpenShortcuts}
-              className="mb-2 flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-ink/4 hover:text-foreground"
+              className="mb-2 flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-ink/4 hover:text-foreground max-lg:hidden"
             >
               <span className="flex items-center gap-2">
                 <Keyboard size={14} className="shrink-0" />

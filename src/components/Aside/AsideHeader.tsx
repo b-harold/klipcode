@@ -9,6 +9,7 @@ import { Spinner } from "@/ui/Spinner";
 
 export function AsideHeader({
   user,
+  authReady,
   copy,
   signingIn,
   signingOut,
@@ -17,6 +18,7 @@ export function AsideHeader({
   onCollapse,
 }: {
   user: User | null;
+  authReady: boolean;
   copy: Dictionary;
   signingIn: boolean;
   signingOut: boolean;
@@ -27,7 +29,15 @@ export function AsideHeader({
   return (
     <div className="px-3.5 py-4">
       <div className="flex items-center gap-2">
-        {user ? (
+        {!authReady && !user ? (
+          /* Session check still resolving — placeholder with the same footprint
+             as the sign-in button, so signed-in users don't see a "Sign in"
+             flash while the Supabase session loads. */
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2" aria-hidden="true">
+            <div className="h-[15px] w-[15px] shrink-0 animate-pulse rounded-full bg-ink/10" />
+            <div className="h-3 w-20 animate-pulse rounded bg-ink/10" />
+          </div>
+        ) : user ? (
           <div className="flex min-w-0 flex-1 items-center gap-2.5 p-1">
             <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-ink/10">
               <Image

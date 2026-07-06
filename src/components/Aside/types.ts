@@ -7,6 +7,9 @@ import type { User } from "@supabase/supabase-js";
 
 export interface AsideProps {
   user: User | null;
+  /** False until the initial Supabase session check resolves — while false the
+   *  header shows a placeholder instead of flashing the signed-out button. */
+  authReady: boolean;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
   copy: Dictionary;

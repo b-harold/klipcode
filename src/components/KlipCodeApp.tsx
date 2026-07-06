@@ -352,6 +352,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     <div className="flex h-screen overflow-hidden">
       <Aside
         user={auth.user}
+        authReady={auth.authReady}
         folders={folders}
         snippets={snippets}
         copy={copy}

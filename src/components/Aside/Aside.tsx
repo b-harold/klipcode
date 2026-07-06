@@ -24,6 +24,7 @@ export type { AsideProps } from "./types";
 
 export function Aside({
   user,
+  authReady,
   folders,
   snippets,
   copy,
@@ -302,6 +303,7 @@ export function Aside({
         >
           <AsideHeader
             user={user}
+            authReady={authReady}
             copy={copy}
             signingIn={signingIn}
             signingOut={signingOut}

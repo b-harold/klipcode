@@ -279,4 +279,12 @@ alter table public.snippets
 create index if not exists idx_folders_owner_deleted_at on public.folders (owner_id, deleted_at);
 create index if not exists idx_snippets_owner_deleted_at on public.snippets (owner_id, deleted_at);
 
+-- Versión del esquema de cifrado aplicado a los campos del registro (0 = sin cifrar).
+-- Permite descifrar con el método correcto durante una migración progresiva a cifrado.
+alter table public.folders
+  add column if not exists crypto_version smallint not null default 0;
+
+alter table public.snippets
+  add column if not exists crypto_version smallint not null default 0;
+
 commit;

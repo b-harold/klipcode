@@ -484,6 +484,9 @@ export interface EditorProps {
   gutterBackground?: string;
   /** Soft-wrap long lines instead of scrolling horizontally. */
   lineWrapping?: boolean;
+  /** Accessible name for the editable region. Screen readers announce the
+   *  contenteditable textbox with this; falls back to the placeholder. */
+  ariaLabel?: string;
   /** Exposes the underlying CodeMirror instance (e.g. to imperatively focus it). */
   editorRef?: React.Ref<ReactCodeMirrorRef>;
 }
@@ -498,6 +501,7 @@ export function Editor({
   fontSize = 13,
   gutterBackground,
   lineWrapping = false,
+  ariaLabel,
   editorRef,
 }: EditorProps) {
   const [extensions, setExtensions] = useState<Extension[]>([]);
@@ -511,6 +515,8 @@ export function Editor({
       : isLight
         ? vscodeLight
         : vscodeDark;
+
+  const accessibleName = ariaLabel ?? placeholder;
 
   const editorStyle = {
     fontSize: `${fontSize}px`,
@@ -547,6 +553,11 @@ export function Editor({
               appendLineOnClickBelow,
             ]),
         ...(lineWrapping ? [EditorView.lineWrapping] : []),
+        // Give the contenteditable textbox an accessible name so screen readers
+        // don't announce it as an unlabelled input (WCAG 4.1.2).
+        ...(accessibleName
+          ? [EditorView.contentAttributes.of({ "aria-label": accessibleName })]
+          : []),
       ]}
       editable={!readOnly}
       readOnly={readOnly}

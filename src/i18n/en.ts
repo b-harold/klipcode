@@ -77,6 +77,7 @@ export const en = {
     snippetFolder: "Folder",
     snippetPinned: "Pinned",
     snippetCode: "Code",
+    codeEditor: "Code editor",
     snippetCodePlaceholder: "Write or paste your code here...",
     submitFolder: "Create folder",
     submitSnippet: "Create snippet",

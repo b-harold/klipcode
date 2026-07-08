@@ -415,6 +415,7 @@ export function SnippetEditor({
             fontSize={14}
             gutterBackground="var(--background)"
             lineWrapping={codeWrap}
+            ariaLabel={copy.forms.codeEditor}
           />
         </div>
       )}

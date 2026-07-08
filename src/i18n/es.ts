@@ -78,6 +78,7 @@ export const es = {
     snippetFolder: "Carpeta",
     snippetPinned: "Fijado",
     snippetCode: "Codigo",
+    codeEditor: "Editor de codigo",
     snippetCodePlaceholder: "Escribe o pega tu codigo aqui...",
     submitFolder: "Crear carpeta",
     submitSnippet: "Crear snippet",

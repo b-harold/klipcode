@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "cloudflare-env.d.ts",
     // Wrangler build/dev artifacts.
     ".wrangler/**",
+    // OpenNext build output (bundled/minified assets, not source).
+    ".open-next/**",
   ]),
 ]);
 

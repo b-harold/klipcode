@@ -53,6 +53,7 @@ import { LinkDialog } from "./LinkDialog";
 import { CodeBlockComponent } from "./CodeBlockComponent";
 import { SlashCommand, type SlashCommandItem } from "./SlashCommand";
 import { ListExitShortcut } from "./ListExitShortcut";
+import { MarkdownClipboardUnwrap } from "./MarkdownClipboardUnwrap";
 
 // Syntax highlighting inside fenced code blocks. `common` bundles ~35 popular
 // grammars (js, ts, python, css, html, json, bash, …) — enough for snippets,
@@ -436,6 +437,7 @@ export default function MarkdownEditorInner({
       TableCell,
       Placeholder.configure({ placeholder: copy.placeholder }),
       Markdown.configure({ html: false, tightLists: true, transformPastedText: true, transformCopiedText: true }),
+      MarkdownClipboardUnwrap,
       SlashCommand.configure({
         items: slashItems,
         emptyText: copy.slash.noResults,

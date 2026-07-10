@@ -391,6 +391,8 @@ export interface MarkdownEditorInnerProps {
   value: string;
   onChange: (markdown: string) => void;
   editable: boolean;
+  /** See MarkdownEditorProps.active — false while hidden behind the source pane. */
+  active?: boolean;
   defaultCodeLanguage: string;
   copy: MarkdownEditorCopy;
 }
@@ -399,6 +401,7 @@ export default function MarkdownEditorInner({
   value,
   onChange,
   editable,
+  active = true,
   defaultCodeLanguage,
   copy,
 }: MarkdownEditorInnerProps) {
@@ -413,6 +416,11 @@ export default function MarkdownEditorInner({
     () => buildSlashItems(copy.slash, defaultCodeLanguage),
     [copy.slash, defaultCodeLanguage],
   );
+
+  // Last Markdown this editor produced (or consumed on mount). Compared against
+  // `value` on re-activation instead of re-serializing, so tiptap-markdown's
+  // formatting normalization can't produce a false "source changed" positive.
+  const lastMarkdownRef = useRef(value);
 
   const editor = useEditor({
     // The editor renders only on the client (lazy boundary) — avoid SSR markup.
@@ -453,7 +461,9 @@ export default function MarkdownEditorInner({
       },
     },
     onUpdate: ({ editor }) => {
-      onChangeRef.current(editor.storage.markdown.getMarkdown());
+      const markdown = editor.storage.markdown.getMarkdown();
+      lastMarkdownRef.current = markdown;
+      onChangeRef.current(markdown);
     },
   });
 
@@ -461,6 +471,21 @@ export default function MarkdownEditorInner({
   useEffect(() => {
     editor?.setEditable(editable);
   }, [editor, editable]);
+
+  const wasActiveRef = useRef(active);
+  useEffect(() => {
+    if (!editor || wasActiveRef.current === active) return;
+    wasActiveRef.current = active;
+    if (!active) return;
+    // While hidden the source editor may have rewritten the document; TipTap
+    // consumed `value` once on mount, so replace the doc only if it actually
+    // diverged — otherwise cursor, DOM and scroll position survive untouched.
+    if (value !== lastMarkdownRef.current) {
+      lastMarkdownRef.current = value;
+      editor.commands.setContent(value, false);
+    }
+    if (editable) editor.commands.focus(null, { scrollIntoView: false });
+  }, [active, editor, value, editable]);
 
   return (
     <div

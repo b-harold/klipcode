@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import {
   Copy,
   Check,
@@ -155,12 +156,37 @@ export function SnippetEditor({
   // it when swapping snippets). Flipping the toggle also persists the choice so
   // the next Markdown snippet opens on the same side.
   const [showPreview, setShowPreview] = useState(isMarkdown && markdownPreviewByDefault);
+  // Each side stays mounted once visited: the inactive pane is hidden with
+  // `visibility: hidden` (layout is kept, so scroll offset and cursor survive)
+  // instead of being unmounted and rebuilt on every toggle.
+  const [visited, setVisited] = useState(() => ({
+    source: !(isMarkdown && markdownPreviewByDefault),
+    preview: isMarkdown && markdownPreviewByDefault,
+  }));
+  // The source editor's value is frozen while the preview is active so preview
+  // keystrokes don't rewrite the hidden CodeMirror doc (wiping its cursor);
+  // toggling back hands it the live code — a single replace, only if changed.
+  const [sourceFreeze, setSourceFreeze] = useState(snippet.code);
+
+  const sourceEditorRef = useRef<ReactCodeMirrorRef>(null);
 
   const handleTogglePreview = useCallback(() => {
     const next = !showPreview;
     setShowPreview(next);
+    setVisited((v) => (next ? { ...v, preview: true } : { ...v, source: true }));
+    if (next) setSourceFreeze(code);
     onMarkdownPreviewChange?.(next);
-  }, [showPreview, onMarkdownPreviewChange]);
+  }, [showPreview, code, onMarkdownPreviewChange]);
+
+  // Focus the source editor when flipping back to it so the preserved cursor
+  // is immediately usable (the preview pane focuses itself on activation — see
+  // MarkdownEditorInner).
+  const prevShowPreviewRef = useRef(showPreview);
+  useEffect(() => {
+    if (prevShowPreviewRef.current === showPreview) return;
+    prevShowPreviewRef.current = showPreview;
+    if (!showPreview && !readOnly) sourceEditorRef.current?.view?.focus();
+  }, [showPreview, readOnly]);
 
   // Per-field debounce timers
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -387,22 +413,45 @@ export function SnippetEditor({
       )}
 
       {/* ── Source editor / Markdown WYSIWYG ───────────────────────────────── */}
-      {isMarkdown && showPreview ? (
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <MarkdownEditor
-            value={code}
-            onChange={handleCodeChange}
-            editable={!readOnly}
-            defaultCodeLanguage={defaultCodeLanguage}
-            copy={{
-              placeholder: editorCopy.mdPlaceholder,
-              linkDialog: editorCopy.linkDialog,
-              toolbar: editorCopy.mdToolbar,
-              slash: editorCopy.mdSlash,
-              table: editorCopy.mdTable,
-              languageSelect: copy.languageSelect,
-            }}
-          />
+      {isMarkdown ? (
+        <div className="relative flex-1 min-h-0 overflow-hidden">
+          {visited.preview && (
+            <div className={`absolute inset-0 overflow-hidden${showPreview ? "" : " invisible"}`}>
+              <MarkdownEditor
+                value={code}
+                onChange={handleCodeChange}
+                editable={!readOnly}
+                active={showPreview}
+                defaultCodeLanguage={defaultCodeLanguage}
+                copy={{
+                  placeholder: editorCopy.mdPlaceholder,
+                  linkDialog: editorCopy.linkDialog,
+                  toolbar: editorCopy.mdToolbar,
+                  slash: editorCopy.mdSlash,
+                  table: editorCopy.mdTable,
+                  languageSelect: copy.languageSelect,
+                }}
+              />
+            </div>
+          )}
+          {visited.source && (
+            <div
+              className={`absolute inset-0 overflow-hidden pl-6 [&>div]:h-full${showPreview ? " invisible" : ""}`}
+            >
+              <Editor
+                value={showPreview ? sourceFreeze : code}
+                onChange={handleCodeChange}
+                language={snippet.language}
+                readOnly={readOnly}
+                height="100%"
+                fontSize={14}
+                gutterBackground="var(--background)"
+                lineWrapping={codeWrap}
+                ariaLabel={copy.forms.codeEditor}
+                editorRef={sourceEditorRef}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">

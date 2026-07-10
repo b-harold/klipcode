@@ -29,8 +29,19 @@ export interface MarkdownEditorCopy {
   slash: Dictionary["snippetEditor"]["mdSlash"];
   /** Aria labels for the in-table controls. */
   table: Dictionary["snippetEditor"]["mdTable"];
-  /** Labels for the hover copy button on fenced code blocks. */
-  codeBlock: { copy: string; copied: string };
+  /** Labels for the hover copy button and options menu on fenced code blocks. */
+  codeBlock: {
+    copy: string;
+    copied: string;
+    /** Aria label / tooltip for the kebab menu trigger. */
+    options: string;
+    /** "Format" menu item (only shown for Prettier-supported languages). */
+    format: string;
+    /** "Delete" menu item. */
+    delete: string;
+    /** Toast shown when formatting fails (e.g. a syntax error). */
+    formatError: string;
+  };
   /** Reused language picker copy for the code-block language selector. */
   languageSelect: Dictionary["languageSelect"];
 }

@@ -31,6 +31,8 @@ import type { LanguageId } from "@/lib/constants/languages";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
+import { formatCode, isFormattable } from "@/lib/formatCode";
+import { FormatErrorToast } from "@/components/FormatErrorToast/FormatErrorToast";
 import { getFolderPath } from "@/components/FolderView/utils";
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -151,6 +153,8 @@ export function SnippetEditor({
   const [code, setCode] = useState(snippet.code);
   const [copied, setCopied] = useState(false);
   const [formatting, setFormatting] = useState(false);
+  // Bumped each time a format attempt fails, driving the shared error toast.
+  const [formatErrorNonce, setFormatErrorNonce] = useState(0);
   // Markdown snippets can swap the code editor for a Notion-like rendered preview;
   // the initial side honours the user's last choice (key={snippet.id} re-seeds
   // it when swapping snippets). Flipping the toggle also persists the choice so
@@ -209,45 +213,20 @@ export function SnippetEditor({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const PRETTIER_PARSERS: Partial<Record<string, string>> = {
-    javascript: "babel",
-    jsx: "babel",
-    typescript: "babel-ts",
-    tsx: "babel-ts",
-    html: "html",
-    css: "css",
-    scss: "css",
-    json: "json",
-    markdown: "markdown",
-  };
-
   async function handleFormat() {
-    const parser = PRETTIER_PARSERS[snippet.language];
-    if (!parser) return;
+    if (!isFormattable(snippet.language)) return;
     setFormatting(true);
     try {
-      const prettier = await import("prettier/standalone");
-      const plugins = await Promise.all([
-        import("prettier/plugins/babel"),
-        import("prettier/plugins/estree"),
-        import("prettier/plugins/html"),
-        import("prettier/plugins/postcss"),
-        import("prettier/plugins/markdown"),
-      ]);
-      const formatted = await prettier.format(code, {
-        parser,
-        plugins,
-        printWidth: 100,
-        tabWidth: 2,
-        singleQuote: false,
-        trailingComma: "es5",
-      });
-      const next = formatted.trimEnd();
+      const next = await formatCode(code, snippet.language);
       setCode(next);
       if (codeTimerRef.current) clearTimeout(codeTimerRef.current);
       codeTimerRef.current = setTimeout(() => {
         onUpdate(snippet.id, { code: next });
       }, 0);
+    } catch {
+      // Unparseable source (e.g. a syntax error): leave the code untouched
+      // and surface the failure via the shared toast.
+      setFormatErrorNonce((n) => n + 1);
     } finally {
       setFormatting(false);
     }
@@ -296,7 +275,7 @@ export function SnippetEditor({
     },
   ];
 
-  const isFormattable = snippet.language in PRETTIER_PARSERS;
+  const canFormat = isFormattable(snippet.language);
 
   // Markdown-only toggle between the rendered preview and the raw source editor.
   const previewToggle = isMarkdown ? (
@@ -364,14 +343,14 @@ export function SnippetEditor({
       />
       <div className="h-4 w-px bg-ink/[0.08]" />
       <Tooltip
-        content={isFormattable ? editorCopy.formatCode : editorCopy.formatNotSupported}
+        content={canFormat ? editorCopy.formatCode : editorCopy.formatNotSupported}
         placement="bottom"
       >
         <button
           type="button"
           aria-label={editorCopy.formatCode}
           onClick={handleFormat}
-          disabled={!isFormattable || formatting}
+          disabled={!canFormat || formatting}
           className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <Zap size={13} className={formatting ? "animate-pulse" : undefined} />
@@ -429,7 +408,14 @@ export function SnippetEditor({
                   toolbar: editorCopy.mdToolbar,
                   slash: editorCopy.mdSlash,
                   table: editorCopy.mdTable,
-                  codeBlock: { copy: editorCopy.copyCode, copied: editorCopy.codeCopied },
+                  codeBlock: {
+                    copy: editorCopy.copyCode,
+                    copied: editorCopy.codeCopied,
+                    options: editorCopy.mdCodeBlockOptions,
+                    format: editorCopy.formatCode,
+                    delete: editorCopy.mdCodeBlockDelete,
+                    formatError: editorCopy.formatError,
+                  },
                   languageSelect: copy.languageSelect,
                 }}
               />
@@ -476,6 +462,8 @@ export function SnippetEditor({
           <SyncIndicator status={syncStatus} copy={editorCopy} />
         </div>
       )}
+
+      <FormatErrorToast nonce={formatErrorNonce} message={editorCopy.formatError} />
     </div>
   );
 }

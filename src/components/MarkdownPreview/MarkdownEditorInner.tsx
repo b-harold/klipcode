@@ -54,16 +54,18 @@ import { CodeBlockComponent } from "./CodeBlockComponent";
 import { SlashCommand, type SlashCommandItem } from "./SlashCommand";
 import { ListExitShortcut } from "./ListExitShortcut";
 import { MarkdownClipboardUnwrap } from "./MarkdownClipboardUnwrap";
+import { SmartLinkPaste } from "./SmartLinkPaste";
 
 // Syntax highlighting inside fenced code blocks. `common` bundles ~35 popular
 // grammars (js, ts, python, css, html, json, bash, …) — enough for snippets,
 // without pulling in every highlight.js language.
 const lowlight = createLowlight(common);
 
-// Code block with the shared LanguageSelect overlaid (see CodeBlockComponent).
-// `languageSelectCopy` is threaded through extension options to the NodeView.
+// Code block with the shared LanguageSelect and a copy button overlaid (see
+// CodeBlockComponent). Copy is threaded through extension options to the NodeView.
 interface CodeBlockOptions extends CodeBlockLowlightOptions {
   languageSelectCopy: MarkdownEditorCopy["languageSelect"] | null;
+  copyLabels: MarkdownEditorCopy["codeBlock"] | null;
 }
 
 const CodeBlock = CodeBlockLowlight.extend<CodeBlockOptions>({
@@ -71,6 +73,7 @@ const CodeBlock = CodeBlockLowlight.extend<CodeBlockOptions>({
     return {
       ...this.parent?.(),
       languageSelectCopy: null,
+      copyLabels: null,
     };
   },
   addNodeView() {
@@ -435,6 +438,7 @@ export default function MarkdownEditorInner({
         // inserted via the slash menu get the user's default language explicitly.
         defaultLanguage: "plaintext",
         languageSelectCopy: copy.languageSelect,
+        copyLabels: copy.codeBlock,
       }),
       Link.configure({ openOnClick: true, autolink: true, HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" } }),
       TaskList,
@@ -446,6 +450,7 @@ export default function MarkdownEditorInner({
       Placeholder.configure({ placeholder: copy.placeholder }),
       Markdown.configure({ html: false, tightLists: true, transformPastedText: true, transformCopiedText: true }),
       MarkdownClipboardUnwrap,
+      SmartLinkPaste,
       SlashCommand.configure({
         items: slashItems,
         emptyText: copy.slash.noResults,

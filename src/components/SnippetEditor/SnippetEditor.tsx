@@ -429,6 +429,7 @@ export function SnippetEditor({
                   toolbar: editorCopy.mdToolbar,
                   slash: editorCopy.mdSlash,
                   table: editorCopy.mdTable,
+                  codeBlock: { copy: editorCopy.copyCode, copied: editorCopy.codeCopied },
                   languageSelect: copy.languageSelect,
                 }}
               />

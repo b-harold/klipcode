@@ -29,6 +29,8 @@ export interface MarkdownEditorCopy {
   slash: Dictionary["snippetEditor"]["mdSlash"];
   /** Aria labels for the in-table controls. */
   table: Dictionary["snippetEditor"]["mdTable"];
+  /** Labels for the hover copy button on fenced code blocks. */
+  codeBlock: { copy: string; copied: string };
   /** Reused language picker copy for the code-block language selector. */
   languageSelect: Dictionary["languageSelect"];
 }

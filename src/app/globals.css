@@ -547,11 +547,21 @@ body {
 .klipcode-md pre code {
   background: none; padding: 0; font-size: 13px; line-height: 1.6; color: rgba(var(--ink-rgb), 0.9);
 }
+/* Long code lines scroll horizontally instead of wrapping. TipTap's
+   runtime-injected stylesheet forces pre-wrap on `.ProseMirror pre` and — with
+   higher specificity — on the code-block NodeView's contenteditable content
+   (`.ProseMirror [contenteditable="false"] [contenteditable="true"]`), so
+   !important is the only way to win from here. */
+.klipcode-md pre,
+.klipcode-md pre code {
+  white-space: pre !important;
+}
 /* Code-block NodeView: anchor the overlaid controls (hover copy button +
-   language selector) to the top-right. Extra right padding on <pre> keeps the
-   first code line clear of them. */
+   language selector) to the top-right. Extra top padding on <pre> reserves a
+   band for them (top 0.55rem + ~1.75rem control height) so they never overlap
+   the first code line, even when it scrolls horizontally beneath them. */
 .klipcode-md-codeblock { position: relative; }
-.klipcode-md-codeblock > pre { padding-right: 10.5rem; }
+.klipcode-md-codeblock > pre { padding-top: 2.75rem; padding-bottom: 2rem; }
 .klipcode-md-codeblock-lang {
   position: absolute; top: 0.55rem; right: 0.55rem; z-index: 1;
   display: flex; align-items: center; gap: 0.25rem;

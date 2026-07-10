@@ -14,7 +14,8 @@ import type { MarkdownEditorCopy } from "./MarkdownEditor";
  * NodeView for fenced code blocks: keeps the highlighted `<pre><code>` content
  * editable and overlays the shared LanguageSelect so the block's language (the
  * Markdown fence info string) can be changed in place, plus a hover-revealed
- * copy button (also available on read-only snippets, where the picker is not).
+ * copy button — always visible on touch/mobile, hover-revealed from `md` up —
+ * (also available on read-only snippets, where the picker is not).
  */
 export function CodeBlockComponent({
   node,
@@ -50,7 +51,7 @@ export function CodeBlockComponent({
               type="button"
               aria-label={copyLabels.copy}
               onClick={handleCopy}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-ink/45 opacity-0 transition-all hover:bg-ink/[0.08] hover:text-ink/90 focus-visible:opacity-100 group-hover:opacity-100"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-ink/45 opacity-100 transition-all hover:bg-ink/[0.08] hover:text-ink/90 focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100"
             >
               {copied ? <Check size={13} /> : <Copy size={13} />}
             </button>

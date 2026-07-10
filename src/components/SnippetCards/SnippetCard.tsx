@@ -12,16 +12,7 @@ import { suppressModifierDragStart } from "@/hooks/useMultiSelection";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGeneration";
-
-function buildPreviewLines(code: string) {
-  const lines = code.split("\n").slice(0, 8);
-
-  if (lines.length === 0) {
-    return [""];
-  }
-
-  return lines.map((line) => (line.length > 92 ? `${line.slice(0, 92)}…` : line));
-}
+import { buildPreviewLines, useHighlightedPreview } from "./snippetPreview";
 
 interface SnippetCardProps {
   snippet: SnippetRecord;
@@ -255,6 +246,9 @@ export function SnippetCard({
   const displayName = getSnippetDisplayName(snippet.title, snippet.language, copy.snippetCard.untitled);
   const isGeneratingTitle = useIsGeneratingTitle(snippet.id);
   const previewLines = buildPreviewLines(snippet.code);
+  // Syntax-highlighted preview when the language is supported; `null` while the
+  // grammars load (or when unsupported), where we fall back to plain lines.
+  const highlightedLines = useHighlightedPreview(snippet.code, snippet.language);
 
   return (
     <article
@@ -378,15 +372,27 @@ export function SnippetCard({
 
       <div className="pointer-events-none relative overflow-hidden px-1 pb-1">
         <div className="max-h-[140px] overflow-hidden rounded-lg border border-ink/[0.04] bg-[var(--code-surface)] px-3 py-2 font-mono text-[12px] leading-5 text-ink/90">
-          <div className="pointer-events-none select-none text-ink/60">
-            {previewLines.map((line, index) => (
-              <div key={`${snippet.id}-${index}`} className="flex gap-3">
-                <span className="w-5 shrink-0 text-right tabular-nums text-ink/25">
-                  {index + 1}
-                </span>
-                <span className="min-w-0 flex-1 truncate whitespace-pre">{line || " "}</span>
-              </div>
-            ))}
+          <div
+            className={cn(
+              "pointer-events-none select-none text-ink/60",
+              // Reuse the Markdown editor's hljs token colors, kept slightly
+              // muted so the preview keeps its subdued, faded look.
+              highlightedLines && "klipcode-code-preview opacity-[0.85]",
+            )}
+          >
+            {previewLines.map((line, index) => {
+              const highlighted = highlightedLines?.[index];
+              return (
+                <div key={`${snippet.id}-${index}`} className="flex gap-3">
+                  <span className="w-5 shrink-0 text-right tabular-nums text-ink/25">
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate whitespace-pre">
+                    {highlighted && highlighted.length > 0 ? highlighted : line || " "}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="pointer-events-none absolute bottom-1 left-1 right-1 h-12 rounded-b-lg bg-gradient-to-t from-surface to-transparent group-hover:from-surface-hover" />

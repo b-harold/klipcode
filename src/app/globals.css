@@ -644,60 +644,63 @@ body {
 }
 
 /* ─── Code-block syntax highlighting (highlight.js tokens, VS Code Dark+) ──── */
-.klipcode-md .hljs-comment, .klipcode-md .hljs-quote { color: #6a9955; font-style: italic; }
-.klipcode-md .hljs-keyword, .klipcode-md .hljs-selector-tag,
-.klipcode-md .hljs-literal, .klipcode-md .hljs-meta .hljs-keyword,
-.klipcode-md .hljs-doctag, .klipcode-md .hljs-section { color: #569cd6; }
-.klipcode-md .hljs-built_in, .klipcode-md .hljs-class .hljs-title,
-.klipcode-md .hljs-title.class_, .klipcode-md .hljs-type { color: #4ec9b0; }
-.klipcode-md .hljs-string, .klipcode-md .hljs-regexp,
-.klipcode-md .hljs-addition, .klipcode-md .hljs-meta .hljs-string { color: #ce9178; }
-.klipcode-md .hljs-number { color: #b5cea8; }
-.klipcode-md .hljs-title, .klipcode-md .hljs-title.function_, .klipcode-md .hljs-function .hljs-title { color: #dcdcaa; }
-.klipcode-md .hljs-attr, .klipcode-md .hljs-attribute,
-.klipcode-md .hljs-variable, .klipcode-md .hljs-template-variable,
-.klipcode-md .hljs-property, .klipcode-md .hljs-params, .klipcode-md .hljs-selector-attr { color: #9cdcfe; }
-.klipcode-md .hljs-name, .klipcode-md .hljs-tag .hljs-name { color: #569cd6; }
-.klipcode-md .hljs-symbol, .klipcode-md .hljs-bullet, .klipcode-md .hljs-link,
-.klipcode-md .hljs-meta, .klipcode-md .hljs-selector-id, .klipcode-md .hljs-selector-class { color: #d7ba7d; }
-.klipcode-md .hljs-deletion { color: #ce9178; }
-.klipcode-md .hljs-emphasis { font-style: italic; }
-.klipcode-md .hljs-strong { font-weight: 600; }
+/* Shared by the Markdown editor's code blocks (.klipcode-md) and the
+   snippet-card previews (.klipcode-code-preview) so both stay visually coherent. */
+:is(.klipcode-md, .klipcode-code-preview) .hljs-comment,
+:is(.klipcode-md, .klipcode-code-preview) .hljs-quote { color: #6a9955; font-style: italic; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-keyword, :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-tag,
+:is(.klipcode-md, .klipcode-code-preview) .hljs-literal, :is(.klipcode-md, .klipcode-code-preview) .hljs-meta .hljs-keyword,
+:is(.klipcode-md, .klipcode-code-preview) .hljs-doctag, :is(.klipcode-md, .klipcode-code-preview) .hljs-section { color: #569cd6; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-built_in, :is(.klipcode-md, .klipcode-code-preview) .hljs-class .hljs-title,
+:is(.klipcode-md, .klipcode-code-preview) .hljs-title.class_, :is(.klipcode-md, .klipcode-code-preview) .hljs-type { color: #4ec9b0; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-string, :is(.klipcode-md, .klipcode-code-preview) .hljs-regexp,
+:is(.klipcode-md, .klipcode-code-preview) .hljs-addition, :is(.klipcode-md, .klipcode-code-preview) .hljs-meta .hljs-string { color: #ce9178; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-number { color: #b5cea8; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-title, :is(.klipcode-md, .klipcode-code-preview) .hljs-title.function_, :is(.klipcode-md, .klipcode-code-preview) .hljs-function .hljs-title { color: #dcdcaa; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-attr, :is(.klipcode-md, .klipcode-code-preview) .hljs-attribute,
+:is(.klipcode-md, .klipcode-code-preview) .hljs-variable, :is(.klipcode-md, .klipcode-code-preview) .hljs-template-variable,
+:is(.klipcode-md, .klipcode-code-preview) .hljs-property, :is(.klipcode-md, .klipcode-code-preview) .hljs-params, :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-attr { color: #9cdcfe; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-name, :is(.klipcode-md, .klipcode-code-preview) .hljs-tag .hljs-name { color: #569cd6; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-symbol, :is(.klipcode-md, .klipcode-code-preview) .hljs-bullet, :is(.klipcode-md, .klipcode-code-preview) .hljs-link,
+:is(.klipcode-md, .klipcode-code-preview) .hljs-meta, :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-id, :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-class { color: #d7ba7d; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-deletion { color: #ce9178; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-emphasis { font-style: italic; }
+:is(.klipcode-md, .klipcode-code-preview) .hljs-strong { font-weight: 600; }
 
 /* Light-theme token overrides (VS Code Light+), for legibility on the white surface. */
-:root[data-theme="light"] .klipcode-md .hljs-comment,
-:root[data-theme="light"] .klipcode-md .hljs-quote { color: #008000; }
-:root[data-theme="light"] .klipcode-md .hljs-keyword,
-:root[data-theme="light"] .klipcode-md .hljs-selector-tag,
-:root[data-theme="light"] .klipcode-md .hljs-literal,
-:root[data-theme="light"] .klipcode-md .hljs-meta .hljs-keyword,
-:root[data-theme="light"] .klipcode-md .hljs-doctag,
-:root[data-theme="light"] .klipcode-md .hljs-section,
-:root[data-theme="light"] .klipcode-md .hljs-name,
-:root[data-theme="light"] .klipcode-md .hljs-tag .hljs-name { color: #0000ff; }
-:root[data-theme="light"] .klipcode-md .hljs-built_in,
-:root[data-theme="light"] .klipcode-md .hljs-class .hljs-title,
-:root[data-theme="light"] .klipcode-md .hljs-title.class_,
-:root[data-theme="light"] .klipcode-md .hljs-type { color: #267f99; }
-:root[data-theme="light"] .klipcode-md .hljs-string,
-:root[data-theme="light"] .klipcode-md .hljs-regexp,
-:root[data-theme="light"] .klipcode-md .hljs-addition,
-:root[data-theme="light"] .klipcode-md .hljs-meta .hljs-string { color: #a31515; }
-:root[data-theme="light"] .klipcode-md .hljs-number { color: #098658; }
-:root[data-theme="light"] .klipcode-md .hljs-title,
-:root[data-theme="light"] .klipcode-md .hljs-title.function_,
-:root[data-theme="light"] .klipcode-md .hljs-function .hljs-title { color: #795e26; }
-:root[data-theme="light"] .klipcode-md .hljs-attr,
-:root[data-theme="light"] .klipcode-md .hljs-attribute,
-:root[data-theme="light"] .klipcode-md .hljs-variable,
-:root[data-theme="light"] .klipcode-md .hljs-template-variable,
-:root[data-theme="light"] .klipcode-md .hljs-property,
-:root[data-theme="light"] .klipcode-md .hljs-params,
-:root[data-theme="light"] .klipcode-md .hljs-selector-attr { color: #001080; }
-:root[data-theme="light"] .klipcode-md .hljs-symbol,
-:root[data-theme="light"] .klipcode-md .hljs-bullet,
-:root[data-theme="light"] .klipcode-md .hljs-link,
-:root[data-theme="light"] .klipcode-md .hljs-meta,
-:root[data-theme="light"] .klipcode-md .hljs-selector-id,
-:root[data-theme="light"] .klipcode-md .hljs-selector-class { color: #0070c1; }
-:root[data-theme="light"] .klipcode-md .hljs-deletion { color: #a31515; }
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-comment,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-quote { color: #008000; }
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-keyword,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-tag,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-literal,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-meta .hljs-keyword,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-doctag,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-section,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-name,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-tag .hljs-name { color: #0000ff; }
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-built_in,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-class .hljs-title,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-title.class_,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-type { color: #267f99; }
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-string,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-regexp,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-addition,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-meta .hljs-string { color: #a31515; }
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-number { color: #098658; }
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-title,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-title.function_,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-function .hljs-title { color: #795e26; }
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-attr,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-attribute,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-variable,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-template-variable,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-property,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-params,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-attr { color: #001080; }
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-symbol,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-bullet,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-link,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-meta,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-id,
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-class { color: #0070c1; }
+:root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-deletion { color: #a31515; }

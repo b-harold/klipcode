@@ -81,7 +81,7 @@ export function buildWebApplicationJsonLd({
       priceCurrency: "USD",
     },
     isAccessibleForFree: true,
-    screenshot: `${siteUrl}/landing/ui-dark-mode.webp`,
+    screenshot: `${siteUrl}/landing/ui-dark.webp`,
     sameAs: ["https://github.com/martinezharo/klipcode"],
     ...(featureList?.length ? { featureList } : {}),
     inLanguage: locale,

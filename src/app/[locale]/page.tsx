@@ -322,8 +322,8 @@ export default async function LandingPage({
             <div className="overflow-hidden rounded-xl border border-ink/8 shadow-[0_0_80px_-20px_rgba(var(--ink-rgb),0.06)]">
               <LandingHeroImage
                 alt={l.appPreview}
-                width={1920}
-                height={1080}
+                width={1344}
+                height={767}
                 className="w-full"
               />
             </div>

@@ -40,6 +40,10 @@ export interface MarkdownEditorProps {
   onChange: (markdown: string) => void;
   /** When false the document is read-only (e.g. a trashed snippet). */
   editable: boolean;
+  /** False while the pane is kept mounted but hidden behind the source editor.
+   *  Flipping back to true re-syncs the document from `value` if the source
+   *  changed meanwhile; when it didn't, cursor and scroll survive untouched. */
+  active?: boolean;
   /** Language pre-selected on newly inserted code blocks (user preference). */
   defaultCodeLanguage: LanguageId;
   copy: MarkdownEditorCopy;

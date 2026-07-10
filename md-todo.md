@@ -7,12 +7,12 @@ Mejoras pendientes para dejar el editor de Markdown (WYSIWYG TipTap, `src/compon
 - BubbleMenu ampliado (H3, lista ordenada, task list, code block) + labels i18n.
 - Tablas: inserción desde el slash menu + controles flotantes (añadir/eliminar fila/columna, eliminar tabla) en `TableMenu`.
 - Selector de lenguaje en bloques de código reutilizando `LanguageSelect` (`CodeBlockComponent.tsx`).
+- Preservar scroll/cursor al alternar source ⇄ preview: ambos editores quedan montados tras la primera visita (ocultos con `visibility`), y el WYSIWYG re-sincroniza el documento solo si el source cambió (`SnippetEditor.tsx`, `MarkdownEditorInner.tsx`).
 
 ## Pendiente
 
 ### Alto impacto
 - [ ] **Imágenes.** No hay `@tiptap/extension-image`. Decisión de arquitectura por el local-first/sync: base64 inline (simple pero infla IndexedDB y el payload de sync), URL externa, o subir a Supabase Storage. Soportar pegar/arrastrar + insertar por URL.
-- [ ] **Preservar scroll/cursor al alternar source ⇄ preview.** Hoy `SnippetEditor.tsx` reconstruye el editor al cambiar de modo y se pierde la posición de scroll y del cursor.
 
 ### Medio impacto
 - [ ] **Drag handles** para reordenar bloques (`@tiptap/extension-drag-handle`), muy Notion.

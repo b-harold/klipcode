@@ -82,12 +82,20 @@ export default defineConfig({
       : []),
   ],
   webServer: [
-    {
-      command: "pnpm dev",
-      url: "http://localhost:3000",
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-    },
+    // Only one dev server runs at a time: the smoke suite uses :3000, the sync
+    // suite uses :3100. Next.js refuses a second `next dev` in the same dir
+    // ("Another next dev server is already running"), so they must be mutually
+    // exclusive.
+    ...(syncEnv
+      ? []
+      : [
+          {
+            command: "pnpm dev",
+            url: "http://localhost:3000",
+            reuseExistingServer: !process.env.CI,
+            timeout: 120_000,
+          },
+        ]),
     ...(syncEnv
       ? [
           {

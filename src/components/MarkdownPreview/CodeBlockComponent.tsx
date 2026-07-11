@@ -157,7 +157,7 @@ export function CodeBlockComponent({
           />
         )}
       </div>
-      <pre>
+      <pre spellCheck={false}>
         <NodeViewContent as="code" />
       </pre>
 

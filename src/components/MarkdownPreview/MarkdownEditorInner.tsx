@@ -430,7 +430,11 @@ export default function MarkdownEditorInner({
     immediatelyRender: false,
     editable,
     extensions: [
-      StarterKit.configure({ codeBlock: false }),
+      StarterKit.configure({
+        codeBlock: false,
+        // Inline code is verbatim — don't let the browser flag it as misspelt.
+        code: { HTMLAttributes: { spellcheck: "false" } },
+      }),
       CodeBlock.configure({
         lowlight,
         // Highlight fallback only — kept neutral so bare ``` fences in existing
@@ -472,7 +476,10 @@ export default function MarkdownEditorInner({
     editorProps: {
       attributes: {
         class: "klipcode-md focus:outline-none",
-        spellcheck: "false",
+        // Enable spellcheck for prose; the browser still honours its own
+        // spellcheck setting (users who turned it off see nothing). Code blocks
+        // and inline code opt back out below so identifiers aren't flagged.
+        spellcheck: "true",
       },
     },
     onUpdate: ({ editor }) => {

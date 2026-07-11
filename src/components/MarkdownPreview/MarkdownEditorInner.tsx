@@ -440,7 +440,17 @@ export default function MarkdownEditorInner({
         languageSelectCopy: copy.languageSelect,
         copyLabels: copy.codeBlock,
       }),
-      Link.configure({ openOnClick: true, autolink: true, HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" } }),
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        // Only autolink while typing when the URL carries an explicit http(s)
+        // scheme. Bare domains are skipped on purpose: in a code-focused app,
+        // common file names collide with real TLDs (e.g. `deploy.sh`, `.io`),
+        // so typing them shouldn't silently become a link. Manual links via the
+        // dialog and smart paste still accept any URL (they don't use this).
+        shouldAutoLink: (url) => /^https?:\/\//i.test(url),
+        HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Table.configure({ resizable: false }),

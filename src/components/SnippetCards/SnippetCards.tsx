@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import type { Dictionary } from "@/i18n";
 import type { ClipboardEntry, FolderRecord, SnippetRecord } from "@/lib/types";
+import { openItemInNewTab } from "@/lib/navigation";
 
 import { SnippetCard } from "./SnippetCard";
 
@@ -128,7 +129,7 @@ function SnippetCardsSection({
               folderName={getFolderName(snippet.folderId, folders)}
               copy={copy}
               onSelect={() => onSelectSnippet(snippet.id)}
-              onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
+              onOpenInNewTab={() => openItemInNewTab("snippet", snippet.id)}
               onNavigateFolder={
                 snippet.folderId && onNavigateFolder
                   ? () => onNavigateFolder(snippet.folderId!)

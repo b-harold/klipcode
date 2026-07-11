@@ -5,7 +5,7 @@ import { Clipboard, FileCode2, FilePlus, Folder, FolderOpen, FolderPlus, Layers 
 
 import type { Dictionary } from "@/i18n";
 import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord } from "@/lib/types";
-import { SPACE_ROOT_ID } from "@/lib/navigation";
+import { SPACE_ROOT_ID, openItemInNewTab } from "@/lib/navigation";
 import { isEditableTarget } from "@/lib/constants/shortcuts";
 import { useMultiSelection } from "@/hooks/useMultiSelection";
 import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
@@ -378,7 +378,7 @@ export function FolderView({
                 dragItems={isBatchSelected(folder.id) ? getSelectedItems() : undefined}
                 onMenuOpen={() => selectForMenu(folder.id)}
                 onClick={(e) => activateItem(e, { id: folder.id, type: "folder" })}
-                onOpenInNewTab={() => window.open(`/?folder=${folder.id}`, "_blank", "noopener,noreferrer")}
+                onOpenInNewTab={() => openItemInNewTab("folder", folder.id)}
                 onPinAside={onPinFolder ? (pinned) => void onPinFolder(folder.id, "aside", pinned) : undefined}
                 onRename={onRenameFolder ? (name) => void onRenameFolder(folder.id, name) : undefined}
                 onDelete={
@@ -412,7 +412,7 @@ export function FolderView({
                 dragItems={isBatchSelected(snippet.id) ? getSelectedItems() : undefined}
                 onMenuOpen={() => selectForMenu(snippet.id)}
                 onSelect={(e) => activateItem(e, { id: snippet.id, type: "snippet" })}
-                onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
+                onOpenInNewTab={() => openItemInNewTab("snippet", snippet.id)}
                 onUnpinAside={onPinSnippet ? () => void onPinSnippet(snippet.id, "aside", false) : undefined}
                 onPinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}
                 onPinHome={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "home", pinned) : undefined}

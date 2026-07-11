@@ -6,5 +6,7 @@ export default defineConfig({
   test: {
     environment: "node",
     setupFiles: ["fake-indexeddb/auto"],
+    // Keep Vitest away from the Playwright specs in e2e/.
+    include: ["src/**/*.test.{ts,tsx}"],
   },
 });

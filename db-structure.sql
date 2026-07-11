@@ -248,6 +248,17 @@ grant select, insert, update, delete on public.profiles to authenticated;
 grant select, insert, update, delete on public.folders to authenticated;
 grant select, insert, update, delete on public.snippets to authenticated;
 
+-- service_role bypasses RLS but still needs explicit GRANTs to read/write the
+-- app tables. Used by server-side code (the /api/crypto/dek Worker) and by the
+-- e2e sync suite's admin client. The local Supabase stack does not apply the
+-- dashboard's automatic `ALTER DEFAULT PRIVILEGES ... TO service_role`, so
+-- grants must be explicit — otherwise they fail with "permission denied for
+-- table snippets" (SQLSTATE 42501).
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.profiles to service_role;
+grant select, insert, update, delete on public.folders to service_role;
+grant select, insert, update, delete on public.snippets to service_role;
+
 -- Soporte para fijado normal y fijado en inicio, como flags independientes
 alter table public.folders
   add column if not exists is_pinned_aside boolean not null default false;
@@ -319,5 +330,6 @@ to authenticated
 with check (auth.uid() = user_id);
 
 grant select, insert on public.user_keys to authenticated;
+grant select, insert on public.user_keys to service_role;
 
 commit;

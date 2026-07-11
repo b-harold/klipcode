@@ -93,10 +93,13 @@ async function fetchCloudSnippets(userId: string) {
 
 test("signing in claims anonymous work and uploads it as ciphertext", async ({ page }) => {
   // First visit is anonymous: the welcome seed ("welcome" folder + "klipcode"
-  // snippet) lands in IndexedDB only.
+  // snippet) lands in IndexedDB only. The seeded snippet lives inside the
+  // welcome folder and is pinned to Home (not to the aside), so it shows on the
+  // main view — not directly in the sidebar. Assert the welcome folder in the
+  // aside as the direct, reliable signal that the seed happened.
   await gotoApp(page);
   await expect(
-    page.getByRole("complementary").getByRole("button", { name: "klipcode.md" })
+    page.getByRole("complementary").getByRole("button", { name: "welcome", exact: true })
   ).toBeVisible();
 
   // Sign in and reload: the account claims the anonymous records and pushes

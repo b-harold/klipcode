@@ -3,6 +3,7 @@
 import { Moon, Sun } from "lucide-react";
 
 import { useTheme } from "@/hooks/useTheme";
+import { getThemeTransitionOrigin } from "@/lib/theme";
 
 interface ThemeToggleProps {
   /** Accessible label shown when the action switches TO light. */
@@ -22,10 +23,14 @@ export function ThemeToggle({ toLightLabel, toDarkLabel, className }: ThemeToggl
   const nextIsLight = theme === "dark";
   const label = nextIsLight ? toLightLabel : toDarkLabel;
 
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    toggleTheme(getThemeTransitionOrigin(event.currentTarget));
+  };
+
   return (
     <button
       type="button"
-      onClick={toggleTheme}
+      onClick={handleClick}
       aria-label={label}
       title={label}
       className={

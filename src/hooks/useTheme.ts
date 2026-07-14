@@ -7,11 +7,12 @@ import {
   THEME_CHANGE_EVENT,
   THEME_STORAGE_KEY,
   broadcastTheme,
-  commitTheme,
   getSystemTheme,
   readStoredTheme,
   readTheme,
+  transitionToTheme,
   type Theme,
+  type ThemeTransitionOrigin,
 } from "@/lib/theme";
 
 /**
@@ -55,17 +56,15 @@ export function useTheme() {
     };
   }, []);
 
-  const setTheme = useCallback((next: Theme) => {
+  const setTheme = useCallback((next: Theme, origin?: ThemeTransitionOrigin) => {
     setThemeState(next);
-    commitTheme(next); // persist, apply to <html>, and notify other instances
+    transitionToTheme(next, origin);
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      const next: Theme = prev === "dark" ? "light" : "dark";
-      commitTheme(next);
-      return next;
-    });
+  const toggleTheme = useCallback((origin?: ThemeTransitionOrigin) => {
+    const next: Theme = readTheme() === "dark" ? "light" : "dark";
+    setThemeState(next);
+    transitionToTheme(next, origin);
   }, []);
 
   return { theme, setTheme, toggleTheme };

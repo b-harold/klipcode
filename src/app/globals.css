@@ -99,6 +99,22 @@
 /* Reserve space for the scrollbar to avoid layout shifts when it appears */
 html { scrollbar-gutter: stable; }
 
+/* Theme changes use the browser's old/new root snapshots. JavaScript clips the
+   new palette to an expanding circle centred on the control that was pressed. */
+.klipcode-theme-transition::view-transition-old(root),
+.klipcode-theme-transition::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+.klipcode-theme-transition::view-transition-old(root) {
+  z-index: 1;
+}
+
+.klipcode-theme-transition::view-transition-new(root) {
+  z-index: 2;
+}
+
 /* ─── Landing page animations ─────────────────────────────────────────────── */
 @keyframes landing-fade-in {
   from {

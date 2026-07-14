@@ -8,7 +8,11 @@ import type { Dictionary } from "@/i18n";
 import type { FolderRecord } from "@/lib/types";
 import type { Preferences } from "@/lib/preferences";
 import type { Locale } from "@/lib/locale";
-import type { Theme } from "@/lib/theme";
+import {
+  getThemeTransitionOrigin,
+  type Theme,
+  type ThemeTransitionOrigin,
+} from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { LANGUAGES, type LanguageId } from "@/lib/constants/languages";
 import { LanguageSelect } from "@/ui/LanguageSelect";
@@ -25,7 +29,7 @@ interface PreferencesDialogProps {
   isAuthenticated: boolean;
   onChangePreferences: (patch: Partial<Preferences>) => void;
   onChangeLocale: (locale: Locale) => void;
-  onChangeTheme: (theme: Theme) => void;
+  onChangeTheme: (theme: Theme, origin?: ThemeTransitionOrigin) => void;
   onClose: () => void;
 }
 
@@ -37,7 +41,7 @@ function Segmented<T extends string>({
 }: {
   options: { value: T; label: string }[];
   value: T;
-  onChange: (value: T) => void;
+  onChange: (value: T, control: HTMLButtonElement) => void;
 }) {
   return (
     <div className="flex items-center gap-0.5 rounded-lg border border-ink/[0.08] p-0.5">
@@ -47,7 +51,7 @@ function Segmented<T extends string>({
           <button
             key={opt.value}
             type="button"
-            onClick={() => onChange(opt.value)}
+            onClick={(event) => onChange(opt.value, event.currentTarget)}
             aria-pressed={active}
             className={[
               "rounded-md px-2.5 py-1 text-xs transition-colors",
@@ -193,7 +197,9 @@ export function PreferencesDialog({
             control={
               <Segmented<Theme>
                 value={theme}
-                onChange={onChangeTheme}
+                onChange={(next, control) =>
+                  onChangeTheme(next, getThemeTransitionOrigin(control))
+                }
                 options={[
                   { value: "light", label: t.appearance.light },
                   { value: "dark", label: t.appearance.dark },

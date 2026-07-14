@@ -224,6 +224,7 @@ export function Aside({
   const unpinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinnedAside), (f) => f.name);
   const unpinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => !s.isPinnedAside), (s) => s.title ?? "");
   const isEmpty = rootFolders.length === 0 && rootSnippets.length === 0;
+  const isRootDropTarget = drag.dragging !== null && drag.dragOverId === "root";
 
   /* ── Render ────────────────────────────────────────────────────────────── */
 
@@ -345,7 +346,22 @@ export function Aside({
               <button
                 type="button"
                 onClick={onGoSpace}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-ink/4 hover:text-foreground"
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  drag.enterDropTarget("root");
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  drag.dropOnFolder(null);
+                }}
+                className={[
+                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-ink/4 hover:text-foreground",
+                  isRootDropTarget ? "bg-ink/[0.07] text-foreground ring-1 ring-inset ring-ink/[0.18]" : "",
+                ].filter(Boolean).join(" ")}
               >
                 <Layers size={12} className="text-ink/25" />
                 <span className="text-[11px] font-medium uppercase tracking-wider text-ink/35">

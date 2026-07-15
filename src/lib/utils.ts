@@ -12,6 +12,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Split a VS Code-style "/"-separated path into trimmed, non-empty segments. */
+export function splitWorkspacePath(input: string): string[] {
+  return input
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Resolve a snippet name or path into the folders that should contain it and
+ * the filename that should be stored as its title.
+ *
+ * `scripts/utils/index.ts` becomes `{ folderSegments: ["scripts", "utils"],
+ * title: "index.ts" }`, while a plain `index.ts` keeps the current folder.
+ */
+export function resolveSnippetPath(input: string): {
+  folderSegments: string[];
+  title: string;
+} {
+  const segments = splitWorkspacePath(input);
+  return {
+    folderSegments: segments.slice(0, -1),
+    title: segments.at(-1) ?? "",
+  };
+}
+
 export function getSnippetDisplayName(title: string, language: string, untitledLabel: string): string {
   const extension = LANGUAGES.find((l) => l.id === language)?.extension ?? "";
   const baseName = title || untitledLabel;

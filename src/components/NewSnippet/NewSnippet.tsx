@@ -135,7 +135,8 @@ export function NewSnippet({
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             onKeyDown={handleTitleKeyDown}
-            placeholder={copy.forms.snippetTitlePlaceholder}
+            aria-label={copy.forms.snippetTitlePlaceholder}
+            placeholder={copy.forms.snippetNamePlaceholder}
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-ink/30 outline-none"
           />
           <LanguageSelect

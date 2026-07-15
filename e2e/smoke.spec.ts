@@ -50,6 +50,27 @@ test("creates a snippet and copies its content", async ({ page }) => {
   expect(clipboard).toBe("console.log('hello from e2e');");
 });
 
+test("creates folders from a path typed in the snippet title", async ({ page }) => {
+  await gotoApp(page);
+
+  await page.getByRole("complementary").getByRole("button", { name: "New snippet" }).click();
+
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("textbox", { name: "Snippet title" }).fill("recipes/utils/greeting.js");
+  await dialog
+    .getByRole("textbox", { name: "Write or paste your code here..." })
+    .fill("export const greeting = 'hello';");
+  await dialog.getByRole("button", { name: "Create snippet" }).click();
+  await expect(dialog).toBeHidden();
+
+  const aside = page.getByRole("complementary");
+  await expect(aside.getByRole("button", { name: "recipes", exact: true })).toBeVisible();
+  await aside.getByRole("button", { name: "recipes", exact: true }).click();
+  await expect(page.getByRole("main").getByText("utils", { exact: true }).first()).toBeVisible();
+  await page.getByRole("main").getByText("utils", { exact: true }).first().click();
+  await expect(page.getByRole("main").getByRole("button", { name: "greeting.js" })).toBeVisible();
+});
+
 test("navigates into a folder and back to Home", async ({ page }) => {
   await gotoApp(page);
 

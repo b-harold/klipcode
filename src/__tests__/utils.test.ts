@@ -3,7 +3,9 @@ import {
   cn,
   getSnippetDisplayName,
   getSnippetFileName,
+  resolveSnippetPath,
   resolveSnippetRename,
+  splitWorkspacePath,
   truncateCodeForTitlePrompt,
 } from "@/lib/utils";
 import { LANGUAGES } from "@/lib/constants/languages";
@@ -30,6 +32,41 @@ describe("cn()", () => {
 
   it("handles undefined and null gracefully", () => {
     expect(cn("a", undefined, null, "b")).toBe("a b");
+  });
+});
+
+// ── Workspace paths ──────────────────────────────────────────────────────────
+
+describe("splitWorkspacePath()", () => {
+  it("trims path segments and ignores repeated separators", () => {
+    expect(splitWorkspacePath(" scripts / / utils / index.ts ")).toEqual([
+      "scripts",
+      "utils",
+      "index.ts",
+    ]);
+  });
+});
+
+describe("resolveSnippetPath()", () => {
+  it("separates nested folders from the snippet filename", () => {
+    expect(resolveSnippetPath("scripts/utils/index.ts")).toEqual({
+      folderSegments: ["scripts", "utils"],
+      title: "index.ts",
+    });
+  });
+
+  it("keeps a plain filename in the currently selected folder", () => {
+    expect(resolveSnippetPath("index.ts")).toEqual({
+      folderSegments: [],
+      title: "index.ts",
+    });
+  });
+
+  it("preserves an empty title for the untitled-snippet flow", () => {
+    expect(resolveSnippetPath("  ")).toEqual({
+      folderSegments: [],
+      title: "",
+    });
   });
 });
 

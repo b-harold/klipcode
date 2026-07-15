@@ -5,15 +5,14 @@ import { recordDeletions } from "@/lib/sync";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord, SyncStatus } from "@/lib/types";
 import { isDescendantOrSelf } from "@/components/Aside/utils";
-import { resolveSnippetRename, truncateCodeForTitlePrompt } from "@/lib/utils";
+import {
+  resolveSnippetPath,
+  resolveSnippetRename,
+  splitWorkspacePath,
+  truncateCodeForTitlePrompt,
+} from "@/lib/utils";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import type { Dictionary } from "@/i18n";
-
-/** Split a VS Code-style "/"-separated path into trimmed, non-empty segments,
- *  e.g. `"scripts/index.js"` → `["scripts", "index.js"]`. */
-function splitPath(input: string): string[] {
-  return input.split("/").map((segment) => segment.trim()).filter(Boolean);
-}
 
 /** One trash operation, as recorded for undo (Ctrl/⌘+Z): exactly the record ids
  *  it newly trashed, plus the `deletedAt` stamp it wrote. Undo only reverts rows
@@ -165,13 +164,19 @@ export function useWorkspaceMutations({
 
     const snippetId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
-    const trimmedTitle = data.title.trim();
+    const { folderSegments, title } = resolveSnippetPath(data.title);
+    const folderId = await ensureFolderPath(
+      folderSegments,
+      data.folderId || null,
+      timestamp,
+    );
+    const trimmedTitle = title.trim();
     const language = data.language.trim();
 
     await db.snippets.put({
       id: snippetId,
       ownerId: user?.id ?? null,
-      folderId: data.folderId || null,
+      folderId,
       title: trimmedTitle || copy.snippetCard.untitled,
       language,
       code: data.code,
@@ -368,7 +373,7 @@ export function useWorkspaceMutations({
   async function handleCreateFolder(parentId: string | null, name: string) {
     // A "/"-separated name creates a nested chain (VS Code style): `scripts/js`
     // makes `scripts` then `js` inside it, reusing any folder that already exists.
-    const segments = splitPath(name);
+    const segments = splitWorkspacePath(name);
     if (segments.length === 0) return;
     const timestamp = new Date().toISOString();
     await ensureFolderPath(segments, parentId ?? null, timestamp);

@@ -34,6 +34,7 @@ import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import { formatCode, isFormattable } from "@/lib/formatCode";
 import { FormatErrorToast } from "@/components/FormatErrorToast/FormatErrorToast";
 import { getFolderPath } from "@/components/FolderView/utils";
+import { resolveSnippetRename } from "@/lib/utils";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Sync status indicator (top-right of header)
@@ -107,6 +108,9 @@ export interface SnippetEditorProps {
   onNavigateFolder?: (folderId: string) => void;
   onNavigateHome?: () => void;
   onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId }) => void;
+  /** Rename the snippet by full filename (resolved to title + language). The
+   *  same mutation used by the aside tree and snippet cards. */
+  onRename?: (snippetId: string, value: string) => void;
   /** Whether Markdown snippets open in the Notion-like preview by default. */
   markdownPreviewByDefault?: boolean;
   /** User's default language, pre-selected on code blocks inserted in Markdown. */
@@ -136,6 +140,7 @@ export function SnippetEditor({
   onNavigateFolder,
   onNavigateHome,
   onUpdate,
+  onRename,
   markdownPreviewByDefault = true,
   defaultCodeLanguage = "plaintext",
   codeWrap = false,
@@ -173,6 +178,44 @@ export function SnippetEditor({
   const [sourceFreeze, setSourceFreeze] = useState(snippet.code);
 
   const sourceEditorRef = useRef<ReactCodeMirrorRef>(null);
+
+  // Inline rename of the snippet title via the breadcrumb crumb itself: the
+  // title text is contentEditable, so clicking it places the caret in place
+  // and typing edits it directly — no separate field, no layout shift. The icon
+  // previews the language resolved from the in-progress text live, mirroring
+  // the aside/card rename flows (resolveSnippetRename).
+  const canRename = !readOnly && !!onRename;
+  // The language previewed by the icon; null ⇒ not actively editing, fall back
+  // to the snippet's stored language.
+  const [renameIconLanguage, setRenameIconLanguage] = useState<string | null>(null);
+  const iconLanguage = renameIconLanguage ?? snippet.language;
+
+  const titleEditable =
+    canRename && !isGeneratingTitle && snippet.title.trim().length > 0;
+
+  function handleRenameInput(e: React.FormEvent<HTMLSpanElement>) {
+    const text = e.currentTarget.textContent ?? "";
+    setRenameIconLanguage(resolveSnippetRename(text, snippet.language).language);
+  }
+
+  function handleRenameBlur(e: React.FocusEvent<HTMLSpanElement>) {
+    const text = (e.currentTarget.textContent ?? "").trim();
+    if (text !== snippet.title.trim()) onRename?.(snippet.id, text);
+    setRenameIconLanguage(null);
+  }
+
+  function handleRenameKeyDown(e: React.KeyboardEvent<HTMLSpanElement>) {
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.currentTarget.blur();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.currentTarget.textContent = snippet.title;
+      setRenameIconLanguage(null);
+      e.currentTarget.blur();
+    }
+  }
 
   const handleTogglePreview = useCallback(() => {
     const next = !showPreview;
@@ -263,15 +306,27 @@ export function SnippetEditor({
     })),
     {
       id: snippet.id,
-      icon: <LanguageIcon language={snippet.language} size={12} className="shrink-0" />,
+      icon: <LanguageIcon language={iconLanguage} size={12} className="shrink-0" />,
       label: isGeneratingTitle ? (
         <GeneratingTitle label={editorCopy.generatingTitle} />
+      ) : titleEditable ? (
+        <span
+          contentEditable
+          suppressContentEditableWarning
+          spellCheck={false}
+          onInput={handleRenameInput}
+          onBlur={handleRenameBlur}
+          onKeyDown={handleRenameKeyDown}
+          className="px-0.5 -mx-0.5 rounded outline-none transition focus:bg-ink/[0.05] focus:ring-1 focus:ring-ink/15"
+        >
+          {snippet.title}
+        </span>
       ) : snippet.title.trim() ? (
         snippet.title
       ) : (
         <span className="text-ink/25">{editorCopy.titlePlaceholder}</span>
       ),
-      // No onClick — the current snippet title is the static "current" crumb
+      raw: titleEditable,
     },
   ];
 

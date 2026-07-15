@@ -20,6 +20,12 @@ export interface BreadcrumbItem {
    * When omitted, the last item renders as a static span.
    */
   onClick?: () => void;
+  /**
+   * When true, the label is rendered without the truncating wrapper span.
+   * Use when the label itself manages its own layout (e.g. an inline
+   * contentEditable title that should grow with its content).
+   */
+  raw?: boolean;
 }
 
 interface BreadcrumbsProps {
@@ -155,9 +161,9 @@ export function Breadcrumbs({
               )}
               {/* Last item without onClick → static, visually highlighted */}
               {isLast && !item.onClick ? (
-                <span className="flex items-center gap-1.5 text-[13px] font-medium text-foreground min-w-0 truncate">
+                <span className="flex items-center gap-1.5 text-[13px] font-medium text-foreground min-w-0">
                   {item.icon}
-                  <span className="min-w-0 truncate">{item.label}</span>
+                  {item.raw ? item.label : <span className="min-w-0 truncate">{item.label}</span>}
                 </span>
               ) : (
                 <button

@@ -80,8 +80,9 @@ export function SnippetCard({
 
   const isTrash = !!trashActions;
   // Draggable when the page opts in (enableDrag) or when in the trash, where the
-  // drag restores the snippet onto the tree.
-  const canDrag = enableDrag || isTrash;
+  // drag restores the snippet onto the tree. Inline rename temporarily disables
+  // native drag so mouse gestures select text inside the input instead.
+  const canDrag = (enableDrag || isTrash) && !isRenaming;
 
   const drag = useDragCtx();
   const isDraggingThis =

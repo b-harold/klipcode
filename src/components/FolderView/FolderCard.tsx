@@ -112,9 +112,13 @@ export function FolderCard({
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
 
   const isTrash = !!trashActions;
+  // Native dragging on an ancestor steals mouse gestures from the rename input.
+  // Disable it for the full inline-edit session so text remains selectable.
+  const canDrag = !isRenaming;
 
   const drag = useDragCtx();
   const isDraggingThis =
+    canDrag &&
     drag.dragging !== null &&
     ((drag.dragging.id === folder.id && drag.dragging.type === "folder") ||
       Boolean(drag.dragging.items?.some((it) => it.id === folder.id)));
@@ -186,18 +190,18 @@ export function FolderCard({
     <article
       role="button"
       tabIndex={0}
-      draggable
+      draggable={canDrag}
       data-selectable-id={folder.id}
       data-selectable-type="folder"
       onClick={onClick}
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
-      onDragStart={(e) => {
+      onDragStart={canDrag ? (e) => {
         if (suppressModifierDragStart(e)) return;
         drag.startDrag("folder", folder.id, isTrash ? "trash" : "workspace", dragItems);
         e.dataTransfer.effectAllowed = "move";
-      }}
-      onDragEnd={() => drag.endDrag()}
+      } : undefined}
+      onDragEnd={canDrag ? () => drag.endDrag() : undefined}
       onDragEnter={isTrash ? undefined : (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -215,9 +219,7 @@ export function FolderCard({
       }}
       className={cn(
         "group flex min-w-0 select-none items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20 cursor-pointer",
-        isDraggingThis
-          ? "opacity-40 cursor-grabbing"
-          : "active:cursor-grabbing",
+        canDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "active:cursor-grabbing"),
         isDropTarget
           ? "border-ink/30 bg-ink/[0.06] ring-1 ring-inset ring-ink/20"
           : selected

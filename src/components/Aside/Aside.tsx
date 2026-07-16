@@ -363,7 +363,7 @@ export function Aside({
 
           <div className="shrink-0 px-2 pb-4 pt-2">
             <a
-              href="https://github.com/martinezharo/klipcode"
+              href="https://github.com/b-harold/klipcode"
               target="_blank"
               rel="noopener noreferrer"
               className="group flex w-full items-center justify-center py-2 px-3 gap-2 rounded-md border border-white/4 bg-white/1 text-[12px] font-medium text-white/40 shadow-sm transition-all duration-300 hover:border-white/10 hover:bg-white/4 hover:text-white"
@@ -372,7 +372,7 @@ export function Aside({
                 size={14}
                 className="shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:text-white"
               />
-              <span className="truncate tracking-wide">martinezharo/klipcode</span>
+              <span className="truncate tracking-wide">b-harold/klipcode</span>
             </a>
           </div>
         </aside>

@@ -14,13 +14,14 @@ import {
 } from "lucide-react";
 import type { ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import type {
-  ClipboardEntry,
   FolderRecord,
   NoteRecord,
   SnippetRecord,
+  ClipboardEntry,
+  SelectedItem,
 } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
-import { buildAppHref } from "@/lib/navigation";
+import { buildAppHref, openItemInNewTab } from "@/lib/navigation";
 import type { MenuTarget } from "./types";
 
 interface UseContextMenuGroupsArgs {
@@ -36,12 +37,21 @@ interface UseContextMenuGroupsArgs {
   onDeleteFolder: (id: string) => Promise<void>;
   onDeleteSnippet: (id: string) => Promise<void>;
   onDeleteNote: (id: string) => Promise<void>;
+  /** Soft-delete the whole multi-selection at once. */
+  onDeleteMany: (items: SelectedItem[]) => Promise<void>;
   onCut: (entry: ClipboardEntry) => void;
   onCopy: (entry: ClipboardEntry) => void;
   setRenamingId: (id: string | null) => void;
   setCreatingFolderParentId: (id: string | null | undefined) => void;
-  setCreatingSnippetFolderId: (id: string | null | undefined) => void;
   setCreatingNoteFolderId: (id: string | null | undefined) => void;
+  onOpenCreateModal: (folderId: string | null) => void;
+  /** Ids in the current multi-selection — drives whether a row's menu acts on the
+   *  whole set or just that row. */
+  selectedIds: ReadonlySet<string>;
+  /** The current multi-selection as typed items, for batch actions. */
+  getSelectedItems: () => SelectedItem[];
+  /** Drop the multi-selection (after a batch delete clears the acted-on rows). */
+  clearSelection: () => void;
 }
 
 export function useContextMenuGroups({
@@ -57,17 +67,34 @@ export function useContextMenuGroups({
   onDeleteFolder,
   onDeleteSnippet,
   onDeleteNote,
+  onDeleteMany,
   onCut,
   onCopy,
   setRenamingId,
   setCreatingFolderParentId,
-  setCreatingSnippetFolderId,
   setCreatingNoteFolderId,
+  onOpenCreateModal,
+  selectedIds,
+  getSelectedItems,
+  clearSelection,
 }: UseContextMenuGroupsArgs) {
   return useCallback(
     (target: MenuTarget): ContextMenuGroup[] => {
       const { type, id } = target;
       const cm = copy.contextMenu;
+
+      /* When the right-clicked row is part of a multi-selection, the
+       * delete / cut / copy actions operate on the whole set — matching the
+       * keyboard shortcuts and drag-move. (selectForMenu has already collapsed
+       * the selection to this row if it was clicked from outside the set.) */
+      const batchActive = !!id && selectedIds.has(id) && selectedIds.size > 1;
+      const clipboardItems = (fallback: SelectedItem) =>
+        (batchActive ? getSelectedItems() : [fallback]).map((i) => ({ itemType: i.type, id: i.id }));
+      const deleteSelection = () => {
+        const items = getSelectedItems();
+        clearSelection();
+        void onDeleteMany(items);
+      };
 
       if (type === "root") {
         return [
@@ -83,7 +110,7 @@ export function useContextMenuGroups({
                 id: "new-snippet",
                 label: cm.newSnippet,
                 Icon: FilePlus,
-                onClick: () => setCreatingSnippetFolderId(null),
+                onClick: () => onOpenCreateModal(null),
               },
               {
                 id: "new-note",
@@ -116,8 +143,7 @@ export function useContextMenuGroups({
                 id: "open-in-new-tab",
                 label: cm.openInNewTab,
                 Icon: ExternalLink,
-                onClick: () =>
-                  window.open(buildAppHref(`folder=${id}`), "_blank", "noopener,noreferrer"),
+                onClick: () => openItemInNewTab("folder", id),
               },
             ],
           },
@@ -133,7 +159,7 @@ export function useContextMenuGroups({
                 id: "new-snippet",
                 label: cm.newSnippet,
                 Icon: FilePlus,
-                onClick: () => setCreatingSnippetFolderId(id),
+                onClick: () => onOpenCreateModal(id),
               },
               {
                 id: "new-note",
@@ -158,8 +184,8 @@ export function useContextMenuGroups({
           },
           {
             items: [
-              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  itemType: "folder", id }) },
-              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", itemType: "folder", id }) },
+              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: clipboardItems({ id, type: "folder" }) }) },
+              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: clipboardItems({ id, type: "folder" }) }) },
               ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(id) }] : []),
             ],
           },
@@ -169,7 +195,7 @@ export function useContextMenuGroups({
               label: cm.delete,
               Icon: Trash2,
               variant: "destructive" as const,
-              onClick: () => void onDeleteFolder(id),
+              onClick: batchActive ? deleteSelection : () => void onDeleteFolder(id),
             }],
           },
         ];
@@ -185,8 +211,7 @@ export function useContextMenuGroups({
                 id: "open-in-new-tab",
                 label: cm.openInNewTab,
                 Icon: ExternalLink,
-                onClick: () =>
-                  window.open(buildAppHref(`snippet=${id}`), "_blank", "noopener,noreferrer"),
+                onClick: () => openItemInNewTab("snippet", id),
               },
             ],
           },
@@ -216,8 +241,8 @@ export function useContextMenuGroups({
           },
           {
             items: [
-              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  itemType: "snippet", id }) },
-              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", itemType: "snippet", id }) },
+              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: clipboardItems({ id, type: "snippet" }) }) },
+              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: clipboardItems({ id, type: "snippet" }) }) },
               ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(snippet.folderId) }] : []),
             ],
           },
@@ -227,7 +252,7 @@ export function useContextMenuGroups({
               label: cm.delete,
               Icon: Trash2,
               variant: "destructive" as const,
-              onClick: () => void onDeleteSnippet(id),
+              onClick: batchActive ? deleteSelection : () => void onDeleteSnippet(id),
             }],
           },
         ];
@@ -266,8 +291,8 @@ export function useContextMenuGroups({
           },
           {
             items: [
-              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  itemType: "note", id }) },
-              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", itemType: "note", id }) },
+              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: clipboardItems({ id, type: "note" }) }) },
+              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: clipboardItems({ id, type: "note" }) }) },
               ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(note.folderId) }] : []),
             ],
           },
@@ -277,7 +302,7 @@ export function useContextMenuGroups({
               label: cm.delete,
               Icon: Trash2,
               variant: "destructive" as const,
-              onClick: () => void onDeleteNote(id),
+              onClick: batchActive ? deleteSelection : () => void onDeleteNote(id),
             }],
           },
         ];
@@ -285,25 +310,6 @@ export function useContextMenuGroups({
 
       return [];
     },
-    [
-      clipboard,
-      copy.contextMenu,
-      folders,
-      snippets,
-      notes,
-      onPaste,
-      onPinFolder,
-      onPinSnippet,
-      onPinNote,
-      onDeleteFolder,
-      onDeleteSnippet,
-      onDeleteNote,
-      onCut,
-      onCopy,
-      setRenamingId,
-      setCreatingFolderParentId,
-      setCreatingSnippetFolderId,
-      setCreatingNoteFolderId,
-    ],
+    [clipboard, copy.contextMenu, folders, snippets, notes, onPaste, onPinFolder, onPinSnippet, onPinNote, onDeleteFolder, onDeleteSnippet, onDeleteNote, onDeleteMany, onCut, onCopy, setRenamingId, setCreatingFolderParentId, setCreatingNoteFolderId, onOpenCreateModal, selectedIds, getSelectedItems, clearSelection],
   );
 }

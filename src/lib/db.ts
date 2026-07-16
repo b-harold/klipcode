@@ -1,11 +1,26 @@
 import Dexie, { type Table } from "dexie";
 
-import type { FolderRecord, NoteRecord, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
+import type {
+  FolderRecord,
+  NoteRecord,
+  SnippetRecord,
+  TombstoneRecord,
+  WorkspaceSnapshot,
+} from "@/lib/types";
+
+/**
+ * Shape of folder/snippet records as written by versions prior to v4: a single
+ * `isPinned` flag and, briefly in v3, a `pinType` discriminator. Both were
+ * folded into the `isPinnedAside` / `isPinnedHome` booleans.
+ */
+type LegacyFolderRecord = FolderRecord & { isPinned?: boolean; pinType?: string };
+type LegacySnippetRecord = SnippetRecord & { isPinned?: boolean; pinType?: string };
 
 class KlipCodeDatabase extends Dexie {
   folders!: Table<FolderRecord, string>;
   snippets!: Table<SnippetRecord, string>;
   notes!: Table<NoteRecord, string>;
+  tombstones!: Table<TombstoneRecord, string>;
 
   constructor() {
     super("klipcode");
@@ -41,13 +56,6 @@ class KlipCodeDatabase extends Dexie {
         ]);
       });
 
-    type LegacyPinnedRow = {
-      isPinnedAside?: boolean;
-      isPinnedHome?: boolean;
-      isPinned?: boolean;
-      pinType?: "pinned" | "home" | string;
-    };
-
     this.version(3)
       .stores({
         folders: "id, ownerId, parentId, dirty, updatedAt, isPinnedAside, isPinnedHome",
@@ -56,7 +64,7 @@ class KlipCodeDatabase extends Dexie {
       .upgrade((tx) => {
         return Promise.all([
           tx
-            .table<LegacyPinnedRow>("folders")
+            .table<LegacyFolderRecord>("folders")
             .toCollection()
             .modify((folder) => {
               folder.isPinnedAside = Boolean(folder.isPinnedAside || folder.isPinned || folder.pinType === "pinned");
@@ -65,7 +73,7 @@ class KlipCodeDatabase extends Dexie {
               delete folder.pinType;
             }),
           tx
-            .table<LegacyPinnedRow>("snippets")
+            .table<LegacySnippetRecord>("snippets")
             .toCollection()
             .modify((snippet) => {
               snippet.isPinnedAside = Boolean(snippet.isPinnedAside || snippet.isPinned || snippet.pinType === "pinned");
@@ -84,7 +92,7 @@ class KlipCodeDatabase extends Dexie {
       .upgrade((tx) => {
         return Promise.all([
           tx
-            .table<LegacyPinnedRow>("folders")
+            .table<LegacyFolderRecord>("folders")
             .toCollection()
             .modify((folder) => {
               folder.isPinnedAside = Boolean(folder.isPinnedAside || folder.isPinned);
@@ -92,7 +100,7 @@ class KlipCodeDatabase extends Dexie {
               delete folder.isPinned;
             }),
           tx
-            .table<LegacyPinnedRow>("snippets")
+            .table<LegacySnippetRecord>("snippets")
             .toCollection()
             .modify((snippet) => {
               snippet.isPinnedAside = Boolean(snippet.isPinnedAside || snippet.isPinned);
@@ -102,6 +110,8 @@ class KlipCodeDatabase extends Dexie {
         ]);
       });
 
+    // v5 adds the notes store and backfills `sourceUrl` on snippets. This
+    // version is already deployed to this fork's users — do not edit it.
     this.version(5)
       .stores({
         folders: "id, ownerId, parentId, dirty, updatedAt, isPinnedAside, isPinnedHome",
@@ -117,6 +127,28 @@ class KlipCodeDatabase extends Dexie {
               snippet.sourceUrl = null;
             }
           });
+      });
+
+    // v6 adopts upstream's pending-deletions queue (tombstones) and soft-delete
+    // `deletedAt` field (local trash) in one hop. Upstream shipped these as its
+    // own v5/v6, but this fork's v5 was already taken by the notes store, so
+    // both changes land here to keep the version line monotonic for deployed
+    // users. Backfill existing rows to `null` so they're treated as live.
+    this.version(6)
+      .stores({
+        folders: "id, ownerId, parentId, dirty, updatedAt, isPinnedAside, isPinnedHome, deletedAt",
+        snippets: "id, ownerId, folderId, dirty, updatedAt, isPinnedAside, isPinnedHome, deletedAt",
+        tombstones: "id, ownerId",
+      })
+      .upgrade((tx) => {
+        return Promise.all([
+          tx.table<FolderRecord>("folders").toCollection().modify((folder) => {
+            folder.deletedAt = null;
+          }),
+          tx.table<SnippetRecord>("snippets").toCollection().modify((snippet) => {
+            snippet.deletedAt = null;
+          }),
+        ]);
       });
   }
 }
@@ -169,9 +201,11 @@ export async function readWorkspace(
   ]);
 
   return {
-    folders: folders.filter((folder) => matchesOwner(folder.ownerId, currentUserId)).sort(sortFolders),
+    folders: folders
+      .filter((folder) => matchesOwner(folder.ownerId, currentUserId) && !folder.deletedAt)
+      .sort(sortFolders),
     snippets: snippets
-      .filter((snippet) => matchesOwner(snippet.ownerId, currentUserId))
+      .filter((snippet) => matchesOwner(snippet.ownerId, currentUserId) && !snippet.deletedAt)
       .sort(sortSnippets),
     notes: notes
       .filter((note) => matchesOwner(note.ownerId, currentUserId))
@@ -179,14 +213,76 @@ export async function readWorkspace(
   };
 }
 
+/**
+ * Read the trashed (soft-deleted) records for the current owner, newest deletion
+ * first. The trash is device-local: it holds rows whose `deletedAt` is set, which
+ * `readWorkspace` excludes from the normal workspace. Notes hard-delete and never
+ * appear here.
+ */
+export async function readTrash(
+  currentUserId: string | null
+): Promise<WorkspaceSnapshot> {
+  const [folders, snippets] = await Promise.all([
+    db.folders.toArray(),
+    db.snippets.toArray(),
+  ]);
+
+  const byDeletedAtDesc = <T extends { deletedAt: string | null }>(left: T, right: T) =>
+    (right.deletedAt ?? "").localeCompare(left.deletedAt ?? "");
+
+  return {
+    folders: folders
+      .filter((folder) => matchesOwner(folder.ownerId, currentUserId) && !!folder.deletedAt)
+      .sort(byDeletedAtDesc),
+    snippets: snippets
+      .filter((snippet) => matchesOwner(snippet.ownerId, currentUserId) && !!snippet.deletedAt)
+      .sort(byDeletedAtDesc),
+    notes: [],
+  };
+}
+
 export async function getDirtyWorkspace(
   currentUserId: string
 ): Promise<WorkspaceSnapshot> {
-  const snapshot = await readWorkspace(currentUserId);
+  // Reads directly (not via readWorkspace) so trashed records are included: a
+  // soft delete sets `dirty` + `deletedAt` and must be uploaded so the trash
+  // syncs to the cloud and other devices.
+  const [folders, snippets, notes] = await Promise.all([
+    db.folders.toArray(),
+    db.snippets.toArray(),
+    db.notes.toArray(),
+  ]);
 
   return {
-    folders: snapshot.folders.filter((folder) => folder.dirty),
-    snippets: snapshot.snippets.filter((snippet) => snippet.dirty),
-    notes: snapshot.notes.filter((note) => note.dirty),
+    folders: folders
+      .filter((folder) => folder.dirty && matchesOwner(folder.ownerId, currentUserId))
+      .sort(sortFolders),
+    snippets: snippets
+      .filter((snippet) => snippet.dirty && matchesOwner(snippet.ownerId, currentUserId))
+      .sort(sortSnippets),
+    notes: notes
+      .filter((note) => note.dirty && matchesOwner(note.ownerId, currentUserId))
+      .sort(sortNotes),
   };
+}
+
+export async function getPendingTombstones(
+  currentUserId: string
+): Promise<TombstoneRecord[]> {
+  return db.tombstones.where("ownerId").equals(currentUserId).toArray();
+}
+
+/**
+ * Remove every local record owned by a user, plus any queued deletions. Used on
+ * sign-out so personal data doesn't linger in IndexedDB on a shared machine.
+ * Anonymous/seeded records (`ownerId === null`) are left untouched. Cloud-synced
+ * data is recovered from the cloud on the next sign-in.
+ */
+export async function clearOwnedData(userId: string): Promise<void> {
+  await Promise.all([
+    db.folders.where("ownerId").equals(userId).delete(),
+    db.snippets.where("ownerId").equals(userId).delete(),
+    db.notes.where("ownerId").equals(userId).delete(),
+    db.tombstones.where("ownerId").equals(userId).delete(),
+  ]);
 }

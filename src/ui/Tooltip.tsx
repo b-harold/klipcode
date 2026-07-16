@@ -74,8 +74,15 @@ function calcPosition(
 
 /* ── Shared tooltip styles ──────────────────────────────────────────────────── */
 
+const tooltipStyle = {
+  background: "var(--panel-bg)",
+  border: "1px solid var(--panel-border)",
+  boxShadow:
+    "var(--popover-shadow)",
+} as const;
+
 const tooltipClass =
-  "klipcode-tooltip-animate pointer-events-none fixed z-[1000] max-w-[280px] rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[12px] leading-normal text-foreground/80 font-medium shadow-lg";
+  "klipcode-tooltip-animate pointer-events-none fixed z-[var(--z-tooltip)] max-w-[280px] rounded-lg px-2.5 py-1.5 text-[12px] leading-normal text-ink/80 font-medium";
 
 /* ── useTooltipState (shared logic) ─────────────────────────────────────────── */
 
@@ -179,7 +186,7 @@ export function Tooltip({
             ref={tooltipRef}
             role="tooltip"
             className={tooltipClass}
-            style={{ left: pos.x, top: pos.y }}
+            style={{ left: pos.x, top: pos.y, ...tooltipStyle }}
           >
             {content}
           </div>,
@@ -231,7 +238,7 @@ export function TruncateTooltip({
             ref={tooltipRef}
             role="tooltip"
             className={tooltipClass}
-            style={{ left: pos.x, top: pos.y }}
+            style={{ left: pos.x, top: pos.y, ...tooltipStyle }}
           >
             {text}
           </div>,

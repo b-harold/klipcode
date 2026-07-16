@@ -1,3 +1,5 @@
+import type { Dictionary } from "@/i18n";
+
 const WELCOME_SNIPPET_CONTENT = `# ¡Bienvenido a KlipCode!
 
 KlipCode es una herramienta diseñada para mantener tus fragmentos de código favoritos siempre a mano,
@@ -18,7 +20,7 @@ de forma rápida y sencilla, en todos tus dispositivos.
 1. **Crea tu primer snippet:** Utiliza el creador de la página de inicio o el botón
    de la barra lateral para añadir este código JSX en la raíz con el título \`Componente\`:
 
-\`\`\`
+\`\`\`jsx
 const Greet = ({ name }) => {
   return (
     <div className="user-card">
@@ -58,6 +60,9 @@ export const es = {
     title: "KlipCode",
     subtitle: "Gestor de snippets multidispositivo.",
   },
+  common: {
+    close: "Cerrar",
+  },
   auth: {
     statusLabel: "Estado de sesión",
     signedIn: "Sesión iniciada",
@@ -73,11 +78,13 @@ export const es = {
     cloudSyncRunning: "Sincronizando cambios con la nube.",
     syncFailed: "No se pudo sincronizar con la nube.",
     signedInAs: "Usuario",
+    signingIn: "Iniciando sesión…",
+    signingOut: "Cerrando sesión…",
   },
   forms: {
     folderTitle: "Nueva carpeta",
-    folderName: "Nombre de la carpeta",
-    snippetNamePlaceholder: "Nombre del snippet",
+    folderName: "Nombre o ruta de la carpeta",
+    snippetNamePlaceholder: "Nombre o ruta, p. ej. scripts/index.js",
     noteNamePlaceholder: "Nombre de la nota",
     folderParent: "Carpeta padre",
     folderPinned: "Fijada",
@@ -88,6 +95,7 @@ export const es = {
     snippetFolder: "Carpeta",
     snippetPinned: "Fijado",
     snippetCode: "Codigo",
+    codeEditor: "Editor de codigo",
     snippetCodePlaceholder: "Escribe o pega tu codigo aqui...",
     submitFolder: "Crear carpeta",
     submitSnippet: "Crear snippet",
@@ -95,6 +103,8 @@ export const es = {
     noteBodyPlaceholder: "Escribe tu nota en markdown…",
     submitNote: "Crear nota",
     folderNamePlaceholder: "Nombre de la carpeta",
+    snippetCreated: "Snippet creado",
+    open: "Abrir",
   },
   workspace: {
     loading: "Cargando contenido local...",
@@ -106,6 +116,8 @@ export const es = {
     emptyFolder: "Esta carpeta no tiene contenido.",
     rootOption: "Raiz",
     pinnedBadge: "Fijado",
+    snippetNotFoundTitle: "Snippet no encontrado",
+    snippetNotFoundDescription: "Este snippet no existe o ha sido eliminado.",
   },
   snippetCard: {
     title: "Titulo",
@@ -114,6 +126,7 @@ export const es = {
     code: "Codigo",
     status: "Estado",
     untitled: "Sin titulo",
+    generatingTitle: "Nombrando snippet…",
   },
   noteCard: {
     untitled: "Nota sin título",
@@ -142,7 +155,12 @@ export const es = {
     emptySpace: "No hay archivos todavia.",
     root: "Raiz",
     dropToRoot: "Mover a raíz",
+    dropToTrash: "Mover a la papelera",
     unpin: "Desfijar",
+    pinned: "Fijado",
+    shortcuts: "Atajos de teclado",
+    preferences: "Preferencias",
+    trash: "Papelera",
   },
   contextMenu: {
     newFolder: "Nueva carpeta…",
@@ -162,6 +180,8 @@ export const es = {
     copyContent: "Copiar contenido",
     openInNewTab: "Abrir en nueva pestaña",
     moreOptions: "Más opciones",
+    restore: "Restaurar",
+    deletePermanently: "Eliminar definitivamente",
   },
   languageSelect: {
     searchPlaceholder: "Buscar lenguaje...",
@@ -185,6 +205,10 @@ export const es = {
     snippetSubtitle: "Guarda un fragmento de código con resaltado de sintaxis.",
     noteSubtitle: "Escribe una nota en markdown junto a tus snippets.",
   },
+  recentSnippets: {
+    title: "Editados recientemente",
+    empty: "Aún no tienes snippets. Crea tu primero arriba.",
+  },
   folderView: {
     breadcrumbLabel: "Navegación de carpetas",
     subFolders: "Carpetas",
@@ -193,12 +217,15 @@ export const es = {
     snippetLabel: "snippets",
     noteLabel: "notas",
     subFolderLabel: "carpetas",
+    folderCount: (n: number) => (n === 1 ? "1 carpeta" : `${n} carpetas`),
+    snippetCount: (n: number) => (n === 1 ? "1 snippet" : `${n} snippets`),
     emptyFolder: "Vacío",
     empty: "Esta carpeta está vacía.",
   },
   snippetEditor: {
     back: "Volver",
     titlePlaceholder: "Sin título",
+    generatingTitle: "Nombrando snippet…",
     syncEditing: "Cambiando...",
     syncSaving: "Guardando...",
     syncSavedLocal: "Guardado en local",
@@ -212,6 +239,72 @@ export const es = {
     formatNotSupported: "Formateo no disponible para este lenguaje",
     sourceUrl: "URL de origen",
     sourceUrlPlaceholder: "Añade la URL de origen (https://…)",
+    formatError: "No se pudo formatear — revisa la sintaxis",
+    mdCodeBlockOptions: "Opciones del bloque",
+    mdCodeBlockDelete: "Eliminar bloque",
+    previewMarkdown: "Vista de texto enriquecido",
+    editMarkdown: "Código Markdown",
+    mdPlaceholder: "Escribe algo… Los atajos de Markdown funcionan aquí.",
+    trashedNotice: "Este snippet está en la papelera; restáuralo para editarlo.",
+    linkDialog: {
+      title: "Insertar enlace",
+      editTitle: "Editar enlace",
+      label: "URL",
+      placeholder: "https://",
+      apply: "Aplicar",
+      cancel: "Cancelar",
+      remove: "Quitar enlace",
+      invalid: "Introduce una URL válida",
+    },
+    mdToolbar: {
+      bold: "Negrita",
+      italic: "Cursiva",
+      strike: "Tachado",
+      code: "Código en línea",
+      heading1: "Encabezado 1",
+      heading2: "Encabezado 2",
+      heading3: "Encabezado 3",
+      bulletList: "Lista con viñetas",
+      orderedList: "Lista numerada",
+      taskList: "Lista de tareas",
+      codeBlock: "Bloque de código",
+      quote: "Cita",
+      link: "Enlace",
+    },
+    mdSlash: {
+      group: "Bloques básicos",
+      noResults: "No hay bloques",
+      heading1Title: "Encabezado 1",
+      heading1Desc: "Título de sección grande",
+      heading2Title: "Encabezado 2",
+      heading2Desc: "Título de sección mediano",
+      heading3Title: "Encabezado 3",
+      heading3Desc: "Título de sección pequeño",
+      bulletListTitle: "Lista con viñetas",
+      bulletListDesc: "Una lista con viñetas simple",
+      orderedListTitle: "Lista numerada",
+      orderedListDesc: "Una lista con numeración",
+      taskListTitle: "Lista de tareas",
+      taskListDesc: "Controla tareas con casillas",
+      blockquoteTitle: "Cita",
+      blockquoteDesc: "Resalta una cita",
+      codeBlockTitle: "Bloque de código",
+      codeBlockDesc: "Código con resaltado de sintaxis",
+      tableTitle: "Tabla",
+      tableDesc: "Inserta una tabla de 3×3",
+      dividerTitle: "Separador",
+      dividerDesc: "Separa secciones visualmente",
+    },
+    mdTable: {
+      addColumnBefore: "Añadir columna antes",
+      addColumnAfter: "Añadir columna después",
+      deleteColumn: "Eliminar columna",
+      addRowBefore: "Añadir fila arriba",
+      addRowAfter: "Añadir fila abajo",
+      deleteRow: "Eliminar fila",
+      toggleHeaderRow: "Alternar fila de encabezado",
+      deleteTable: "Eliminar tabla",
+    },
   },
   noteEditor: {
     titlePlaceholder: "Nota sin título",
@@ -234,8 +327,13 @@ export const es = {
   },
   search: {
     title: "Buscar",
-    placeholder: "Busca en snippets y notas…",
-    noResults: "Sin resultados",
+    placeholder: "Buscar snippets por título o código…",
+    empty: "Escribe para buscar tus snippets",
+    noResults: "No se encontraron snippets",
+    rootFolder: "Raíz",
+    navigateHint: "para navegar",
+    selectHint: "para abrir",
+    closeHint: "para cerrar",
     snippets: "Snippets",
     notes: "Notas",
     folders: "Carpetas",
@@ -252,39 +350,118 @@ export const es = {
     cancel: "Cancelar",
     confirm: "Eliminar permanentemente",
   },
+  shortcuts: {
+    title: "Atajos de teclado",
+    sections: {
+      general: "General",
+      editor: "Editor",
+      navigation: "Navegación",
+    },
+    items: {
+      search: "Abrir búsqueda",
+      newSnippet: "Nuevo snippet",
+      createSnippet: "Crear snippet",
+      toggleSidebar: "Alternar barra lateral",
+      help: "Mostrar atajos de teclado",
+      copyCurrent: "Copiar el código del snippet actual",
+      closeEditor: "Cerrar editor",
+      undoDelete: "Deshacer el último borrado",
+      navigateList: "Moverse entre tarjetas",
+    },
+  },
+  preferences: {
+    title: "Preferencias",
+    appearance: {
+      label: "Apariencia",
+      description: "Tema claro u oscuro",
+      light: "Claro",
+      dark: "Oscuro",
+      toLight: "Cambiar a tema claro",
+      toDark: "Cambiar a tema oscuro",
+    },
+    language: {
+      label: "Idioma",
+      description: "Idioma de la interfaz",
+      en: "English",
+      es: "Español",
+    },
+    defaultFolder: {
+      label: "Carpeta por defecto",
+      description: "Carpeta preseleccionada al crear un snippet",
+    },
+    defaultLanguage: {
+      label: "Lenguaje por defecto",
+      description: "Lenguaje preseleccionado al crear un snippet",
+    },
+    autoGenerateTitle: {
+      label: "Generar nombres automáticamente",
+      description: "Nombra los snippets sin título automáticamente con IA",
+      lockedHint: "Inicia sesión para nombrar snippets automáticamente con IA",
+    },
+    codeWrap: {
+      label: "Líneas largas",
+      description: "Scroll horizontal o ajustar a la línea siguiente",
+      scroll: "Scroll",
+      wrap: "Ajustar",
+    },
+  },
+  trash: {
+    title: "Papelera",
+    empty: "La papelera está vacía.",
+    restore: "Restaurar",
+    deletePermanently: "Eliminar definitivamente",
+    restoreAll: "Restaurar todo",
+    emptyTrash: "Vaciar papelera",
+    emptyTitle: "Vaciar papelera",
+    emptyWarning: "Esto elimina definitivamente todo el contenido de la papelera. Esta acción no se puede deshacer.",
+    cancel: "Cancelar",
+    undoRestored: "Borrado deshecho",
+    folderCount: (n: number) => (n === 1 ? "1 carpeta" : `${n} carpetas`),
+    snippetCount: (n: number) => (n === 1 ? "1 snippet" : `${n} snippets`),
+  },
   landing: {
     nav: {
       openApp: "Abrir App",
       noSignUp: "Sin necesidad de registro",
+      features: "Características",
+      faq: "FAQ",
     },
     hero: {
-      title: "Tus snippets de código,\nsiempre a mano.",
-      titleBefore: "Tus ",
-      titleHighlight: "snippets de código",
-      titleAfter: ",\nsiempre a mano.",
+      badge: "Gratis · Open source · Sin registro",
+      title: "El gestor de snippets\nque no te frena.",
+      titleBefore: "El ",
+      titleHighlight: "gestor de snippets",
+      titleAfter: "que no te frena.",
       subtitle:
-        "Guarda, organiza y accede a tus fragmentos de código favoritos al instante desde cualquier dispositivo. Sincronización en la nube incluida.",
+        "Guarda, organiza y copia tus snippets de código desde cualquier dispositivo. Local-first y gratis: funciona sin conexión, no necesita cuenta y se sincroniza con GitHub cuando tú quieras.",
       cta: "Empieza ahora — gratis",
       ctaHint: "No necesitas cuenta para empezar",
     },
-    appPreview: "Interfaz de la aplicación KlipCode",
+    trust: {
+      offline: "Funciona 100% sin conexión",
+      local: "Tus snippets viven en tu dispositivo",
+      openSource: "Código abierto en GitHub",
+    },
+    appPreview:
+      "Interfaz del gestor de snippets KlipCode: barra lateral de carpetas y editor de código con resaltado de sintaxis",
     features: {
+      eyebrow: "Características",
       title: "Todo lo que necesitas, nada que sobre",
       subtitle: "Diseñado para desarrolladores que valoran la velocidad y la simplicidad.",
       quickSave: {
         title: "Guardado instantáneo",
         description:
-          "Guarda un snippet en dos clics. Sin formularios, sin fricción.",
+          "Guarda un snippet de código en dos clics. Sin formularios, sin fricción.",
       },
       instantCopy: {
         title: "Copia en un clic",
         description:
-          "Copia cualquier snippet al portapapeles al instante.",
+          "Copia cualquier snippet al portapapeles al instante — se acabó rebuscar en proyectos antiguos y gists.",
       },
       folders: {
         title: "Carpetas anidadas",
         description:
-          "Organiza con carpetas jerárquicas que se adaptan a tu modelo mental.",
+          "Organiza tu biblioteca de snippets con carpetas jerárquicas que se adaptan a tu modelo mental.",
       },
       dragAndDrop: {
         title: "Arrastrar y soltar",
@@ -292,42 +469,104 @@ export const es = {
           "Reorganiza snippets y carpetas arrastrándolos donde quieras.",
       },
       cloudSync: {
-        title: "Sincronización en la nube",
+        title: "Sincronización con GitHub",
         description:
-          "Inicia sesión con GitHub y sincroniza todos tus dispositivos automáticamente.",
+          "Inicia sesión con GitHub y tus snippets se sincronizan automáticamente en todos tus dispositivos.",
       },
       editor: {
-        title: "Editor avanzado",
+        title: "Editor de código avanzado",
         description:
-          "Resaltado de sintaxis, guardado automático, formateo — todo integrado.",
+          "Resaltado de sintaxis para más de 25 lenguajes, guardado automático y formateo — todo integrado.",
       },
     },
     demos: {
+      eyebrow: "Cómo funciona",
+      title: "De pegar a copiar en segundos",
+      subtitle:
+        "Sin configuración ni ajustes. Abre la app y empieza a guardar snippets de código.",
       create: {
         title: "Crea snippets en segundos",
         description:
-          "Elige un lenguaje, pega tu código — listo. Sin configuración.",
+          "Elige un lenguaje, pega tu código — listo. Resaltado de sintaxis y guardado automático integrados.",
       },
       copy: {
         title: "Copia con un clic",
         description:
-          "Cada snippet está a un clic de tu portapapeles.",
+          "Cada snippet está a un clic de tu portapapeles, en cualquier dispositivo.",
       },
       move: {
         title: "Organiza intuitivamente",
         description:
-          "Arrastra y suelta para reorganizar todo tu espacio de trabajo.",
+          "Arrastra y suelta snippets y carpetas para ordenar tu espacio de trabajo como tú piensas.",
       },
+    },
+    faq: {
+      eyebrow: "FAQ",
+      title: "Preguntas frecuentes",
+      subtitle: "Todo lo que quieras saber antes de empezar.",
+      items: [
+        {
+          q: "¿KlipCode es gratis?",
+          a: "Sí — KlipCode es totalmente gratuito y de código abierto. No hay planes de pago, ni límites de snippets, ni necesitas cuenta para usarlo.",
+        },
+        {
+          q: "¿Necesito una cuenta para usar KlipCode?",
+          a: "No. KlipCode es local-first: tus snippets se guardan en tu navegador y todo funciona sin registrarte. Iniciar sesión con GitHub es opcional y activa la sincronización en la nube.",
+        },
+        {
+          q: "¿KlipCode funciona sin conexión?",
+          a: "Sí. Los snippets se guardan en tu dispositivo, así que puedes crearlos, editarlos y copiarlos sin conexión a internet. Los cambios se sincronizan automáticamente la próxima vez que estés en línea.",
+        },
+        {
+          q: "¿Cómo sincronizo snippets entre dispositivos?",
+          a: "Inicia sesión con GitHub en cada dispositivo. Tu biblioteca de snippets se respalda en la nube y se mantiene sincronizada automáticamente — los cambios en un dispositivo aparecen en los demás.",
+        },
+        {
+          q: "¿Mi código es privado?",
+          a: "Tus snippets permanecen en tu dispositivo salvo que actives la sincronización. Con la sincronización activa, se guardan en una base de datos privada a la que solo accede tu cuenta — y todo el código es abierto, así que puedes comprobarlo.",
+        },
+        {
+          q: "¿Qué lenguajes de programación soporta?",
+          a: "KlipCode resalta más de 25 lenguajes — JavaScript, TypeScript, Python, Go, Rust, SQL, HTML, CSS y más — además de un modo Markdown enriquecido para notas y documentación.",
+        },
+      ],
     },
     cta: {
       title: "¿Listo para organizar tu código?",
       subtitle:
-        "Empieza a usar KlipCode ahora mismo. Sin cuenta, sin configuración, sin límites.",
+        "Gratis, open source y listo en segundos. Sin cuenta, sin configuración, sin límites.",
       button: "Abrir KlipCode",
     },
     footer: {
-      tagline: "Gestor de snippets multidispositivo.",
+      tagline: "El gestor de snippets local-first para desarrolladores.",
+      description:
+        "KlipCode es un gestor de snippets de código gratuito y de código abierto. Guarda, organiza y sincroniza fragmentos de código en todos tus dispositivos — funciona sin conexión y no requiere cuenta.",
       source: "Código fuente",
+      product: "Producto",
+      language: "Idioma",
+      github: "GitHub",
+    },
+  },
+  error: {
+    title: "Algo ha salido mal",
+    description: "Se ha producido un error inesperado. Puedes intentarlo de nuevo.",
+    retry: "Reintentar",
+  },
+  notFound: {
+    title: "Página no encontrada",
+    description: "La página que buscas no existe o ha sido movida.",
+    backHome: "Volver al inicio",
+  },
+  meta: {
+    home: {
+      title: "KlipCode — Gestor de Snippets de Código Gratis y Open Source",
+      description:
+        "Gestor de snippets de código gratuito y open source. Guarda, organiza y copia fragmentos de código en todos tus dispositivos — funciona sin conexión, sin registro y con sincronización opcional vía GitHub.",
+    },
+    app: {
+      title: "App de Snippets de Código",
+      description:
+        "Tu espacio de trabajo KlipCode: crea, organiza y copia fragmentos de código al instante. Funciona sin conexión, con sincronización opcional en la nube vía GitHub.",
     },
   },
   seed: {
@@ -337,4 +576,4 @@ export const es = {
     noteName: "Notas",
     noteContent: WELCOME_NOTE_CONTENT,
   },
-} as const;
+} as const satisfies Dictionary;

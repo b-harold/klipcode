@@ -1,30 +1,26 @@
 "use client";
 
-import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, RotateCcw, Scissors, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 import type { Dictionary } from "@/i18n";
-import type { SnippetRecord } from "@/lib/types";
-import { cn, getSnippetDisplayName } from "@/lib/utils";
+import type { SelectedItem, SnippetRecord } from "@/lib/types";
+import { cn, getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { suppressModifierDragStart } from "@/hooks/useMultiSelection";
+import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
-
-function buildPreviewLines(code: string) {
-  const lines = code.split("\n").slice(0, 8);
-
-  if (lines.length === 0) {
-    return [""];
-  }
-
-  return lines.map((line) => (line.length > 92 ? `${line.slice(0, 92)}…` : line));
-}
+import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGeneration";
+import { buildPreviewLines, useHighlightedPreview } from "./snippetPreview";
 
 interface SnippetCardProps {
   snippet: SnippetRecord;
   folderName: string | null;
   copy: Dictionary;
-  onSelect: () => void;
+  /** Click on the card/title. Receives the event so the parent can route
+   *  ⌘/Ctrl/Shift+click to multi-selection instead of opening. */
+  onSelect: (event: MouseEvent<HTMLButtonElement>) => void;
   onOpenInNewTab?: () => void;
   onNavigateFolder?: () => void;
   onUnpinHome?: () => void;
@@ -39,6 +35,17 @@ interface SnippetCardProps {
   hasPaste?: boolean;
   className?: string;
   enableDrag?: boolean;
+  /** Part of the parent view's multi-selection — renders highlighted. */
+  selected?: boolean;
+  /** When the card belongs to a multi-selection, the whole set to drag as a batch. */
+  dragItems?: SelectedItem[];
+  /** Called right before the context/"more" menu opens, so the parent can sync
+   *  its multi-selection with the card the menu will act on. */
+  onMenuOpen?: () => void;
+  /** When set, the card renders in trash mode: the menu offers restore /
+   *  delete-permanently instead of the normal actions, and it can be dragged onto
+   *  the tree to restore. It stays clickable (opens read-only in the editor). */
+  trashActions?: { onRestore: () => void; onDeletePermanently: () => void };
 }
 
 export function SnippetCard({
@@ -60,6 +67,10 @@ export function SnippetCard({
   hasPaste,
   className,
   enableDrag,
+  selected,
+  dragItems,
+  onMenuOpen,
+  trashActions,
 }: SnippetCardProps) {
   const [copied, setCopied] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -67,14 +78,36 @@ export function SnippetCard({
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const drag = useDragCtx();
-  const isDraggingThis = enableDrag && drag.dragging?.id === snippet.id && drag.dragging.type === "snippet";
+  const isTrash = !!trashActions;
+  // Draggable when the page opts in (enableDrag) or when in the trash, where the
+  // drag restores the snippet onto the tree. Inline rename temporarily disables
+  // native drag so mouse gestures select text inside the input instead.
+  const canDrag = (enableDrag || isTrash) && !isRenaming;
 
-  const hasMenu = !!(onOpenInNewTab || onPinAside || onPinHome || onRename || onDelete || onCut || onCopy);
+  const drag = useDragCtx();
+  const isDraggingThis =
+    canDrag &&
+    drag.dragging !== null &&
+    ((drag.dragging.id === snippet.id && drag.dragging.type === "snippet") ||
+      Boolean(drag.dragging.items?.some((it) => it.id === snippet.id)));
 
   const cm = copy.contextMenu;
+  const hasMenu = isTrash || !!(onOpenInNewTab || onPinAside || onPinHome || onRename || onDelete || onCut || onCopy);
 
-  const menuGroups: ContextMenuGroup[] = hasMenu
+  const menuGroups: ContextMenuGroup[] = isTrash
+    ? [
+        {
+          items: [{
+            id: "copy-content",
+            label: cm.copyContent,
+            Icon: Copy,
+            onClick: () => void navigator.clipboard.writeText(snippet.code ?? ""),
+          }],
+        },
+        { items: [{ id: "restore", label: cm.restore, Icon: RotateCcw, onClick: () => trashActions!.onRestore() }] },
+        { items: [{ id: "delete-permanently", label: cm.deletePermanently, Icon: Trash2, variant: "destructive" as const, onClick: () => trashActions!.onDeletePermanently() }] },
+      ]
+    : hasMenu
     ? [
         {
           items: [
@@ -112,7 +145,7 @@ export function SnippetCard({
                     label: cm.rename,
                     Icon: PenLine,
                     onClick: () => {
-                      setRenameValue(snippet.title ?? "");
+                      setRenameValue(getSnippetFileName(snippet.title, snippet.language));
                       setIsRenaming(true);
                     },
                   },
@@ -175,13 +208,6 @@ export function SnippetCard({
     onUnpinAside?.();
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onSelect();
-    }
-  };
-
   const openMenuAt = (x: number, y: number) => setMenuAnchor({ x, y });
 
   const handleMoreClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -191,6 +217,7 @@ export function SnippetCard({
       setMenuAnchor(null);
       return;
     }
+    onMenuOpen?.();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     openMenuAt(rect.left, rect.bottom + 4);
   };
@@ -199,6 +226,7 @@ export function SnippetCard({
     if (!hasMenu) return;
     event.preventDefault();
     event.stopPropagation();
+    onMenuOpen?.();
     openMenuAt(event.clientX, event.clientY);
   };
 
@@ -217,29 +245,37 @@ export function SnippetCard({
   }, []);
 
   const displayName = getSnippetDisplayName(snippet.title, snippet.language, copy.snippetCard.untitled);
+  const isGeneratingTitle = useIsGeneratingTitle(snippet.id);
   const previewLines = buildPreviewLines(snippet.code);
+  // Syntax-highlighted preview when the language is supported; `null` while the
+  // grammars load (or when unsupported), where we fall back to plain lines.
+  const highlightedLines = useHighlightedPreview(snippet.code, snippet.language);
 
   return (
     <article
-      role="button"
-      tabIndex={0}
-      draggable={enableDrag}
-      onClick={onSelect}
-      onKeyDown={handleKeyDown}
+      data-snippet-card=""
+      data-selectable-id={snippet.id}
+      data-selectable-type="snippet"
+      draggable={canDrag}
       onContextMenu={handleContextMenu}
-      onDragStart={enableDrag ? (e) => {
-        drag.startDrag("snippet", snippet.id);
+      onDragStart={canDrag ? (e) => {
+        if (suppressModifierDragStart(e)) return;
+        drag.startDrag("snippet", snippet.id, isTrash ? "trash" : "workspace", dragItems);
         e.dataTransfer.effectAllowed = "move";
       } : undefined}
-      onDragEnd={enableDrag ? () => drag.endDrag() : undefined}
+      onDragEnd={canDrag ? () => drag.endDrag() : undefined}
       className={cn(
-        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-overlay-strong hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
-        enableDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "cursor-grab active:cursor-grabbing"),
+        "group relative flex w-72 shrink-0 select-none flex-col overflow-hidden rounded-xl border bg-surface transition-colors hover:bg-surface-hover has-[[data-card-open]:focus-visible]:ring-2 has-[[data-card-open]:focus-visible]:ring-ink/20 cursor-pointer",
+        selected
+          ? "border-ink/30 bg-ink/[0.05]"
+          : "border-ink/[0.06] hover:border-ink/[0.12]",
+        canDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "active:cursor-grabbing"),
         className,
       )}
     >
       <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-3.5">
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <LanguageIcon language={snippet.language} size={15} className="shrink-0" />
           {isRenaming ? (
             <input
               autoFocus
@@ -252,21 +288,36 @@ export function SnippetCard({
                 if (e.key === "Escape") setIsRenaming(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded bg-overlay px-2 py-0.5 text-[15px] font-medium text-foreground outline-none ring-1 ring-overlay-strong focus:ring-accent/50 transition-shadow"
+              className="min-w-0 flex-1 select-text rounded bg-ink/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
             />
           ) : (
-            <TruncateTooltip text={displayName} className="block truncate text-[15px] font-medium text-foreground" placement="bottom" />
+            <button
+              type="button"
+              data-card-open=""
+              onClick={onSelect}
+              aria-label={isGeneratingTitle ? copy.snippetCard.generatingTitle : displayName}
+              className="min-w-0 flex-1 text-left outline-none focus-visible:outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']"
+            >
+              {isGeneratingTitle ? (
+                <GeneratingTitle
+                  label={copy.snippetCard.generatingTitle}
+                  className="relative z-10 text-sm font-medium"
+                />
+              ) : (
+                <TruncateTooltip text={displayName} className="relative z-10 block truncate text-sm font-medium text-foreground" placement="bottom" />
+              )}
+            </button>
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="relative z-10 flex items-center gap-1">
           {/* Unpin-from-home button (home view) */}
           {onUnpinHome && snippet.isPinnedHome && (
             <Tooltip content={cm.unpinHome} placement="bottom">
               <button
                 type="button"
                 onClick={handleUnpinHome}
-                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-overlay hover:text-foreground"
+                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-ink/[0.08] hover:text-foreground"
                 aria-label={cm.unpinHome}
               >
                 <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
@@ -281,7 +332,7 @@ export function SnippetCard({
               <button
                 type="button"
                 onClick={handleUnpinAside}
-                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-overlay hover:text-foreground"
+                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-ink/[0.08] hover:text-foreground"
                 aria-label={cm.unpinAside}
               >
                 <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
@@ -297,8 +348,8 @@ export function SnippetCard({
                 type="button"
                 onClick={handleMoreClick}
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-overlay hover:text-foreground",
-                  menuAnchor ? "opacity-100 bg-overlay text-foreground" : "opacity-100",
+                  "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-ink/[0.08] hover:text-foreground",
+                  menuAnchor ? "opacity-100 bg-ink/[0.08] text-foreground" : "opacity-100",
                 )}
                 aria-label={cm.moreOptions}
               >
@@ -311,7 +362,7 @@ export function SnippetCard({
             <button
               type="button"
               onClick={handleCopy}
-              className="flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-overlay hover:text-foreground"
+              className="flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-ink/[0.08] hover:text-foreground"
               aria-label={cm.copyContent}
             >
               {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -320,24 +371,36 @@ export function SnippetCard({
         </div>
       </div>
 
-      <div className="relative overflow-hidden px-1 pb-1">
-        <div className="max-h-[140px] overflow-hidden rounded-lg border border-overlay bg-[var(--code-background)] px-3 py-2 font-mono text-[12px] leading-5 text-[color:var(--code-foreground)]">
-          <div className="pointer-events-none select-none">
-            {previewLines.map((line, index) => (
-              <div key={`${snippet.id}-${index}`} className="flex gap-3">
-                <span className="w-5 shrink-0 text-right tabular-nums text-[color:var(--code-line-number)]">
-                  {index + 1}
-                </span>
-                <span className="min-w-0 flex-1 truncate whitespace-pre">{line || " "}</span>
-              </div>
-            ))}
+      <div className="pointer-events-none relative overflow-hidden px-1 pb-1">
+        <div className="max-h-[140px] overflow-hidden rounded-lg border border-ink/[0.04] bg-[var(--code-surface)] px-3 py-2 font-mono text-[12px] leading-5 text-ink/90">
+          <div
+            className={cn(
+              "pointer-events-none select-none text-ink/60",
+              // Reuse the Markdown editor's hljs token colors, kept slightly
+              // muted so the preview keeps its subdued, faded look.
+              highlightedLines && "klipcode-code-preview opacity-[0.85]",
+            )}
+          >
+            {previewLines.map((line, index) => {
+              const highlighted = highlightedLines?.[index];
+              return (
+                <div key={`${snippet.id}-${index}`} className="flex gap-3">
+                  <span className="w-5 shrink-0 text-right tabular-nums text-ink/25">
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate whitespace-pre">
+                    {highlighted && highlighted.length > 0 ? highlighted : line || " "}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="pointer-events-none absolute bottom-1 left-1 right-1 h-12 rounded-b-lg bg-gradient-to-t from-surface to-transparent group-hover:from-surface-hover" />
       </div>
 
       {folderName && (
-        <div className="mt-auto flex justify-end px-4 pb-4 pt-1">
+        <div className="pointer-events-none relative z-10 mt-auto flex justify-end px-4 pb-4 pt-1">
           <button
             type="button"
             onClick={(e) => {
@@ -345,8 +408,8 @@ export function SnippetCard({
               onNavigateFolder?.();
             }}
             className={cn(
-              "flex items-center gap-1.5 rounded-md border border-border bg-overlay-soft px-2 py-1 text-[11px] font-medium text-muted transition-all",
-              onNavigateFolder ? "hover:border-overlay-strong hover:bg-overlay hover:text-foreground" : "cursor-default",
+              "pointer-events-auto flex items-center gap-1.5 rounded-md border border-ink/[0.05] bg-ink/[0.02] px-2 py-1 text-[11px] font-medium text-muted transition-all",
+              onNavigateFolder ? "hover:border-ink/[0.1] hover:bg-ink/[0.06] hover:text-foreground" : "cursor-default",
             )}
           >
             <Folder size={12} />

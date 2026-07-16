@@ -9,12 +9,12 @@ export function ItemActions({
   label: string;
 }) {
   return (
-    <span className="invisible flex shrink-0 items-center gap-px group-hover:visible">
+    <span data-no-drag="" className="visible flex shrink-0 items-center gap-px md:invisible md:group-hover:visible md:group-focus-within:visible">
       <Tooltip content={label}>
         <button
           type="button"
           aria-label={label}
-          className="rounded p-0.5 text-foreground/35 transition-colors hover:bg-foreground/[0.08] hover:text-foreground/70"
+          className="-m-1 rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.08] hover:text-ink/70 md:m-0 md:p-0.5"
           onClick={onMore}
         >
           <MoreHorizontal size={12} />

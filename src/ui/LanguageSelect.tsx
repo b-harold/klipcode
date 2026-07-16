@@ -4,54 +4,23 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { LANGUAGES, type LanguageId } from "@/lib/constants/languages";
+import { LanguageIcon } from "@/ui/LanguageIcon";
 import type { Dictionary } from "@/i18n";
-
-/* Brand-aligned language colors */
-const LANG_COLORS: Record<string, string> = {
-  typescript: "#3178c6",
-  tsx:        "#3178c6",
-  javascript: "#f0db4f",
-  jsx:        "#61dafb",
-  html:       "#e34c26",
-  css:        "#563d7c",
-  python:     "#3572a5",
-  json:       "#8b9198",
-  markdown:   "#083fa1",
-  sql:        "#e38c00",
-  bash:       "#4eaa25",
-  go:         "#00add8",
-  rust:       "#dea584",
-  java:       "#b07219",
-  cpp:        "#f34b7d",
-  c:          "#a8a8a8",
-  csharp:     "#178600",
-  php:        "#787cb4",
-  ruby:       "#701516",
-  swift:      "#fa7343",
-  kotlin:     "#a97bff",
-  yaml:       "#cb171e",
-  toml:       "#9c4221",
-  xml:        "#0060ac",
-  scss:       "#cc6699",
-  dart:       "#00b4ab",
-  scala:      "#dc322f",
-  groovy:     "#e69f56",
-  lua:        "#000080",
-  haskell:    "#5e5086",
-  erlang:     "#b83998",
-  r:          "#198ce7",
-  powershell: "#5391fe",
-  dockerfile: "#0db7ed",
-  plaintext:  "#858585",
-};
 
 interface LanguageSelectProps {
   value: LanguageId;
   onChange: (value: LanguageId) => void;
   copy: Dictionary["languageSelect"];
+  /** CSS z-index for the portalled dropdown; raise it when used inside a dialog. */
+  menuZIndex?: string;
 }
 
-export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
+export function LanguageSelect({
+  value,
+  onChange,
+  copy,
+  menuZIndex = "var(--z-menu)",
+}: LanguageSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -91,23 +60,20 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
     dropdownRef.current.style.minWidth = `${minW}px`;
   }, [open]);
 
-  /* Focus search when the dropdown opens */
+  /* Focus search on open */
   useEffect(() => {
-    if (!open) return;
-    const id = setTimeout(() => searchRef.current?.focus(), 0);
-    return () => clearTimeout(id);
+    if (open) setTimeout(() => searchRef.current?.focus(), 0);
+    // Intentional: clear the filter when the dropdown closes so it reopens fresh.
+    // Synchronize-on-close effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    else setSearch("");
   }, [open]);
-
-  function closeMenu() {
-    setOpen(false);
-    setSearch("");
-  }
 
   /* Dismiss on outside click or Escape */
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeMenu();
+      if (e.key === "Escape") setOpen(false);
     };
     const onOutside = (e: MouseEvent) => {
       if (
@@ -115,13 +81,15 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
         dropdownRef.current?.contains(e.target as Node)
       )
         return;
-      closeMenu();
+      setOpen(false);
     };
     window.addEventListener("keydown", onKey, true);
-    document.addEventListener("mousedown", onOutside);
+    // Capture phase: a parent (e.g. the preferences dialog) may stopPropagation
+    // on mousedown, which would otherwise hide this outside click from us.
+    document.addEventListener("mousedown", onOutside, true);
     return () => {
       window.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("mousedown", onOutside);
+      document.removeEventListener("mousedown", onOutside, true);
     };
   }, [open]);
 
@@ -130,23 +98,19 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => (open ? closeMenu() : setOpen(true))}
+        onClick={() => setOpen((v) => !v)}
         className={[
           "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition-colors",
           open
-            ? "border-foreground/20 bg-foreground/[0.04] text-foreground"
-            : "border-foreground/[0.08] text-muted hover:border-foreground/15 hover:text-foreground",
+            ? "border-ink/20 bg-ink/[0.04] text-foreground"
+            : "border-ink/[0.08] text-muted hover:border-ink/15 hover:text-foreground",
         ].join(" ")}
       >
-        {/* Color dot */}
-        <span
-          className="h-[7px] w-[7px] shrink-0 rounded-full"
-          style={{ backgroundColor: LANG_COLORS[value] ?? "#858585" }}
-        />
+        <LanguageIcon language={value} size={13} className="shrink-0" />
         <span className="leading-none">{selectedLang?.label ?? value}</span>
         <ChevronDown
           size={11}
-          className={`shrink-0 text-foreground/30 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-ink/30 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -154,19 +118,26 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
         createPortal(
           <div
             ref={dropdownRef}
-            className="klipcode-menu-animate fixed z-[999] overflow-hidden rounded-xl border border-border bg-surface shadow-2xl"
+            className="klipcode-menu-animate fixed overflow-hidden rounded-xl"
+            style={{
+              zIndex: menuZIndex,
+              background: "var(--panel-bg)",
+              border: "1px solid rgba(var(--ink-rgb),0.07)",
+              boxShadow:
+                "var(--panel-shadow)",
+            }}
           >
             {/* Search input */}
-            <div className="border-b border-foreground/[0.06] px-2 py-2">
-              <div className="flex items-center gap-2 rounded-lg bg-foreground/[0.05] px-2.5 py-1.5">
-                <Search size={12} className="shrink-0 text-foreground/30" />
+            <div className="border-b border-ink/[0.06] px-2 py-2">
+              <div className="flex items-center gap-2 rounded-lg bg-ink/[0.05] px-2.5 py-1.5">
+                <Search size={12} className="shrink-0 text-ink/30" />
                 <input
                   ref={searchRef}
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={copy.searchPlaceholder}
-                  className="w-full bg-transparent text-xs text-foreground/70 placeholder:text-foreground/25 outline-none"
+                  className="w-full bg-transparent text-xs text-ink/70 placeholder:text-ink/25 outline-none"
                 />
               </div>
             </div>
@@ -174,7 +145,7 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
             {/* Language list */}
             <div className="max-h-[240px] overflow-y-auto p-1">
               {filtered.length === 0 ? (
-                <p className="px-2.5 py-2 text-xs text-foreground/25">{copy.noResults}</p>
+                <p className="px-2.5 py-2 text-xs text-ink/25">{copy.noResults}</p>
               ) : (
                 filtered.map((lang) => {
                   const isSelected = lang.id === value;
@@ -185,26 +156,23 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={() => {
                         onChange(lang.id as LanguageId);
-                        closeMenu();
+                        setOpen(false);
                       }}
                       className={[
                         "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left text-[13px] leading-none",
                         "transition-colors duration-75",
                         isSelected
-                          ? "bg-foreground/[0.08] text-foreground"
-                          : "text-foreground/60 hover:bg-foreground/[0.06] hover:text-foreground/90",
+                          ? "bg-ink/[0.08] text-ink"
+                          : "text-ink/60 hover:bg-ink/[0.06] hover:text-ink/90",
                       ].join(" ")}
                     >
-                      <span
-                        className="h-[7px] w-[7px] shrink-0 rounded-full"
-                        style={{ backgroundColor: LANG_COLORS[lang.id] ?? "#858585" }}
-                      />
+                      <LanguageIcon language={lang.id} size={14} className="shrink-0" />
                       <span className="flex-1">{lang.label}</span>
-                      <span className="shrink-0 font-mono text-[11px] text-foreground/25">
+                      <span className="shrink-0 font-mono text-[11px] text-ink/25">
                         {lang.extension}
                       </span>
                       {isSelected && (
-                        <Check size={12} className="shrink-0 text-foreground/50" />
+                        <Check size={12} className="shrink-0 text-ink/50" />
                       )}
                     </button>
                   );

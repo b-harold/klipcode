@@ -1,13 +1,14 @@
 "use client";
 
-import { Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
+import { Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, RotateCcw, Scissors, Trash2 } from "lucide-react";
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/i18n";
-import type { FolderRecord } from "@/lib/types";
+import type { FolderRecord, SelectedItem } from "@/lib/types";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { suppressModifierDragStart } from "@/hooks/useMultiSelection";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 
 /* ─────────────────── Menu builder ───────────────────────────────────────── */
@@ -62,7 +63,9 @@ export interface FolderCardProps {
   snippetCount: number;
   subFolderCount: number;
   copy: Dictionary;
-  onClick: () => void;
+  /** Click / Enter / Space on the card. Receives the event so the parent can
+   *  route ⌘/Ctrl/Shift+click to multi-selection instead of navigating. */
+  onClick: (event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => void;
   onOpenInNewTab?: () => void;
   onPinAside?: (pinned: boolean) => void;
   onRename?: (newName: string) => void;
@@ -71,6 +74,16 @@ export interface FolderCardProps {
   onCopy?: () => void;
   onPaste?: () => void;
   hasPaste?: boolean;
+  /** Part of the parent view's multi-selection — renders highlighted. */
+  selected?: boolean;
+  /** When the card belongs to a multi-selection, the whole set to drag as a batch. */
+  dragItems?: SelectedItem[];
+  /** Called right before the context/"more" menu opens, so the parent can sync
+   *  its multi-selection with the card the menu will act on. */
+  onMenuOpen?: () => void;
+  /** When set, the card renders in trash mode: drag is disabled and the menu
+   *  offers restore / delete-permanently instead of the normal actions. */
+  trashActions?: { onRestore: () => void; onDeletePermanently: () => void };
 }
 
 /* ─────────────────── Component ──────────────────────────────────────────── */
@@ -89,38 +102,59 @@ export function FolderCard({
   onCopy,
   onPaste,
   hasPaste,
+  selected,
+  dragItems,
+  onMenuOpen,
+  trashActions,
 }: FolderCardProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
 
-  const drag = useDragCtx();
-  const isDraggingThis = drag.dragging?.id === folder.id && drag.dragging.type === "folder";
-  const isDropTarget = drag.dragOverId === folder.id && drag.canDropOnFolder(folder.id);
+  const isTrash = !!trashActions;
+  // Native dragging on an ancestor steals mouse gestures from the rename input.
+  // Disable it for the full inline-edit session so text remains selectable.
+  const canDrag = !isRenaming;
 
-  const hasMenu = !!(onOpenInNewTab || onPinAside || onRename || onDelete || onCut || onCopy);
+  const drag = useDragCtx();
+  const isDraggingThis =
+    canDrag &&
+    drag.dragging !== null &&
+    ((drag.dragging.id === folder.id && drag.dragging.type === "folder") ||
+      Boolean(drag.dragging.items?.some((it) => it.id === folder.id)));
+  // Trashed folders are draggable (to restore onto the tree) but never drop
+  // targets themselves.
+  const isDropTarget = !isTrash && drag.dragOverId === folder.id && drag.canDropOnFolder(folder.id);
+
   const cm = copy.contextMenu;
+  const hasMenu = isTrash || !!(onOpenInNewTab || onPinAside || onRename || onDelete || onCut || onCopy);
 
   const startRenaming = () => {
     setRenameValue(folder.name);
     setIsRenaming(true);
   };
 
-  const menuGroups = hasMenu
-    ? buildMenuGroups(folder, cm, { onOpenInNewTab, onPinAside, onRename, onDelete, onCut, onCopy, onPaste, hasPaste }, startRenaming)
-    : [];
+  const menuGroups: ContextMenuGroup[] = isTrash
+    ? [
+        { items: [{ id: "restore", label: cm.restore, Icon: RotateCcw, onClick: () => trashActions!.onRestore() }] },
+        { items: [{ id: "delete-permanently", label: cm.deletePermanently, Icon: Trash2, variant: "destructive" as const, onClick: () => trashActions!.onDeletePermanently() }] },
+      ]
+    : hasMenu
+      ? buildMenuGroups(folder, cm, { onOpenInNewTab, onPinAside, onRename, onDelete, onCut, onCopy, onPaste, hasPaste }, startRenaming)
+      : [];
 
   const meta = [
-    snippetCount > 0 ? `${snippetCount} ${copy.folderView.snippetLabel}` : null,
-    subFolderCount > 0 ? `${subFolderCount} ${copy.folderView.subFolderLabel}` : null,
+    snippetCount > 0 ? copy.folderView.snippetCount(snippetCount) : null,
+    subFolderCount > 0 ? copy.folderView.folderCount(subFolderCount) : null,
   ]
     .filter(Boolean)
     .join(" · ");
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      onClick();
+      onClick(event);
     }
   };
 
@@ -133,6 +167,7 @@ export function FolderCard({
       setMenuAnchor(null);
       return;
     }
+    onMenuOpen?.();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     openMenuAt(rect.left, rect.bottom + 4);
   };
@@ -141,6 +176,7 @@ export function FolderCard({
     if (!hasMenu) return;
     event.preventDefault();
     event.stopPropagation();
+    onMenuOpen?.();
     openMenuAt(event.clientX, event.clientY);
   };
 
@@ -154,43 +190,46 @@ export function FolderCard({
     <article
       role="button"
       tabIndex={0}
-      draggable
+      draggable={canDrag}
+      data-selectable-id={folder.id}
+      data-selectable-type="folder"
       onClick={onClick}
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
-      onDragStart={(e) => {
-        drag.startDrag("folder", folder.id);
+      onDragStart={canDrag ? (e) => {
+        if (suppressModifierDragStart(e)) return;
+        drag.startDrag("folder", folder.id, isTrash ? "trash" : "workspace", dragItems);
         e.dataTransfer.effectAllowed = "move";
-      }}
-      onDragEnd={() => drag.endDrag()}
-      onDragEnter={(e) => {
+      } : undefined}
+      onDragEnd={canDrag ? () => drag.endDrag() : undefined}
+      onDragEnter={isTrash ? undefined : (e) => {
         e.preventDefault();
         e.stopPropagation();
         drag.enterDropTarget(folder.id);
       }}
-      onDragOver={(e) => {
+      onDragOver={isTrash ? undefined : (e) => {
         e.preventDefault();
         e.stopPropagation();
         e.dataTransfer.dropEffect = drag.canDropOnFolder(folder.id) ? "move" : "none";
       }}
-      onDrop={(e) => {
+      onDrop={isTrash ? undefined : (e) => {
         e.preventDefault();
         e.stopPropagation();
         drag.dropOnFolder(folder.id);
       }}
       className={cn(
-        "group flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20",
-        isDraggingThis
-          ? "opacity-40 cursor-grabbing"
-          : "cursor-grab active:cursor-grabbing",
+        "group flex min-w-0 select-none items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20 cursor-pointer",
+        canDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "active:cursor-grabbing"),
         isDropTarget
-          ? "border-foreground/30 bg-foreground/[0.06] ring-1 ring-inset ring-foreground/20"
-          : "border-foreground/[0.06] hover:border-foreground/[0.12] hover:bg-surface-hover",
+          ? "border-ink/30 bg-ink/[0.06] ring-1 ring-inset ring-ink/20"
+          : selected
+            ? "border-ink/30 bg-ink/[0.05] hover:bg-surface-hover"
+            : "border-ink/[0.06] hover:border-ink/[0.12] hover:bg-surface-hover",
       )}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.04] transition-colors group-hover:bg-foreground/[0.08]">
-          <Folder size={14} className="text-foreground/35 transition-colors group-hover:text-foreground/55" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink/[0.04] transition-colors group-hover:bg-ink/[0.08]">
+          <Folder size={14} className="text-ink/35 transition-colors group-hover:text-ink/55" />
         </div>
         <div className="min-w-0 flex-1">
           {isRenaming ? (
@@ -205,7 +244,7 @@ export function FolderCard({
                 if (e.key === "Escape") setIsRenaming(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded bg-foreground/[0.07] px-2 py-0.5 text-[13px] font-medium text-foreground outline-none ring-1 ring-foreground/15 focus:ring-foreground/35 transition-shadow"
+              className="w-full select-text rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
             />
           ) : (
             <>
@@ -228,7 +267,7 @@ export function FolderCard({
                 e.stopPropagation();
                 onPinAside(false);
               }}
-              className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-foreground/[0.08] hover:text-foreground"
+              className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-ink/[0.08] hover:text-foreground"
               aria-label={cm.unpinAside}
             >
               <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
@@ -243,8 +282,8 @@ export function FolderCard({
               type="button"
               onClick={handleMoreClick}
               className={cn(
-                "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-foreground/[0.08] hover:text-foreground",
-                menuAnchor ? "opacity-100 bg-foreground/[0.08] text-foreground" : "opacity-100",
+                "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-ink/[0.08] hover:text-foreground",
+                menuAnchor ? "opacity-100 bg-ink/[0.08] text-foreground" : "opacity-100",
               )}
               aria-label={cm.moreOptions}
             >

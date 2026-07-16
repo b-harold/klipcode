@@ -1,30 +1,41 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import {
   Copy,
   Check,
   Cloud,
   CloudOff,
-  Globe,
   Loader2,
   CircleCheck,
+  Globe,
   Pencil,
-  FileCode2,
   Folder,
+  FolderOpen,
   Layers,
   Zap,
+  Eye,
+  Code2,
+  RotateCcw,
+  Trash2,
 } from "lucide-react";
 
 import { Editor } from "@/components/Editor/Editor";
+import { MarkdownEditor } from "@/components/MarkdownPreview/MarkdownEditor";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
+import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGeneration";
 import { LanguageSelect } from "@/ui/LanguageSelect";
+import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip } from "@/ui/Tooltip";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
+import { formatCode, isFormattable } from "@/lib/formatCode";
+import { FormatErrorToast } from "@/components/FormatErrorToast/FormatErrorToast";
 import { getFolderPath } from "@/components/FolderView/utils";
+import { resolveSnippetRename } from "@/lib/utils";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Sync status indicator (top-right of header)
@@ -42,21 +53,21 @@ function SyncIndicator({
   switch (status) {
     case "editing":
       return (
-        <span className={`${shared} text-foreground/40`}>
+        <span className={`${shared} text-ink/40`}>
           <Pencil size={11} />
           {copy.syncEditing}
         </span>
       );
     case "saving":
       return (
-        <span className={`${shared} text-foreground/40`}>
+        <span className={`${shared} text-ink/40`}>
           <Loader2 size={11} className="animate-spin" />
           {copy.syncSaving}
         </span>
       );
     case "saved-local":
       return (
-        <span className={`${shared} text-foreground/40`}>
+        <span className={`${shared} text-ink/40`}>
           <CloudOff size={11} />
           {copy.syncSavedLocal}
         </span>
@@ -77,7 +88,7 @@ function SyncIndicator({
       );
     default:
       return (
-        <span className={`${shared} text-foreground/20`}>
+        <span className={`${shared} text-ink/20`}>
           <Cloud size={11} />
           {copy.syncIdle}
         </span>
@@ -97,8 +108,27 @@ export interface SnippetEditorProps {
   onClose: () => void;
   onNavigateFolder?: (folderId: string) => void;
   onNavigateHome?: () => void;
-  onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId; sourceUrl?: string | null }) => void;
+  onUpdate: (
+    snippetId: string,
+    changes: { title?: string; code?: string; language?: LanguageId; sourceUrl?: string | null }
+  ) => void;
+  /** Rename the snippet by full filename (resolved to title + language). The
+   *  same mutation used by the aside tree and snippet cards. */
+  onRename?: (snippetId: string, value: string) => void;
+  /** Whether Markdown snippets open in the Notion-like preview by default. */
+  markdownPreviewByDefault?: boolean;
+  /** User's default language, pre-selected on code blocks inserted in Markdown. */
+  defaultCodeLanguage?: LanguageId;
+  /** Soft-wrap long code lines instead of scrolling horizontally. */
+  codeWrap?: boolean;
+  /** Persisted when the user flips the preview/source toggle — the chosen side
+   *  becomes the default side Markdown snippets open on. */
+  onMarkdownPreviewChange?: (open: boolean) => void;
   menuButton?: React.ReactNode;
+  /** When true the snippet is in the trash: it's shown read-only with a notice
+   *  and restore / delete-permanently actions instead of the edit controls. */
+  readOnly?: boolean;
+  trashActions?: { onRestore: () => void; onDeletePermanently: () => void };
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -114,36 +144,111 @@ export function SnippetEditor({
   onNavigateFolder,
   onNavigateHome,
   onUpdate,
+  onRename,
+  markdownPreviewByDefault = true,
+  defaultCodeLanguage = "plaintext",
+  codeWrap = false,
+  onMarkdownPreviewChange,
   menuButton,
+  readOnly = false,
+  trashActions,
 }: SnippetEditorProps) {
   const editorCopy = copy.snippetEditor;
+  const isGeneratingTitle = useIsGeneratingTitle(snippet.id);
+
+  const isMarkdown = snippet.language === "markdown";
 
   // Local state — initialised from snippet once (key={snippet.id} resets on swap)
-  const [title, setTitle] = useState(snippet.title);
   const [code, setCode] = useState(snippet.code);
+  const [copied, setCopied] = useState(false);
   const [sourceUrl, setSourceUrl] = useState(snippet.sourceUrl ?? "");
   const [editingSourceUrl, setEditingSourceUrl] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const sourceUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formatting, setFormatting] = useState(false);
+  // Bumped each time a format attempt fails, driving the shared error toast.
+  const [formatErrorNonce, setFormatErrorNonce] = useState(0);
+  // Markdown snippets can swap the code editor for a Notion-like rendered preview;
+  // the initial side honours the user's last choice (key={snippet.id} re-seeds
+  // it when swapping snippets). Flipping the toggle also persists the choice so
+  // the next Markdown snippet opens on the same side.
+  const [showPreview, setShowPreview] = useState(isMarkdown && markdownPreviewByDefault);
+  // Each side stays mounted once visited: the inactive pane is hidden with
+  // `visibility: hidden` (layout is kept, so scroll offset and cursor survive)
+  // instead of being unmounted and rebuilt on every toggle.
+  const [visited, setVisited] = useState(() => ({
+    source: !(isMarkdown && markdownPreviewByDefault),
+    preview: isMarkdown && markdownPreviewByDefault,
+  }));
+  // The source editor's value is frozen while the preview is active so preview
+  // keystrokes don't rewrite the hidden CodeMirror doc (wiping its cursor);
+  // toggling back hands it the live code — a single replace, only if changed.
+  const [sourceFreeze, setSourceFreeze] = useState(snippet.code);
+
+  const sourceEditorRef = useRef<ReactCodeMirrorRef>(null);
+
+  // Inline rename of the snippet title via the breadcrumb crumb itself: the
+  // title text is contentEditable, so clicking it places the caret in place
+  // and typing edits it directly — no separate field, no layout shift. The icon
+  // previews the language resolved from the in-progress text live, mirroring
+  // the aside/card rename flows (resolveSnippetRename).
+  const canRename = !readOnly && !!onRename;
+  // The language previewed by the icon; null ⇒ not actively editing, fall back
+  // to the snippet's stored language.
+  const [renameIconLanguage, setRenameIconLanguage] = useState<string | null>(null);
+  const iconLanguage = renameIconLanguage ?? snippet.language;
+
+  const titleEditable =
+    canRename && !isGeneratingTitle && snippet.title.trim().length > 0;
+
+  function handleRenameInput(e: React.FormEvent<HTMLSpanElement>) {
+    const text = e.currentTarget.textContent ?? "";
+    setRenameIconLanguage(resolveSnippetRename(text, snippet.language).language);
+  }
+
+  function handleRenameBlur(e: React.FocusEvent<HTMLSpanElement>) {
+    const text = (e.currentTarget.textContent ?? "").trim();
+    if (text !== snippet.title.trim()) onRename?.(snippet.id, text);
+    setRenameIconLanguage(null);
+  }
+
+  function handleRenameKeyDown(e: React.KeyboardEvent<HTMLSpanElement>) {
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.currentTarget.blur();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.currentTarget.textContent = snippet.title;
+      setRenameIconLanguage(null);
+      e.currentTarget.blur();
+    }
+  }
+
+  const handleTogglePreview = useCallback(() => {
+    const next = !showPreview;
+    setShowPreview(next);
+    setVisited((v) => (next ? { ...v, preview: true } : { ...v, source: true }));
+    if (next) setSourceFreeze(code);
+    onMarkdownPreviewChange?.(next);
+  }, [showPreview, code, onMarkdownPreviewChange]);
+
+  // Focus the source editor when flipping back to it so the preserved cursor
+  // is immediately usable (the preview pane focuses itself on activation — see
+  // MarkdownEditorInner).
+  const prevShowPreviewRef = useRef(showPreview);
+  useEffect(() => {
+    if (prevShowPreviewRef.current === showPreview) return;
+    prevShowPreviewRef.current = showPreview;
+    if (!showPreview && !readOnly) sourceEditorRef.current?.view?.focus();
+  }, [showPreview, readOnly]);
 
   // Per-field debounce timers
-  const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sourceUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const next = e.target.value;
-    setTitle(next);
-
-    if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
-    titleTimerRef.current = setTimeout(() => {
-      onUpdate(snippet.id, { title: next });
-    }, DEBOUNCE_MS);
-  }
-
   function handleCodeChange(next: string) {
+    if (readOnly) return;
     setCode(next);
 
     if (codeTimerRef.current) clearTimeout(codeTimerRef.current);
@@ -153,6 +258,7 @@ export function SnippetEditor({
   }
 
   function handleSourceUrlChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (readOnly) return;
     const next = e.target.value;
     setSourceUrl(next);
 
@@ -173,113 +279,168 @@ export function SnippetEditor({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const PRETTIER_PARSERS: Partial<Record<string, string>> = {
-    javascript: "babel",
-    jsx: "babel",
-    typescript: "babel-ts",
-    tsx: "babel-ts",
-    html: "html",
-    css: "css",
-    scss: "css",
-    json: "json",
-    markdown: "markdown",
-  };
-
   async function handleFormat() {
-    const parser = PRETTIER_PARSERS[snippet.language];
-    if (!parser) return;
+    if (!isFormattable(snippet.language)) return;
     setFormatting(true);
     try {
-      const prettier = await import("prettier/standalone");
-      const plugins = await Promise.all([
-        import("prettier/plugins/babel"),
-        import("prettier/plugins/estree"),
-        import("prettier/plugins/html"),
-        import("prettier/plugins/postcss"),
-        import("prettier/plugins/markdown"),
-      ]);
-      const formatted = await prettier.format(code, {
-        parser,
-        plugins,
-        printWidth: 100,
-        tabWidth: 2,
-        singleQuote: false,
-        trailingComma: "es5",
-      });
-      const next = formatted.trimEnd();
+      const next = await formatCode(code, snippet.language);
       setCode(next);
       if (codeTimerRef.current) clearTimeout(codeTimerRef.current);
       codeTimerRef.current = setTimeout(() => {
         onUpdate(snippet.id, { code: next });
       }, 0);
+    } catch {
+      // Unparseable source (e.g. a syntax error): leave the code untouched
+      // and surface the failure via the shared toast.
+      setFormatErrorNonce((n) => n + 1);
     } finally {
       setFormatting(false);
     }
   }
 
   // ── Folder path for breadcrumb ───────────────────────────────────────────
+  // For a trashed snippet `folders` is the trashed set, so the path resolves to
+  // its (also trashed) ancestor folders and the root crumb points at the trash.
   const folderPath = snippet.folderId ? getFolderPath(snippet.folderId, folders) : [];
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    {
-      id: "root",
-      label: copy.aside.mySpace,
-      icon: <Layers size={12} aria-hidden="true" />,
-      onClick: onNavigateHome ? onNavigateHome : onClose,
-    },
+    readOnly
+      ? {
+          id: "root",
+          label: copy.trash.title,
+          icon: <Trash2 size={12} aria-hidden="true" />,
+          onClick: onNavigateHome ? onNavigateHome : onClose,
+        }
+      : {
+          id: "root",
+          label: copy.aside.mySpace,
+          icon: <Layers size={12} aria-hidden="true" />,
+          onClick: onNavigateHome ? onNavigateHome : onClose,
+        },
     ...folderPath.map<BreadcrumbItem>((f) => ({
       id: f.id,
       label: f.name,
-      icon: <Folder size={12} aria-hidden="true" />,
+      icon: readOnly ? (
+        <FolderOpen size={12} aria-hidden="true" />
+      ) : (
+        <Folder size={12} aria-hidden="true" />
+      ),
       onClick: onNavigateFolder ? () => onNavigateFolder(f.id) : onClose,
     })),
     {
       id: snippet.id,
-      icon: <FileCode2 size={12} className="shrink-0 text-foreground/40" aria-hidden="true" />,
-      label: (
-        <input
-          type="text"
-          value={title}
-          onChange={handleTitleChange}
-          placeholder={editorCopy.titlePlaceholder}
-          className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-foreground/25 focus:outline-none"
+      icon: <LanguageIcon language={iconLanguage} size={12} className="shrink-0" />,
+      label: isGeneratingTitle ? (
+        <GeneratingTitle label={editorCopy.generatingTitle} />
+      ) : titleEditable ? (
+        <span
+          contentEditable
+          suppressContentEditableWarning
           spellCheck={false}
-        />
+          onInput={handleRenameInput}
+          onBlur={handleRenameBlur}
+          onKeyDown={handleRenameKeyDown}
+          className="px-0.5 -mx-0.5 rounded outline-none transition focus:bg-ink/[0.05] focus:ring-1 focus:ring-ink/15"
+        >
+          {snippet.title}
+        </span>
+      ) : snippet.title.trim() ? (
+        snippet.title
+      ) : (
+        <span className="text-ink/25">{editorCopy.titlePlaceholder}</span>
       ),
-      // No onClick — editable title is the "current" item
+      raw: titleEditable,
     },
   ];
 
-  const isFormattable = snippet.language in PRETTIER_PARSERS;
+  const canFormat = isFormattable(snippet.language);
 
-  const breadcrumbActions = (
+  // Markdown-only toggle between the rendered preview and the raw source editor.
+  const previewToggle = isMarkdown ? (
+    <Tooltip
+      content={showPreview ? editorCopy.editMarkdown : editorCopy.previewMarkdown}
+      placement="bottom"
+    >
+      <button
+        type="button"
+        aria-label={showPreview ? editorCopy.editMarkdown : editorCopy.previewMarkdown}
+        aria-pressed={showPreview}
+        onClick={handleTogglePreview}
+        className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70"
+      >
+        {showPreview ? <Code2 size={13} /> : <Eye size={13} />}
+      </button>
+    </Tooltip>
+  ) : null;
+
+  const breadcrumbActions = readOnly ? (
+    <>
+      {previewToggle}
+      <Tooltip content={editorCopy.copyCode} placement="bottom">
+        <button
+          type="button"
+          aria-label={editorCopy.copyCode}
+          onClick={handleCopy}
+          className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70"
+        >
+          {copied ? <Check size={13} /> : <Copy size={13} />}
+        </button>
+      </Tooltip>
+      {trashActions && (
+        <>
+          <div className="h-4 w-px bg-ink/[0.08]" />
+          <Tooltip content={copy.trash.restore} placement="bottom">
+            <button
+              type="button"
+              aria-label={copy.trash.restore}
+              onClick={trashActions.onRestore}
+              className="flex items-center justify-center rounded p-1.5 text-ink/45 transition-colors hover:bg-ink/[0.06] hover:text-ink/80"
+            >
+              <RotateCcw size={13} />
+            </button>
+          </Tooltip>
+          <Tooltip content={copy.trash.deletePermanently} placement="bottom">
+            <button
+              type="button"
+              aria-label={copy.trash.deletePermanently}
+              onClick={trashActions.onDeletePermanently}
+              className="flex items-center justify-center rounded p-1.5 text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-300"
+            >
+              <Trash2 size={13} />
+            </button>
+          </Tooltip>
+        </>
+      )}
+    </>
+  ) : (
     <>
       <LanguageSelect
         value={snippet.language as LanguageId}
         onChange={(v) => onUpdate(snippet.id, { language: v })}
         copy={copy.languageSelect}
       />
-      <div className="h-4 w-px bg-foreground/[0.08]" />
+      <div className="h-4 w-px bg-ink/[0.08]" />
       <Tooltip
-        content={isFormattable ? editorCopy.formatCode : editorCopy.formatNotSupported}
+        content={canFormat ? editorCopy.formatCode : editorCopy.formatNotSupported}
         placement="bottom"
       >
         <button
           type="button"
           aria-label={editorCopy.formatCode}
           onClick={handleFormat}
-          disabled={!isFormattable || formatting}
-          className="flex items-center justify-center rounded p-1.5 text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/70 disabled:cursor-not-allowed disabled:opacity-30"
+          disabled={!canFormat || formatting}
+          className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <Zap size={13} className={formatting ? "animate-pulse" : undefined} />
         </button>
       </Tooltip>
+      {previewToggle}
       <Tooltip content={editorCopy.copyCode} placement="bottom">
         <button
           type="button"
           aria-label={editorCopy.copyCode}
           onClick={handleCopy}
-          className="flex items-center justify-center rounded p-1.5 text-foreground/35 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/70"
+          className="flex items-center justify-center rounded p-1.5 text-ink/35 transition-colors hover:bg-ink/[0.06] hover:text-ink/70"
         >
           {copied ? <Check size={13} /> : <Copy size={13} />}
         </button>
@@ -297,71 +458,138 @@ export function SnippetEditor({
         leading={menuButton}
         actions={breadcrumbActions}
         defaultStuck
+        stackActionsOnMobile
       />
 
-      {/* ── Source URL row ────────────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-foreground/[0.04] px-6 py-1.5 text-[12px]">
-        <Globe size={12} className="shrink-0 text-foreground/30" aria-hidden="true" />
-        {editingSourceUrl || !trimmedSourceUrl ? (
-          <input
-            type="url"
-            value={sourceUrl}
-            onChange={handleSourceUrlChange}
-            onFocus={() => setEditingSourceUrl(true)}
-            onBlur={() => setEditingSourceUrl(false)}
-            placeholder={editorCopy.sourceUrlPlaceholder}
-            spellCheck={false}
-            className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-foreground/55 placeholder:text-foreground/20 focus:outline-none"
-          />
-        ) : isValidSourceUrl ? (
-          <>
-            <a
-              href={trimmedSourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate font-mono text-[12px] text-foreground/55 underline decoration-foreground/15 underline-offset-2 hover:text-foreground/80"
-              title={trimmedSourceUrl}
-            >
-              {trimmedSourceUrl}
-            </a>
+      {/* ── Trash notice ─────────────────────────────────────────────────── */}
+      {readOnly && (
+        <div className="flex items-center gap-2 border-b border-red-500/15 bg-red-500/[0.06] px-6 py-2 text-[12px] text-red-300/80">
+          <Trash2 size={13} className="shrink-0" />
+          <span>{editorCopy.trashedNotice}</span>
+        </div>
+      )}
+
+      {/* ── Source URL row ─────────────────────────────────────────────────── */}
+      {!readOnly && (
+        <div className="flex shrink-0 items-center gap-2 border-b border-ink/[0.04] px-6 py-1.5 text-[12px]">
+          <Globe size={12} className="shrink-0 text-ink/30" aria-hidden="true" />
+          {editingSourceUrl || !trimmedSourceUrl ? (
+            <input
+              type="url"
+              value={sourceUrl}
+              onChange={handleSourceUrlChange}
+              onFocus={() => setEditingSourceUrl(true)}
+              onBlur={() => setEditingSourceUrl(false)}
+              placeholder={editorCopy.sourceUrlPlaceholder}
+              spellCheck={false}
+              className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-ink/55 placeholder:text-ink/20 focus:outline-none"
+            />
+          ) : isValidSourceUrl ? (
+            <>
+              <a
+                href={trimmedSourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-w-0 flex-1 truncate font-mono text-[12px] text-ink/55 underline decoration-ink/15 underline-offset-2 hover:text-ink/80"
+                title={trimmedSourceUrl}
+              >
+                {trimmedSourceUrl}
+              </a>
+              <button
+                type="button"
+                onClick={() => setEditingSourceUrl(true)}
+                aria-label={editorCopy.sourceUrl}
+                className="shrink-0 rounded p-1 text-ink/30 transition-colors hover:bg-ink/[0.06] hover:text-ink/60"
+              >
+                <Pencil size={11} />
+              </button>
+            </>
+          ) : (
             <button
               type="button"
               onClick={() => setEditingSourceUrl(true)}
-              aria-label={editorCopy.sourceUrl}
-              className="shrink-0 rounded p-1 text-foreground/30 transition-colors hover:bg-foreground/[0.06] hover:text-foreground/60"
+              className="min-w-0 flex-1 truncate text-left font-mono text-[12px] text-ink/55"
+              title={trimmedSourceUrl}
             >
-              <Pencil size={11} />
+              {trimmedSourceUrl}
             </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setEditingSourceUrl(true)}
-            className="min-w-0 flex-1 truncate text-left font-mono text-[12px] text-foreground/55"
-            title={trimmedSourceUrl}
-          >
-            {trimmedSourceUrl}
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* ── Editor ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">
-        <Editor
-          value={code}
-          onChange={handleCodeChange}
-          language={snippet.language}
-          readOnly={false}
-          height="100%"
-          fontSize={14}
-          gutterBackground="var(--background)"
-        />
-      </div>
+      {/* ── Source editor / Markdown WYSIWYG ───────────────────────────────── */}
+      {isMarkdown ? (
+        <div className="relative flex-1 min-h-0 overflow-hidden">
+          {visited.preview && (
+            <div className={`absolute inset-0 overflow-hidden${showPreview ? "" : " invisible"}`}>
+              <MarkdownEditor
+                value={code}
+                onChange={handleCodeChange}
+                editable={!readOnly}
+                active={showPreview}
+                defaultCodeLanguage={defaultCodeLanguage}
+                copy={{
+                  placeholder: editorCopy.mdPlaceholder,
+                  linkDialog: editorCopy.linkDialog,
+                  toolbar: editorCopy.mdToolbar,
+                  slash: editorCopy.mdSlash,
+                  table: editorCopy.mdTable,
+                  codeBlock: {
+                    copy: editorCopy.copyCode,
+                    copied: editorCopy.codeCopied,
+                    options: editorCopy.mdCodeBlockOptions,
+                    format: editorCopy.formatCode,
+                    delete: editorCopy.mdCodeBlockDelete,
+                    formatError: editorCopy.formatError,
+                  },
+                  languageSelect: copy.languageSelect,
+                }}
+              />
+            </div>
+          )}
+          {visited.source && (
+            <div
+              className={`absolute inset-0 overflow-hidden pl-6 [&>div]:h-full${showPreview ? " invisible" : ""}`}
+            >
+              <Editor
+                value={showPreview ? sourceFreeze : code}
+                onChange={handleCodeChange}
+                language={snippet.language}
+                readOnly={readOnly}
+                height="100%"
+                fontSize={14}
+                gutterBackground="var(--background)"
+                lineWrapping={codeWrap}
+                ariaLabel={copy.forms.codeEditor}
+                editorRef={sourceEditorRef}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">
+          <Editor
+            value={code}
+            onChange={handleCodeChange}
+            language={snippet.language}
+            readOnly={readOnly}
+            height="100%"
+            fontSize={14}
+            gutterBackground="var(--background)"
+            lineWrapping={codeWrap}
+            ariaLabel={copy.forms.codeEditor}
+          />
+        </div>
+      )}
 
-      {/* ── Sync status — fixed bottom-right corner ───────────────────────── */}
-      <div className="fixed bottom-4 right-4 z-50 rounded-full border border-foreground/[0.08] bg-background/80 px-3 py-1.5 backdrop-blur-sm">
-        <SyncIndicator status={syncStatus} copy={editorCopy} />
-      </div>
+      {/* ── Sync status — fixed bottom-right corner (hidden for trashed) ──── */}
+      {!readOnly && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-full border border-ink/[0.08] bg-background/80 px-3 py-1.5 backdrop-blur-sm">
+          <SyncIndicator status={syncStatus} copy={editorCopy} />
+        </div>
+      )}
+
+      <FormatErrorToast nonce={formatErrorNonce} message={editorCopy.formatError} />
     </div>
   );
 }

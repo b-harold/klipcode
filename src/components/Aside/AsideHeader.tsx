@@ -1,19 +1,27 @@
 "use client";
 
+import Image from "next/image";
 import { ChevronsLeft, LogIn, LogOut } from "lucide-react";
 import type { Dictionary } from "@/i18n";
 import type { User } from "@supabase/supabase-js";
 import { Tooltip } from "@/ui/Tooltip";
+import { Spinner } from "@/ui/Spinner";
 
 export function AsideHeader({
   user,
+  authReady,
   copy,
+  signingIn,
+  signingOut,
   onSignIn,
   onSignOut,
   onCollapse,
 }: {
   user: User | null;
+  authReady: boolean;
   copy: Dictionary;
+  signingIn: boolean;
+  signingOut: boolean;
   onSignIn: () => void;
   onSignOut: () => void;
   onCollapse: () => void;
@@ -21,12 +29,22 @@ export function AsideHeader({
   return (
     <div className="px-3.5 py-4">
       <div className="flex items-center gap-2">
-        {user ? (
+        {!authReady && !user ? (
+          /* Session check still resolving — placeholder with the same footprint
+             as the sign-in button, so signed-in users don't see a "Sign in"
+             flash while the Supabase session loads. */
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2" aria-hidden="true">
+            <div className="h-[15px] w-[15px] shrink-0 animate-pulse rounded-full bg-ink/10" />
+            <div className="h-3 w-20 animate-pulse rounded bg-ink/10" />
+          </div>
+        ) : user ? (
           <div className="flex min-w-0 flex-1 items-center gap-2.5 p-1">
-            <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-overlay-strong">
-              <img
+            <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-ink/10">
+              <Image
                 src={user.user_metadata.avatar_url}
                 alt={user.user_metadata.full_name || user.email || "Avatar"}
+                width={24}
+                height={24}
                 className="h-full w-full object-cover"
               />
             </div>
@@ -35,24 +53,32 @@ export function AsideHeader({
                 {user.user_metadata.full_name || user.email?.split("@")[0]}
               </span>
             </div>
-            <Tooltip content={copy.auth.signOut} placement="bottom">
+            <Tooltip content={signingOut ? copy.auth.signingOut : copy.auth.signOut} placement="bottom">
               <button
                 onClick={onSignOut}
-                className="shrink-0 rounded p-1 text-muted/70 transition-colors hover:bg-overlay hover:text-foreground"
-                aria-label={copy.auth.signOut}
+                disabled={signingOut}
+                className="shrink-0 rounded p-1 text-ink/25 transition-colors hover:bg-ink/10 hover:text-ink/60 disabled:cursor-default disabled:hover:bg-transparent"
+                aria-label={signingOut ? copy.auth.signingOut : copy.auth.signOut}
+                aria-busy={signingOut}
               >
-                <LogOut size={12} />
+                {signingOut ? <Spinner size={12} /> : <LogOut size={12} />}
               </button>
             </Tooltip>
           </div>
         ) : (
           <button
             onClick={onSignIn}
-            className="group flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2 text-left transition-colors hover:text-foreground"
+            disabled={signingIn}
+            className="group flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2 text-left transition-colors hover:text-foreground disabled:cursor-default"
+            aria-busy={signingIn}
           >
-            <LogIn size={15} className="shrink-0 text-muted group-hover:text-foreground" />
+            {signingIn ? (
+              <Spinner size={15} className="shrink-0 text-ink/80" />
+            ) : (
+              <LogIn size={15} className="shrink-0 text-ink/60 group-hover:text-ink" />
+            )}
             <span className="truncate text-[12px] font-medium text-foreground/80 group-hover:text-foreground">
-              {copy.auth.signIn}
+              {signingIn ? copy.auth.signingIn : copy.auth.signIn}
             </span>
           </button>
         )}
@@ -61,7 +87,7 @@ export function AsideHeader({
           <button
             type="button"
             onClick={onCollapse}
-            className="shrink-0 rounded-md p-1.5 text-muted/70 transition-colors hover:bg-overlay hover:text-foreground"
+            className="shrink-0 rounded-md p-1.5 text-ink/20 transition-colors hover:bg-ink/6 hover:text-ink/60"
             aria-label={copy.aside.collapse}
           >
             <ChevronsLeft size={14} />

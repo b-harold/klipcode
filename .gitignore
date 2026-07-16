@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
 # next.js
 /.next/
@@ -48,3 +51,12 @@ next-env.d.ts
 .dev.vars*
 !.dev.vars.example
 !.env.example
+cloudflare-env.d.ts
+
+# local supabase migrations (schema lives in db-structure.sql)
+.sb-migrations/
+
+# local supabase stack for e2e sync tests (migrations are mirrored from
+# db-structure.sql by scripts/e2e-sync-setup.sh; only config.toml is tracked)
+/supabase/*
+!/supabase/config.toml

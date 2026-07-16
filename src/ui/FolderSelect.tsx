@@ -53,11 +53,20 @@ interface FolderSelectProps {
   folders: FolderRecord[];
   rootLabel: string;
   copy: Dictionary["folderSelect"];
+  /** CSS z-index for the portalled dropdown; raise it when used inside a dialog. */
+  menuZIndex?: string;
 }
 
 const INDENT = 16;
 
-export function FolderSelect({ value, onChange, folders, rootLabel, copy }: FolderSelectProps) {
+export function FolderSelect({
+  value,
+  onChange,
+  folders,
+  rootLabel,
+  copy,
+  menuZIndex = "var(--z-menu)",
+}: FolderSelectProps) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -68,17 +77,18 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
   const selectedFolder = folders.find((f) => f.id === value);
   const displayLabel = value === "" ? rootLabel : (selectedFolder?.name ?? rootLabel);
 
-  function openMenu() {
-    if (value) {
-      // Expand the path to the selected folder so it's visible on first paint.
-      setExpanded((prev) => {
-        const next = new Set(prev);
-        for (const id of ancestorIds(value, folders)) next.add(id);
-        return next;
-      });
-    }
-    setOpen(true);
-  }
+  /* Auto-expand path to selected folder when opening */
+  useEffect(() => {
+    if (!open || !value) return;
+    // Intentional: expand the ancestor path each time the dropdown opens so the
+    // selected folder is visible. Synchronize-on-open, not a derivable value.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      for (const id of ancestorIds(value, folders)) next.add(id);
+      return next;
+    });
+  }, [open, value, folders]);
 
   /* Position the dropdown below (or above) the trigger */
   useLayoutEffect(() => {
@@ -114,10 +124,12 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
       setOpen(false);
     };
     window.addEventListener("keydown", onKey, true);
-    document.addEventListener("mousedown", onOutside);
+    // Capture phase: a parent (e.g. the preferences dialog) may stopPropagation
+    // on mousedown, which would otherwise hide this outside click from us.
+    document.addEventListener("mousedown", onOutside, true);
     return () => {
       window.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("mousedown", onOutside);
+      document.removeEventListener("mousedown", onOutside, true);
     };
   }, [open]);
 
@@ -140,19 +152,19 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => (open ? setOpen(false) : openMenu())}
+        onClick={() => setOpen((v) => !v)}
         className={[
           "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition-colors",
           open
-            ? "border-overlay-strong bg-overlay-soft text-foreground"
-            : "border-border text-muted hover:border-overlay-strong hover:text-foreground",
+            ? "border-ink/20 bg-ink/[0.04] text-foreground"
+            : "border-ink/[0.08] text-muted hover:border-ink/15 hover:text-foreground",
         ].join(" ")}
       >
-        <Folder size={12} className="shrink-0 text-muted" />
+        <Folder size={12} className="shrink-0 text-ink/30" />
         <span className="max-w-[160px] truncate leading-none">{displayLabel}</span>
         <ChevronDown
           size={11}
-          className={`shrink-0 text-muted transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-ink/30 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -160,7 +172,14 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
         createPortal(
           <div
             ref={dropdownRef}
-            className="klipcode-menu-animate fixed z-[999] overflow-hidden rounded-xl border border-border bg-surface shadow-2xl"
+            className="klipcode-menu-animate fixed overflow-hidden rounded-xl"
+            style={{
+              zIndex: menuZIndex,
+              background: "var(--panel-bg)",
+              border: "1px solid rgba(var(--ink-rgb),0.07)",
+              boxShadow:
+                "var(--panel-shadow)",
+            }}
           >
             <div className="max-h-[280px] overflow-y-auto p-1">
               {/* Root option */}
@@ -172,13 +191,13 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                   "flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left text-[13px] leading-none",
                   "transition-colors duration-75",
                   value === ""
-                    ? "bg-overlay-strong text-foreground"
-                    : "text-muted hover:bg-overlay hover:text-foreground",
+                    ? "bg-ink/[0.08] text-ink"
+                    : "text-ink/60 hover:bg-ink/[0.06] hover:text-ink/90",
                 ].join(" ")}
               >
                 <Folder size={12} className="shrink-0 opacity-50" />
                 <span className="flex-1">{rootLabel}</span>
-                {value === "" && <Check size={12} className="shrink-0 text-muted" />}
+                {value === "" && <Check size={12} className="shrink-0 text-ink/50" />}
               </button>
 
               {/* Folder tree */}
@@ -203,7 +222,7 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                         e.stopPropagation();
                         if (hasChildren) toggleExpand(folder.id);
                       }}
-                      className="flex h-7 w-5 shrink-0 items-center justify-center rounded text-muted/70 hover:text-foreground"
+                      className="flex h-7 w-5 shrink-0 items-center justify-center rounded text-ink/20 hover:text-ink/50"
                     >
                       {hasChildren ? (
                         <ChevronRight
@@ -211,7 +230,7 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                           className={`transition-transform duration-150 ${isExpanded ? "rotate-90" : ""}`}
                         />
                       ) : (
-                        <span className="inline-block h-px w-2 bg-overlay-strong" />
+                        <span className="inline-block h-px w-2 bg-ink/[0.08]" />
                       )}
                     </button>
 
@@ -224,8 +243,8 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                         "flex flex-1 min-w-0 items-center gap-2 rounded-lg px-2 py-[6px] text-left text-[13px] leading-none",
                         "transition-colors duration-75",
                         isSelected
-                          ? "bg-overlay-strong text-foreground"
-                          : "text-muted hover:bg-overlay hover:text-foreground",
+                          ? "bg-ink/[0.08] text-ink"
+                          : "text-ink/60 hover:bg-ink/[0.06] hover:text-ink/90",
                       ].join(" ")}
                     >
                       {isExpanded && hasChildren ? (
@@ -234,14 +253,14 @@ export function FolderSelect({ value, onChange, folders, rootLabel, copy }: Fold
                         <Folder size={12} className="shrink-0 opacity-50" />
                       )}
                       <span className="flex-1 truncate">{folder.name}</span>
-                      {isSelected && <Check size={12} className="shrink-0 text-muted" />}
+                      {isSelected && <Check size={12} className="shrink-0 text-ink/50" />}
                     </button>
                   </div>
                 );
               })}
 
               {folders.length === 0 && (
-                <p className="px-2.5 py-2 text-xs text-muted">{copy.noFolders}</p>
+                <p className="px-2.5 py-2 text-xs text-ink/25">{copy.noFolders}</p>
               )}
             </div>
           </div>,

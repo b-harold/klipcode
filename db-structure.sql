@@ -110,7 +110,6 @@ create table if not exists public.snippets (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint snippets_title_not_empty check (btrim(title) <> ''),
-  constraint snippets_code_not_empty check (btrim(code) <> ''),
   constraint snippets_owner_folder_fk
     foreign key (owner_id, folder_id)
     references public.folders (owner_id, id)
@@ -131,11 +130,14 @@ before update on public.profiles
 for each row
 execute function public.set_updated_at();
 
+-- folders.updated_at / snippets.updated_at are NOT maintained by a trigger.
+-- The local-first client is the single source of truth for these timestamps:
+-- it sends `updated_at` on every upsert and uses it for optimistic-concurrency
+-- and last-write-wins comparisons during sync. A `set_updated_at` trigger would
+-- overwrite the client value with server `now()`, mixing client and server
+-- clocks and silently dropping newer edits under clock skew. (`profiles` is
+-- server-managed only and keeps its trigger.)
 drop trigger if exists set_folders_updated_at on public.folders;
-create trigger set_folders_updated_at
-before update on public.folders
-for each row
-execute function public.set_updated_at();
 
 drop trigger if exists validate_folders_hierarchy on public.folders;
 create trigger validate_folders_hierarchy
@@ -143,11 +145,8 @@ before insert or update of parent_id, owner_id on public.folders
 for each row
 execute function public.validate_folder_hierarchy();
 
+-- See the note on folders above: snippets.updated_at is client-authoritative.
 drop trigger if exists set_snippets_updated_at on public.snippets;
-create trigger set_snippets_updated_at
-before update on public.snippets
-for each row
-execute function public.set_updated_at();
 
 drop trigger if exists on_auth_user_created on auth.users;
 drop trigger if exists on_auth_user_changed on auth.users;
@@ -249,6 +248,17 @@ grant select, insert, update, delete on public.profiles to authenticated;
 grant select, insert, update, delete on public.folders to authenticated;
 grant select, insert, update, delete on public.snippets to authenticated;
 
+-- service_role bypasses RLS but still needs explicit GRANTs to read/write the
+-- app tables. Used by server-side code (the /api/crypto/dek Worker) and by the
+-- e2e sync suite's admin client. The local Supabase stack does not apply the
+-- dashboard's automatic `ALTER DEFAULT PRIVILEGES ... TO service_role`, so
+-- grants must be explicit — otherwise they fail with "permission denied for
+-- table snippets" (SQLSTATE 42501).
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.profiles to service_role;
+grant select, insert, update, delete on public.folders to service_role;
+grant select, insert, update, delete on public.snippets to service_role;
+
 -- Soporte para fijado normal y fijado en inicio, como flags independientes
 alter table public.folders
   add column if not exists is_pinned_aside boolean not null default false;
@@ -267,12 +277,69 @@ create index if not exists idx_folders_owner_pinned_home on public.folders (owne
 create index if not exists idx_snippets_owner_pinned on public.snippets (owner_id, is_pinned_aside);
 create index if not exists idx_snippets_owner_pinned_home on public.snippets (owner_id, is_pinned_home);
 
+-- Papelera sincronizada: marca de borrado suave. NULL = registro vivo; con valor
+-- = está en la papelera. El cliente sincroniza este campo como uno más (no se
+-- borra la fila al enviar a la papelera). El borrado definitivo / vaciar papelera
+-- sí elimina la fila. No hay purga automática: el usuario vacía cuando quiere.
+alter table public.folders
+  add column if not exists deleted_at timestamptz;
+
+alter table public.snippets
+  add column if not exists deleted_at timestamptz;
+
+create index if not exists idx_folders_owner_deleted_at on public.folders (owner_id, deleted_at);
+create index if not exists idx_snippets_owner_deleted_at on public.snippets (owner_id, deleted_at);
+
+-- Versión del esquema de cifrado aplicado a los campos del registro (0 = sin cifrar).
+-- Permite descifrar con el método correcto durante una migración progresiva a cifrado.
+alter table public.folders
+  add column if not exists crypto_version smallint not null default 0;
+
+alter table public.snippets
+  add column if not exists crypto_version smallint not null default 0;
+
+-- Clave de cifrado (DEK) por usuario. Se guarda SIEMPRE envuelta (cifrada con
+-- AES-256-GCM) por la clave maestra ENCRYPTION_MASTER_KEY, que vive únicamente
+-- como secreto del Worker de Cloudflare — nunca en esta base de datos. Sin esa
+-- clave maestra, esta tabla no sirve para descifrar nada: un volcado de la BD
+-- solo contiene ciphertext. El route handler /api/crypto/dek es el único punto
+-- donde DEK y clave maestra se encuentran. Sin políticas de update/delete: la
+-- DEK de una cuenta es inmutable una vez creada (borrarla dejaría ilegibles
+-- los registros ya cifrados).
+create table if not exists public.user_keys (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  wrapped_dek text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.user_keys enable row level security;
+alter table public.user_keys force row level security;
+
+drop policy if exists user_keys_select_own on public.user_keys;
+create policy user_keys_select_own
+on public.user_keys
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists user_keys_insert_own on public.user_keys;
+create policy user_keys_insert_own
+on public.user_keys
+for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+grant select, insert on public.user_keys to authenticated;
+grant select, insert on public.user_keys to service_role;
+
 -- Source URL on snippets (where the code came from)
 alter table public.snippets
   add column if not exists source_url text;
 
 -- Notes: markdown documents that live in folders alongside snippets and reference
--- snippets via inline [[snippet:<uuid>]] markers in the markdown body.
+-- snippets via inline [[snippet:<uuid>]] markers in the markdown body. Notes are
+-- not part of the client-side encryption scheme yet (they sync plaintext) and
+-- hard-delete (no deleted_at column).
 create table if not exists public.notes (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -335,5 +402,6 @@ to authenticated
 using (auth.uid() = owner_id);
 
 grant select, insert, update, delete on public.notes to authenticated;
+grant select, insert, update, delete on public.notes to service_role;
 
 commit;

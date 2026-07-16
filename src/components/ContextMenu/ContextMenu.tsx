@@ -58,7 +58,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
     <>
       {/* Full-screen backdrop: captures left-click and right-click to close */}
       <div
-        className="fixed inset-0 z-998"
+        className="fixed inset-0 z-[var(--z-menu)]"
         onMouseDown={(e) => {
           e.preventDefault();
           onClose();
@@ -74,8 +74,15 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
         ref={menuRef}
         role="menu"
         aria-orientation="vertical"
-        className="klipcode-menu-animate fixed z-999 min-w-52 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-2xl"
-        style={{ left: x, top: y }}
+        className="klipcode-menu-animate fixed z-[var(--z-popover)] min-w-52 overflow-hidden rounded-xl p-1"
+        style={{
+          left: x,
+          top: y,
+          background: "var(--panel-bg)",
+          border: "1px solid rgba(var(--ink-rgb),0.07)",
+          boxShadow:
+            "var(--panel-shadow)",
+        }}
         onMouseDown={(e) => e.stopPropagation()}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -87,7 +94,10 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
           return (
             <div key={gi}>
               {gi > 0 && (
-                <div className="mx-1 my-1 h-px bg-overlay" />
+                <div
+                  className="mx-1 my-1 h-px"
+                  style={{ background: "rgba(var(--ink-rgb),0.06)" }}
+                />
               )}
               {group.items.map((item) => {
                 const Ic = item.Icon;
@@ -110,7 +120,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
                       "disabled:pointer-events-none disabled:opacity-25",
                       destructive
                         ? "text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                        : "text-foreground/60 hover:bg-foreground/[0.07] hover:text-foreground/90",
+                        : "text-ink/60 hover:bg-ink/[0.07] hover:text-ink/90",
                     ].join(" ")}
                   >
                     <Ic

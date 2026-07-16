@@ -2,39 +2,43 @@
 
 import { Moon, Sun } from "lucide-react";
 
-import { Tooltip } from "@/ui/Tooltip";
-import { applyTheme, persistTheme, type Theme } from "@/lib/theme";
-import { useTheme } from "@/lib/useTheme";
+import { useTheme } from "@/hooks/useTheme";
+import { getThemeTransitionOrigin } from "@/lib/theme";
 
 interface ThemeToggleProps {
-  copy: { toLight: string; toDark: string };
+  /** Accessible label shown when the action switches TO light. */
+  toLightLabel: string;
+  /** Accessible label shown when the action switches TO dark. */
+  toDarkLabel: string;
   className?: string;
 }
 
-export function ThemeToggle({ copy, className }: ThemeToggleProps) {
-  const theme = useTheme();
+/**
+ * Compact icon button that flips the color theme. Used in the landing header so
+ * first-time visitors can switch without entering the app; inside the app the
+ * same choice is offered as a segmented control in Preferences.
+ */
+export function ThemeToggle({ toLightLabel, toDarkLabel, className }: ThemeToggleProps) {
+  const { theme, toggleTheme } = useTheme();
+  const nextIsLight = theme === "dark";
+  const label = nextIsLight ? toLightLabel : toDarkLabel;
 
-  function toggle() {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    applyTheme(next); // mutates data-theme; useTheme's MutationObserver picks it up
-    persistTheme(next);
-  }
-
-  const label = theme === "dark" ? copy.toLight : copy.toDark;
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    toggleTheme(getThemeTransitionOrigin(event.currentTarget));
+  };
 
   return (
-    <Tooltip content={label} placement="top">
-      <button
-        type="button"
-        onClick={toggle}
-        aria-label={label}
-        className={
-          "flex h-7 w-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-overlay hover:text-foreground" +
-          (className ? ` ${className}` : "")
-        }
-      >
-        {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
-      </button>
-    </Tooltip>
+    <button
+      type="button"
+      onClick={handleClick}
+      aria-label={label}
+      title={label}
+      className={
+        className ??
+        "flex items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:bg-ink/6 hover:text-foreground"
+      }
+    >
+      {nextIsLight ? <Moon size={15} /> : <Sun size={15} />}
+    </button>
   );
 }

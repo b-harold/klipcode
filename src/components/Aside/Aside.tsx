@@ -1,22 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { FilePlus, FilePlus2, FolderPlus, Home, Layers, Search } from "lucide-react";
+import { FilePlus, FilePlus2, FolderPlus, Home, Keyboard, Layers, RotateCcw, Search, Settings, Trash2 } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { isEditableTarget } from "@/lib/constants/shortcuts";
 import { Tooltip } from "@/ui/Tooltip";
+import { ShortcutHint } from "@/ui/ShortcutHint";
 
 import type { AsideProps, AsideCtxShape, MenuTarget } from "./types";
 import { sortByPinThenAlpha } from "./utils";
+import { useMultiSelection } from "@/hooks/useMultiSelection";
 import { AsideCtx } from "./AsideContext";
 import { AsideHeader } from "./AsideHeader";
 import { FolderNode } from "./FolderNode";
 import { SnippetNode } from "./SnippetNode";
 import { NoteNode } from "./NoteNode";
 import { NewFolderInput } from "./NewFolderInput";
-import { NewSnippetInput } from "./NewSnippetInput";
 import { NewNoteInput } from "./NewNoteInput";
 import { useContextMenuGroups } from "./useContextMenuGroups";
 import { GitHubIcon } from "./GitHubIcon";
@@ -25,6 +26,7 @@ export type { AsideProps } from "./types";
 
 export function Aside({
   user,
+  authReady,
   folders,
   snippets,
   notes,
@@ -33,14 +35,17 @@ export function Aside({
   onSelectSnippet,
   onSelectNote,
   onGoHome,
-  onGoSpace,
   onOpenSearch,
-  onCreateSnippetInline,
+  onOpenShortcuts,
+  onOpenPreferences,
+  onGoSpace,
+  onOpenCreateModal,
   onCreateNoteInline,
   onCreateFolder,
   onDeleteFolder,
   onDeleteSnippet,
   onDeleteNote,
+  onDeleteMany,
   onRenameFolder,
   onRenameSnippet,
   onRenameNote,
@@ -53,6 +58,14 @@ export function Aside({
   onSelectFolder,
   onSignIn,
   onSignOut,
+  signingIn,
+  signingOut,
+  onOpenTrash,
+  onRestoreAll,
+  onEmptyTrash,
+  trashCount,
+  selectedSnippetId,
+  selectedFolderId,
   isOpen,
   isMobile,
   onSetOpen,
@@ -63,14 +76,77 @@ export function Aside({
   const [creatingFolderParentId, setCreatingFolderParentId] = useState<
     string | null | undefined
   >(undefined);
-  const [creatingSnippetFolderId, setCreatingSnippetFolderId] = useState<
-    string | null | undefined
-  >(undefined);
   const [creatingNoteFolderId, setCreatingNoteFolderId] = useState<
     string | null | undefined
   >(undefined);
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
+  const [trashMenu, setTrashMenu] = useState<{ x: number; y: number } | null>(null);
   const drag = useDragCtx();
+
+  /* ── Multi-selection ────────────────────────────────────────────────────── */
+
+  const {
+    selectedIds,
+    containerRef: treeContainerRef,
+    activateItem,
+    selectAll,
+    clear: clearSelection,
+    isItemSelected,
+    selectForMenu,
+    getSelectedItems,
+    pasteTargetFolderId,
+  } = useMultiSelection({
+    folders,
+    snippets,
+    notes,
+    selectSnippet: onSelectSnippet,
+    selectFolder: (id) => onSelectFolder?.(id),
+    selectNote: onSelectNote,
+  });
+
+  async function handleBatchDelete() {
+    const items = getSelectedItems();
+    if (items.length === 0) return;
+    clearSelection();
+    await onDeleteMany(items);
+  }
+
+  function handleTreeKeyDown(e: React.KeyboardEvent) {
+    // Never hijack the rename / inline-create inputs that live inside the tree.
+    if (isEditableTarget(e.target)) return;
+    const mod = e.metaKey || e.ctrlKey;
+    const key = e.key.toLowerCase();
+
+    if (mod && key === "a") {
+      e.preventDefault();
+      selectAll();
+      return;
+    }
+
+    if (selectedIds.size === 0) return;
+
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      void handleBatchDelete();
+      return;
+    }
+    if (mod && key === "c") {
+      e.preventDefault();
+      onCopy({ type: "copy", items: getSelectedItems().map((i) => ({ itemType: i.type, id: i.id })) });
+      return;
+    }
+    if (mod && key === "x") {
+      e.preventDefault();
+      onCut({ type: "cut", items: getSelectedItems().map((i) => ({ itemType: i.type, id: i.id })) });
+      return;
+    }
+    if (mod && key === "v") {
+      e.preventDefault();
+      void onPaste(pasteTargetFolderId());
+      return;
+    }
+    if (e.key === "Escape") clearSelection();
+  }
 
   /* ── Context menu groups ────────────────────────────────────────────────── */
 
@@ -87,12 +163,16 @@ export function Aside({
     onDeleteFolder,
     onDeleteSnippet,
     onDeleteNote,
+    onDeleteMany,
     onCut,
     onCopy,
     setRenamingId,
     setCreatingFolderParentId,
-    setCreatingSnippetFolderId,
     setCreatingNoteFolderId,
+    onOpenCreateModal,
+    selectedIds,
+    getSelectedItems,
+    clearSelection,
   });
 
   /* ── Context value ──────────────────────────────────────────────────────── */
@@ -101,7 +181,6 @@ export function Aside({
     copy,
     renamingId,
     creatingFolderParentId,
-    creatingSnippetFolderId,
     creatingNoteFolderId,
     openMenu: (target) => setMenuTarget(target),
     beginRename: (id) => setRenamingId(id),
@@ -127,12 +206,6 @@ export function Aside({
       void onCreateFolder(parentId, name);
       setCreatingFolderParentId(undefined);
     },
-    beginCreateSnippet: (folderId) => setCreatingSnippetFolderId(folderId),
-    cancelCreateSnippet: () => setCreatingSnippetFolderId(undefined),
-    submitCreateSnippet: (folderId, title) => {
-      void onCreateSnippetInline(folderId, title);
-      setCreatingSnippetFolderId(undefined);
-    },
     beginCreateNote: (folderId) => setCreatingNoteFolderId(folderId),
     cancelCreateNote: () => setCreatingNoteFolderId(undefined),
     submitCreateNote: (folderId, title) => {
@@ -142,12 +215,30 @@ export function Aside({
     selectSnippet: onSelectSnippet,
     selectNote: onSelectNote,
     selectFolder: (id: string) => onSelectFolder?.(id),
+    activateItem,
+    isItemSelected,
+    selectForMenu,
+    isDraggingItem: (id: string) => {
+      const d = drag.dragging;
+      if (!d) return false;
+      return d.id === id || Boolean(d.items?.some((it) => it.id === id));
+    },
+    selectedSnippetId,
+    selectedFolderId,
     pinFolder: onPinFolder,
     pinSnippet: onPinSnippet,
     pinNote: onPinNote,
     dragging: drag.dragging,
     dragOverId: drag.dragOverId,
-    startDrag: drag.startDrag,
+    startDrag: (type, id) => {
+      // Dragging any item that belongs to the active multi-selection drags the
+      // whole set; otherwise it's a plain single-item drag.
+      if (isItemSelected(id) && selectedIds.size > 1) {
+        drag.startDrag(type, id, "workspace", getSelectedItems());
+      } else {
+        drag.startDrag(type, id);
+      }
+    },
     endDrag: drag.endDrag,
     enterDropTarget: drag.enterDropTarget,
     dropOnTarget: drag.dropOnFolder,
@@ -157,17 +248,17 @@ export function Aside({
 
   /* ── Tree data ─────────────────────────────────────────────────────────── */
 
-  const rootFolders = folders.filter((f) => f.parentId === null);
-  const rootSnippets = snippets.filter((s) => s.folderId === null);
-  const rootNotes = notes.filter((n) => n.folderId === null);
-  const pinnedFolders = sortByPinThenAlpha(rootFolders.filter((f) => f.isPinnedAside), (f) => f.name);
-  const pinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => s.isPinnedAside), (s) => s.title ?? "");
-  const pinnedNotes = sortByPinThenAlpha(rootNotes.filter((n) => n.isPinnedAside), (n) => n.title ?? "");
-  const unpinnedFolders = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinnedAside), (f) => f.name);
+  const rootFolders    = folders.filter((f) => f.parentId === null);
+  const rootSnippets   = snippets.filter((s) => s.folderId === null);
+  const rootNotes      = notes.filter((n) => n.folderId === null);
+  const pinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) =>  f.isPinnedAside), (f) => f.name);
+  const pinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) =>  s.isPinnedAside), (s) => s.title ?? "");
+  const pinnedNotes    = sortByPinThenAlpha(rootNotes.filter((n) =>  n.isPinnedAside), (n) => n.title ?? "");
+  const unpinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinnedAside), (f) => f.name);
   const unpinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => !s.isPinnedAside), (s) => s.title ?? "");
-  const unpinnedNotes = sortByPinThenAlpha(rootNotes.filter((n) => !n.isPinnedAside), (n) => n.title ?? "");
-  const isEmpty =
-    rootFolders.length === 0 && rootSnippets.length === 0 && rootNotes.length === 0;
+  const unpinnedNotes    = sortByPinThenAlpha(rootNotes.filter((n) => !n.isPinnedAside), (n) => n.title ?? "");
+  const isEmpty = rootFolders.length === 0 && rootSnippets.length === 0 && rootNotes.length === 0;
+  const isRootDropTarget = drag.dragging !== null && drag.dragOverId === "root";
 
   /* ── Render ────────────────────────────────────────────────────────────── */
 
@@ -182,15 +273,47 @@ export function Aside({
         />
       )}
 
+      {trashMenu && (
+        <ContextMenu
+          x={trashMenu.x}
+          y={trashMenu.y}
+          groups={[
+            {
+              items: [
+                {
+                  id: "restore-all",
+                  label: copy.trash.restoreAll,
+                  Icon: RotateCcw,
+                  onClick: onRestoreAll,
+                },
+              ],
+            },
+            {
+              items: [
+                {
+                  id: "empty-trash",
+                  label: copy.trash.emptyTrash,
+                  Icon: Trash2,
+                  variant: "destructive" as const,
+                  onClick: onEmptyTrash,
+                },
+              ],
+            },
+          ]}
+          onClose={() => setTrashMenu(null)}
+        />
+      )}
+
       {/* Mobile backdrop */}
       <div
         aria-hidden="true"
         onClick={() => onSetOpen(false)}
-        className={`fixed inset-0 z-40 bg-foreground/40 transition-opacity duration-300 ease-in-out${
+        className={`fixed inset-0 z-40 bg-[var(--scrim)] transition-opacity duration-300 ease-in-out${
           isOpen && isMobile ? " opacity-100" : " pointer-events-none opacity-0"
         }`}
       />
 
+      {/* Desktop: width-animating wrapper | Mobile: display:contents passthrough */}
       <div
         className={
           isMobile
@@ -202,7 +325,7 @@ export function Aside({
       >
         <aside
           className={[
-            "flex h-screen w-60 shrink-0 flex-col border-r border-border bg-surface",
+            "flex h-dvh w-60 shrink-0 flex-col border-r border-ink/6 bg-surface",
             isMobile
               ? `fixed inset-y-0 left-0 z-50 shadow-2xl transition-transform duration-300 ease-in-out ${
                   isOpen ? "translate-x-0" : "-translate-x-full"
@@ -211,23 +334,27 @@ export function Aside({
           ]
             .filter(Boolean)
             .join(" ")}
+          onKeyDown={handleTreeKeyDown}
         >
           <AsideHeader
             user={user}
+            authReady={authReady}
             copy={copy}
+            signingIn={signingIn}
+            signingOut={signingOut}
             onSignIn={onSignIn}
             onSignOut={onSignOut}
             onCollapse={() => onSetOpen(false)}
           />
 
-          <div className="mx-4 mb-2 border-t border-border" />
+          <div className="mx-4 mb-2 border-t border-ink/5" />
 
           {/* Home + Search */}
           <div className="px-2">
             <button
               type="button"
               onClick={onGoHome}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-overlay-soft hover:text-foreground"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-ink/4 hover:text-foreground"
             >
               <Home size={14} className="shrink-0" />
               <span>{copy.aside.home}</span>
@@ -235,17 +362,17 @@ export function Aside({
             <button
               type="button"
               onClick={onOpenSearch}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-overlay-soft hover:text-foreground"
+              className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-ink/4 hover:text-foreground"
             >
-              <Search size={14} className="shrink-0" />
-              <span className="flex-1 text-left">{copy.aside.search}</span>
-              <span className="hidden shrink-0 rounded bg-overlay px-1.5 py-0.5 text-[10px] text-muted sm:inline">
-                {copy.aside.searchShortcut}
+              <span className="flex items-center gap-2">
+                <Search size={14} className="shrink-0" />
+                <span>{copy.aside.search}</span>
               </span>
+              <ShortcutHint id="search" className="max-lg:hidden" />
             </button>
           </div>
 
-          <div className="mx-4 my-3 border-t border-border" />
+          <div className="mx-4 my-3 border-t border-ink/5" />
 
           {/* My Space */}
           <div className="flex flex-1 flex-col overflow-hidden px-2">
@@ -253,10 +380,25 @@ export function Aside({
               <button
                 type="button"
                 onClick={onGoSpace}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-overlay-soft hover:text-foreground"
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  drag.enterDropTarget("root");
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  drag.dropOnFolder(null);
+                }}
+                className={[
+                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-ink/4 hover:text-foreground",
+                  isRootDropTarget ? "bg-ink/[0.07] text-foreground ring-1 ring-inset ring-ink/[0.18]" : "",
+                ].filter(Boolean).join(" ")}
               >
-                <Layers size={12} className="text-muted opacity-70" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                <Layers size={12} className="text-ink/25" />
+                <span className="text-[11px] font-medium uppercase tracking-wider text-ink/35">
                   {copy.aside.mySpace}
                 </span>
               </button>
@@ -265,8 +407,8 @@ export function Aside({
                   <button
                     type="button"
                     aria-label={copy.aside.addSnippet}
-                    onClick={() => setCreatingSnippetFolderId(null)}
-                    className="rounded p-1 text-muted/80 transition-colors hover:bg-overlay hover:text-foreground"
+                    onClick={() => onOpenCreateModal(null)}
+                    className="rounded p-1 text-ink/30 transition-colors hover:bg-ink/6 hover:text-muted"
                   >
                     <FilePlus size={13} />
                   </button>
@@ -276,7 +418,7 @@ export function Aside({
                     type="button"
                     aria-label={copy.aside.addNote}
                     onClick={() => setCreatingNoteFolderId(null)}
-                    className="rounded p-1 text-muted/80 transition-colors hover:bg-overlay hover:text-foreground"
+                    className="rounded p-1 text-ink/30 transition-colors hover:bg-ink/6 hover:text-muted"
                   >
                     <FilePlus2 size={13} />
                   </button>
@@ -286,7 +428,7 @@ export function Aside({
                     type="button"
                     aria-label={copy.aside.addFolder}
                     onClick={() => setCreatingFolderParentId(null)}
-                    className="rounded p-1 text-muted/80 transition-colors hover:bg-overlay hover:text-foreground"
+                    className="rounded p-1 text-ink/30 transition-colors hover:bg-ink/6 hover:text-muted"
                   >
                     <FolderPlus size={13} />
                   </button>
@@ -296,24 +438,23 @@ export function Aside({
 
             {/* Tree */}
             <div
+              ref={treeContainerRef}
               className="flex-1 overflow-y-auto pb-4"
+              onClick={(e) => {
+                // Clicking empty space below/around the rows clears the selection.
+                if (e.target === e.currentTarget) clearSelection();
+              }}
               onContextMenu={(e) => {
                 e.preventDefault();
                 setMenuTarget({ type: "root", x: e.clientX, y: e.clientY });
               }}
             >
-              {isEmpty &&
-              creatingFolderParentId === undefined &&
-              creatingSnippetFolderId === undefined &&
-              creatingNoteFolderId === undefined ? (
-                <p className="px-3 pt-1 text-xs text-muted/70">{copy.aside.emptySpace}</p>
+              {isEmpty && creatingFolderParentId === undefined && creatingNoteFolderId === undefined ? (
+                <p className="px-3 pt-1 text-xs text-ink/20">{copy.aside.emptySpace}</p>
               ) : (
                 <div>
                   {creatingFolderParentId === null && (
                     <NewFolderInput depth={0} parentId={null} />
-                  )}
-                  {creatingSnippetFolderId === null && (
-                    <NewSnippetInput depth={0} folderId={null} />
                   )}
                   {creatingNoteFolderId === null && (
                     <NewNoteInput depth={0} folderId={null} />
@@ -348,8 +489,8 @@ export function Aside({
                   className={[
                     "mx-1 mt-1.5 flex items-center justify-center gap-1.5 rounded-md border border-dashed py-2 text-[11px] transition-all duration-150 select-none",
                     drag.dragOverId === "root"
-                      ? "border-accent/40 bg-overlay text-foreground"
-                      : "border-border text-muted/70",
+                      ? "border-ink/30 bg-ink/5 text-ink/55"
+                      : "border-ink/8 text-ink/20",
                   ].join(" ")}
                 >
                   <Layers size={11} />
@@ -359,20 +500,100 @@ export function Aside({
             </div>
           </div>
 
-          <div className="shrink-0 flex items-center gap-2 px-2 pb-4 pt-2">
+          <div className="shrink-0 px-2 pb-4 pt-2">
+            <button
+              type="button"
+              onClick={onOpenTrash}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setTrashMenu({ x: e.clientX, y: e.clientY });
+              }}
+              onDragOver={(e) => {
+                // dragover fires continuously while the cursor is over the button,
+                // so it's the source of truth for the hover state — no child
+                // enter/leave flicker (children are pointer-events-none anyway).
+                if (drag.dragging?.origin !== "workspace") return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (drag.dragOverId !== "trash-button") drag.enterDropTarget("trash-button");
+              }}
+              onDragLeave={(e) => {
+                // Only clear when the cursor truly leaves the button (relatedTarget
+                // outside it), and only if we're still the active target so we don't
+                // clobber a sibling target that just took over.
+                if (
+                  drag.dragOverId === "trash-button" &&
+                  !e.currentTarget.contains(e.relatedTarget as Node | null)
+                ) {
+                  drag.clearDropTarget();
+                }
+              }}
+              onDrop={(e) => {
+                if (drag.dragging?.origin !== "workspace") return;
+                e.preventDefault();
+                drag.dropOnTrash();
+              }}
+              className={[
+                // Always carry a 1px (transparent) border so toggling to the
+                // dashed drop-zone border only changes color, never width — an
+                // animated 0→1px width renders dashes as a solid line mid-tween.
+                "mb-1 flex w-full items-center rounded-md border border-transparent px-3 py-2 transition-colors duration-150",
+                drag.dragging?.origin === "workspace"
+                  ? "justify-center gap-1.5 border-dashed text-[11px] select-none " +
+                    (drag.dragOverId === "trash-button"
+                      ? "border-red-500/50 bg-red-500/10 text-red-300"
+                      : "border-ink/10 text-ink/30")
+                  : "gap-2 text-[13px] text-muted hover:bg-ink/4 hover:text-foreground",
+              ].join(" ")}
+            >
+              {drag.dragging?.origin === "workspace" ? (
+                <>
+                  <Trash2 size={12} className="pointer-events-none shrink-0" />
+                  <span className="pointer-events-none">{copy.aside.dropToTrash}</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 size={14} className="pointer-events-none shrink-0" />
+                  <span className="pointer-events-none flex-1 text-left">{copy.aside.trash}</span>
+                  {trashCount > 0 && (
+                    <span className="pointer-events-none shrink-0 rounded-full bg-ink/8 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-ink/45">
+                      {trashCount}
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onOpenPreferences}
+              className="mb-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-ink/4 hover:text-foreground"
+            >
+              <Settings size={14} className="shrink-0" />
+              <span className="flex-1 text-left">{copy.aside.preferences}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenShortcuts}
+              className="mb-2 flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-ink/4 hover:text-foreground max-lg:hidden"
+            >
+              <span className="flex items-center gap-2">
+                <Keyboard size={14} className="shrink-0" />
+                <span>{copy.aside.shortcuts}</span>
+              </span>
+              <ShortcutHint id="help" />
+            </button>
             <a
               href="https://github.com/b-harold/klipcode"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex flex-1 items-center justify-center py-2 px-3 gap-2 rounded-md border border-border bg-overlay-soft text-[12px] font-medium text-muted shadow-sm transition-all duration-300 hover:border-overlay-strong hover:bg-overlay hover:text-foreground"
+              className="group flex w-full items-center justify-center py-2 px-3 gap-2 rounded-md border border-ink/4 bg-ink/1 text-[12px] font-medium text-ink/40 shadow-sm transition-all duration-300 hover:border-ink/10 hover:bg-ink/4 hover:text-ink"
             >
               <GitHubIcon
                 size={14}
-                className="shrink-0 transition-transform duration-300 group-hover:scale-110"
+                className="shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:text-ink"
               />
               <span className="truncate tracking-wide">b-harold/klipcode</span>
             </a>
-            <ThemeToggle copy={copy.themeToggle} />
           </div>
         </aside>
       </div>

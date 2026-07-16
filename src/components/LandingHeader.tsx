@@ -16,8 +16,8 @@ export function LandingHeader({ children }: { children: React.ReactNode }) {
     <header
       className="fixed top-0 z-50 w-full transition-[background-color,border-color,backdrop-filter] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
       style={{
-        backgroundColor: scrolled ? "rgba(10,10,10,0.8)" : "transparent",
-        borderBottom: `1px solid ${scrolled ? "rgba(255,255,255,0.06)" : "transparent"}`,
+        backgroundColor: scrolled ? "var(--landing-header-bg)" : "transparent",
+        borderBottom: `1px solid ${scrolled ? "rgba(var(--ink-rgb),0.06)" : "transparent"}`,
         backdropFilter: scrolled ? "blur(24px)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(24px)" : "none",
       }}

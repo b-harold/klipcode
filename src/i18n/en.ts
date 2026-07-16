@@ -18,7 +18,7 @@ quickly and easily, across all your devices.
 1. **Create your first snippet:** Use the creator on the home page or the button
    in the sidebar to add this JSX code at the root level with the title \`Component\`:
 
-\`\`\`
+\`\`\`jsx
 const Greet = ({ name }) => {
   return (
     <div className="user-card">
@@ -58,6 +58,9 @@ export const en = {
     title: "KlipCode",
     subtitle: "Multi-device snippet manager.",
   },
+  common: {
+    close: "Close",
+  },
   auth: {
     statusLabel: "Session status",
     signedIn: "Signed in",
@@ -73,11 +76,13 @@ export const en = {
     cloudSyncRunning: "Syncing changes to the cloud.",
     syncFailed: "Could not sync with the cloud.",
     signedInAs: "User",
+    signingIn: "Signing in…",
+    signingOut: "Signing out…",
   },
   forms: {
     folderTitle: "New folder",
-    folderName: "Folder name",
-    snippetNamePlaceholder: "Snippet name",
+    folderName: "Folder name or path",
+    snippetNamePlaceholder: "Name or path, e.g. scripts/index.js",
     noteNamePlaceholder: "Note name",
     folderParent: "Parent folder",
     folderPinned: "Pinned",
@@ -88,6 +93,7 @@ export const en = {
     snippetFolder: "Folder",
     snippetPinned: "Pinned",
     snippetCode: "Code",
+    codeEditor: "Code editor",
     snippetCodePlaceholder: "Write or paste your code here...",
     submitFolder: "Create folder",
     submitSnippet: "Create snippet",
@@ -95,6 +101,8 @@ export const en = {
     noteBodyPlaceholder: "Write your note in markdown…",
     submitNote: "Create note",
     folderNamePlaceholder: "Folder name",
+    snippetCreated: "Snippet created",
+    open: "Open",
   },
   workspace: {
     loading: "Loading local content...",
@@ -106,6 +114,8 @@ export const en = {
     emptyFolder: "This folder has no content.",
     rootOption: "Root",
     pinnedBadge: "Pinned",
+    snippetNotFoundTitle: "Snippet not found",
+    snippetNotFoundDescription: "This snippet doesn't exist or has been deleted.",
   },
   snippetCard: {
     title: "Title",
@@ -114,6 +124,7 @@ export const en = {
     code: "Code",
     status: "Status",
     untitled: "Untitled",
+    generatingTitle: "Naming snippet…",
   },
   noteCard: {
     untitled: "Untitled note",
@@ -142,7 +153,12 @@ export const en = {
     emptySpace: "No files yet.",
     root: "Root",
     dropToRoot: "Move to root",
+    dropToTrash: "Move to trash",
     unpin: "Unpin",
+    pinned: "Pinned",
+    shortcuts: "Keyboard shortcuts",
+    preferences: "Preferences",
+    trash: "Trash",
   },
   contextMenu: {
     newFolder: "New folder…",
@@ -162,6 +178,8 @@ export const en = {
     copyContent: "Copy content",
     openInNewTab: "Open in new tab",
     moreOptions: "More options",
+    restore: "Restore",
+    deletePermanently: "Delete permanently",
   },
   languageSelect: {
     searchPlaceholder: "Search language...",
@@ -185,6 +203,10 @@ export const en = {
     snippetSubtitle: "Save a piece of code with syntax highlighting.",
     noteSubtitle: "Write a markdown note alongside your snippets.",
   },
+  recentSnippets: {
+    title: "Recently edited",
+    empty: "You don't have any snippets yet. Create your first one above.",
+  },
   folderView: {
     breadcrumbLabel: "Folder navigation",
     subFolders: "Folders",
@@ -193,12 +215,15 @@ export const en = {
     snippetLabel: "snippets",
     noteLabel: "notes",
     subFolderLabel: "folders",
+    folderCount: (n: number) => (n === 1 ? "1 folder" : `${n} folders`),
+    snippetCount: (n: number) => (n === 1 ? "1 snippet" : `${n} snippets`),
     emptyFolder: "Empty",
     empty: "This folder is empty.",
   },
   snippetEditor: {
     back: "Back",
     titlePlaceholder: "Untitled",
+    generatingTitle: "Naming snippet…",
     syncEditing: "Editing...",
     syncSaving: "Saving...",
     syncSavedLocal: "Saved locally",
@@ -212,6 +237,72 @@ export const en = {
     formatNotSupported: "Formatting not available for this language",
     sourceUrl: "Source URL",
     sourceUrlPlaceholder: "Add source URL (https://…)",
+    formatError: "Couldn't format — check for syntax errors",
+    mdCodeBlockOptions: "Code block options",
+    mdCodeBlockDelete: "Delete block",
+    previewMarkdown: "Rich text view",
+    editMarkdown: "Markdown source",
+    mdPlaceholder: "Write something… Markdown shortcuts work here.",
+    trashedNotice: "This snippet is in the trash — restore it to edit.",
+    linkDialog: {
+      title: "Insert link",
+      editTitle: "Edit link",
+      label: "URL",
+      placeholder: "https://",
+      apply: "Apply",
+      cancel: "Cancel",
+      remove: "Remove link",
+      invalid: "Enter a valid URL",
+    },
+    mdToolbar: {
+      bold: "Bold",
+      italic: "Italic",
+      strike: "Strikethrough",
+      code: "Inline code",
+      heading1: "Heading 1",
+      heading2: "Heading 2",
+      heading3: "Heading 3",
+      bulletList: "Bullet list",
+      orderedList: "Numbered list",
+      taskList: "Task list",
+      codeBlock: "Code block",
+      quote: "Quote",
+      link: "Link",
+    },
+    mdSlash: {
+      group: "Basic blocks",
+      noResults: "No blocks found",
+      heading1Title: "Heading 1",
+      heading1Desc: "Big section heading",
+      heading2Title: "Heading 2",
+      heading2Desc: "Medium section heading",
+      heading3Title: "Heading 3",
+      heading3Desc: "Small section heading",
+      bulletListTitle: "Bullet list",
+      bulletListDesc: "A simple bulleted list",
+      orderedListTitle: "Numbered list",
+      orderedListDesc: "A list with numbering",
+      taskListTitle: "Task list",
+      taskListDesc: "Track tasks with checkboxes",
+      blockquoteTitle: "Quote",
+      blockquoteDesc: "Capture a quotation",
+      codeBlockTitle: "Code block",
+      codeBlockDesc: "Code with syntax highlighting",
+      tableTitle: "Table",
+      tableDesc: "Insert a 3×3 table",
+      dividerTitle: "Divider",
+      dividerDesc: "Visually separate sections",
+    },
+    mdTable: {
+      addColumnBefore: "Add column before",
+      addColumnAfter: "Add column after",
+      deleteColumn: "Delete column",
+      addRowBefore: "Add row above",
+      addRowAfter: "Add row below",
+      deleteRow: "Delete row",
+      toggleHeaderRow: "Toggle header row",
+      deleteTable: "Delete table",
+    },
   },
   noteEditor: {
     titlePlaceholder: "Untitled note",
@@ -234,8 +325,13 @@ export const en = {
   },
   search: {
     title: "Search",
-    placeholder: "Search snippets and notes…",
-    noResults: "No results",
+    placeholder: "Search snippets by title or code…",
+    empty: "Type to search your snippets",
+    noResults: "No snippets found",
+    rootFolder: "Root",
+    navigateHint: "to navigate",
+    selectHint: "to open",
+    closeHint: "to close",
     snippets: "Snippets",
     notes: "Notes",
     folders: "Folders",
@@ -252,39 +348,118 @@ export const en = {
     cancel: "Cancel",
     confirm: "Delete permanently",
   },
+  shortcuts: {
+    title: "Keyboard shortcuts",
+    sections: {
+      general: "General",
+      editor: "Editor",
+      navigation: "Navigation",
+    },
+    items: {
+      search: "Open search",
+      newSnippet: "New snippet",
+      createSnippet: "Create snippet",
+      toggleSidebar: "Toggle sidebar",
+      help: "Show keyboard shortcuts",
+      copyCurrent: "Copy current snippet code",
+      closeEditor: "Close editor",
+      undoDelete: "Undo last delete",
+      navigateList: "Move between cards",
+    },
+  },
+  preferences: {
+    title: "Preferences",
+    appearance: {
+      label: "Appearance",
+      description: "Light or dark theme",
+      light: "Light",
+      dark: "Dark",
+      toLight: "Switch to light theme",
+      toDark: "Switch to dark theme",
+    },
+    language: {
+      label: "Language",
+      description: "Interface language",
+      en: "English",
+      es: "Español",
+    },
+    defaultFolder: {
+      label: "Default folder",
+      description: "Pre-selected folder when creating a snippet",
+    },
+    defaultLanguage: {
+      label: "Default language",
+      description: "Pre-selected language when creating a snippet",
+    },
+    autoGenerateTitle: {
+      label: "Auto-generate names",
+      description: "Name untitled snippets automatically with AI",
+      lockedHint: "Sign in to name snippets automatically with AI",
+    },
+    codeWrap: {
+      label: "Long lines",
+      description: "Scroll horizontally or wrap onto the next line",
+      scroll: "Scroll",
+      wrap: "Wrap",
+    },
+  },
+  trash: {
+    title: "Trash",
+    empty: "The trash is empty.",
+    restore: "Restore",
+    deletePermanently: "Delete permanently",
+    restoreAll: "Restore all",
+    emptyTrash: "Empty trash",
+    emptyTitle: "Empty trash",
+    emptyWarning: "This permanently deletes everything in the trash. This action cannot be undone.",
+    cancel: "Cancel",
+    undoRestored: "Deletion undone",
+    folderCount: (n: number) => (n === 1 ? "1 folder" : `${n} folders`),
+    snippetCount: (n: number) => (n === 1 ? "1 snippet" : `${n} snippets`),
+  },
   landing: {
     nav: {
       openApp: "Open App",
       noSignUp: "No sign-up required",
+      features: "Features",
+      faq: "FAQ",
     },
     hero: {
-      title: "Your code snippets,\nalways within reach.",
-      titleBefore: "Your ",
-      titleHighlight: "code snippets",
-      titleAfter: ",\nalways within reach.",
+      badge: "Free · Open source · No sign-up",
+      title: "The code snippet manager\nthat stays out of your way.",
+      titleBefore: "The ",
+      titleHighlight: "code snippet manager",
+      titleAfter: "that stays out of your way.",
       subtitle:
-        "Save, organize, and access your favorite code snippets instantly from any device. Cloud sync included.",
+        "Save, organize, and copy your code snippets from any device. Local-first and free: it works offline, needs no account, and syncs through GitHub when you want it to.",
       cta: "Start now — free",
       ctaHint: "No account needed to begin",
     },
-    appPreview: "KlipCode application interface",
+    trust: {
+      offline: "Works 100% offline",
+      local: "Your snippets live on your device",
+      openSource: "Open source on GitHub",
+    },
+    appPreview:
+      "KlipCode snippet manager interface: folder sidebar and code editor with syntax highlighting",
     features: {
+      eyebrow: "Features",
       title: "Everything you need, nothing you don't",
       subtitle: "Built for developers who value speed and simplicity.",
       quickSave: {
         title: "Instant Save",
         description:
-          "Save a snippet in two clicks. No sign-up walls, no friction.",
+          "Save a code snippet in two clicks. No sign-up walls, no friction.",
       },
       instantCopy: {
         title: "One-click Copy",
         description:
-          "Copy any snippet to your clipboard instantly.",
+          "Copy any snippet to your clipboard instantly — no more digging through old projects and gists.",
       },
       folders: {
         title: "Nested Folders",
         description:
-          "Organize with hierarchical folders that match your mental model.",
+          "Organize your snippet library with hierarchical folders that match your mental model.",
       },
       dragAndDrop: {
         title: "Drag & Drop",
@@ -292,42 +467,104 @@ export const en = {
           "Rearrange snippets and folders by dragging them where you want.",
       },
       cloudSync: {
-        title: "Cloud Sync",
+        title: "GitHub Cloud Sync",
         description:
-          "Sign in with GitHub and sync across all your devices automatically.",
+          "Sign in with GitHub and your snippets sync across all your devices automatically.",
       },
       editor: {
-        title: "Advanced Editor",
+        title: "Advanced Code Editor",
         description:
-          "Syntax highlighting, auto-save, code formatting — all built in.",
+          "Syntax highlighting for 25+ languages, auto-save, and code formatting — all built in.",
       },
     },
     demos: {
+      eyebrow: "How it works",
+      title: "From paste to copy in seconds",
+      subtitle:
+        "No setup, no configuration. Open the app and start saving code snippets.",
       create: {
         title: "Create snippets in seconds",
         description:
-          "Pick a language, paste your code — done. No configuration required.",
+          "Pick a language, paste your code — done. Syntax highlighting and auto-save are built in.",
       },
       copy: {
         title: "Copy with one click",
         description:
-          "Every snippet is one click away from your clipboard.",
+          "Every snippet is one click away from your clipboard, on every device.",
       },
       move: {
         title: "Organize intuitively",
         description:
-          "Drag and drop to rearrange your entire workspace.",
+          "Drag and drop snippets and folders to arrange your workspace the way you think.",
       },
+    },
+    faq: {
+      eyebrow: "FAQ",
+      title: "Frequently asked questions",
+      subtitle: "Everything you might want to know before you start.",
+      items: [
+        {
+          q: "Is KlipCode free?",
+          a: "Yes — KlipCode is completely free and open source. There are no paid plans, no snippet limits, and no account required to use it.",
+        },
+        {
+          q: "Do I need an account to use KlipCode?",
+          a: "No. KlipCode is local-first: your snippets are stored in your browser and everything works without signing up. An optional GitHub sign-in enables cloud sync.",
+        },
+        {
+          q: "Does KlipCode work offline?",
+          a: "Yes. Snippets are saved on your device, so you can create, edit, and copy them with no internet connection. Changes sync automatically the next time you're online.",
+        },
+        {
+          q: "How do I sync snippets across devices?",
+          a: "Sign in with GitHub on each device. Your snippet library is backed up to the cloud and kept in sync automatically — edits on one device appear on the others.",
+        },
+        {
+          q: "Is my code private?",
+          a: "Your snippets stay on your device unless you enable cloud sync. With sync on, they're stored in a private database only your account can access — and the entire codebase is open source, so you can verify it.",
+        },
+        {
+          q: "Which programming languages are supported?",
+          a: "KlipCode highlights more than 25 languages — JavaScript, TypeScript, Python, Go, Rust, SQL, HTML, CSS, and more — plus a rich Markdown mode for notes and docs.",
+        },
+      ],
     },
     cta: {
       title: "Ready to organize your code?",
       subtitle:
-        "Start using KlipCode right now. No account, no setup, no limits.",
+        "Free, open source, and ready in seconds. No account, no setup, no limits.",
       button: "Launch KlipCode",
     },
     footer: {
-      tagline: "Multi-device snippet manager.",
+      tagline: "The local-first snippet manager for developers.",
+      description:
+        "KlipCode is a free, open-source code snippet manager. Save, organize, and sync code snippets across all your devices — it works offline and requires no account.",
       source: "Source",
+      product: "Product",
+      language: "Language",
+      github: "GitHub",
+    },
+  },
+  error: {
+    title: "Something went wrong",
+    description: "An unexpected error occurred. You can try again.",
+    retry: "Try again",
+  },
+  notFound: {
+    title: "Page not found",
+    description: "The page you're looking for doesn't exist or has been moved.",
+    backHome: "Back to home",
+  },
+  meta: {
+    home: {
+      title: "KlipCode — Free Open-Source Code Snippet Manager",
+      description:
+        "Free, open-source code snippet manager. Save, organize, and copy snippets across all your devices — local-first, works offline, no sign-up, optional GitHub cloud sync.",
+    },
+    app: {
+      title: "Snippet Manager App",
+      description:
+        "Your KlipCode workspace: create, organize, and copy code snippets instantly. Works fully offline, with optional GitHub cloud sync across devices.",
     },
   },
   seed: {

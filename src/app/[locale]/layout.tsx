@@ -1,6 +1,5 @@
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { getDictionary } from "@/i18n";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const geistSans = Geist({
@@ -13,46 +12,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://klipcode.com";
-
-type Locale = "en" | "es";
-
 export async function generateStaticParams() {
   return [{ locale: "en" }, { locale: "es" }];
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  const { locale } = await params;
-  const dict = getDictionary(locale as Locale);
-  const alt = locale === "es" ? "en" : "es";
-
-  return {
-    alternates: {
-      canonical: `${siteUrl}/${locale}`,
-      languages: {
-        [locale]: `${siteUrl}/${locale}`,
-        [alt]: `${siteUrl}/${alt}`,
-      },
-    },
-    openGraph: {
-      type: "website",
-      url: `${siteUrl}/${locale}`,
-      title: `KlipCode — ${dict.app.subtitle}`,
-      description: dict.landing.hero.subtitle,
-      siteName: "KlipCode",
-      locale: locale === "es" ? "es_ES" : "en_US",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `KlipCode — ${dict.app.subtitle}`,
-      description: dict.landing.hero.subtitle,
-    },
-  };
-}
+// Canonical/hreflang and Open Graph/Twitter metadata are page-specific (they
+// must point at the page's own URL, not the locale root) so each page under
+// this layout defines its own via generateMetadata + buildPageMetadata.
 
 export default async function LocaleLayout({
   children,
@@ -66,13 +32,17 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-theme="dark"
       suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
+      <body className="h-full bg-background text-foreground">
+        {/* Applies the stored theme before the body paints to avoid a flash of
+            the wrong surface. Mirrors readTheme()/applyTheme() in lib/theme.ts. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-      </head>
-      <body className="h-full bg-background text-foreground">{children}</body>
+        {children}
+        <ServiceWorkerRegistration />
+      </body>
     </html>
   );
 }

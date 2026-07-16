@@ -4,24 +4,36 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Trash2, FolderOpen, FileCode2, FileText } from "lucide-react";
 
-import type { Dictionary } from "@/i18n";
-
 interface ConfirmDialogProps {
-  copy: Dictionary["confirmDeleteFolder"];
-  folderName: string;
-  nestedFolderCount: number;
-  snippetCount: number;
-  noteCount: number;
+  title: string;
+  /** Optional secondary line under the title (e.g. an item name). */
+  subtitle?: string;
+  warning: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  /** Optional counts shown in the summary box. */
+  folderCount?: number;
+  snippetCount?: number;
+  noteCount?: number;
+  folderCountLabel?: (n: number) => string;
+  snippetCountLabel?: (n: number) => string;
+  noteCountLabel?: (n: number) => string;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
 export function ConfirmDialog({
-  copy,
-  folderName,
-  nestedFolderCount,
-  snippetCount,
-  noteCount,
+  title,
+  subtitle,
+  warning,
+  confirmLabel,
+  cancelLabel,
+  folderCount = 0,
+  snippetCount = 0,
+  noteCount = 0,
+  folderCountLabel,
+  snippetCountLabel,
+  noteCountLabel,
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -46,17 +58,23 @@ export function ConfirmDialog({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[998] bg-black/70 backdrop-blur-[2px]"
+        className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--scrim)] backdrop-blur-[2px]"
         onMouseDown={onCancel}
       />
 
       {/* Dialog panel */}
-      <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[var(--z-dialog-sticky)] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="klipcode-dialog-animate pointer-events-auto w-full max-w-[360px] rounded-xl border border-border bg-surface p-5 shadow-2xl"
+          className="klipcode-dialog-animate pointer-events-auto w-full max-w-[360px] rounded-xl p-5"
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="confirm-dialog-title"
+          style={{
+            background: "var(--panel-bg)",
+            border: "1px solid rgba(var(--ink-rgb),0.09)",
+            boxShadow:
+              "var(--panel-shadow)",
+          }}
           onMouseDown={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -70,50 +88,60 @@ export function ConfirmDialog({
             <div className="min-w-0">
               <h2
                 id="confirm-dialog-title"
-                className="text-[13px] font-medium leading-snug text-foreground/90"
+                className="text-[13px] font-medium leading-snug text-ink/90"
               >
-                {copy.title}
+                {title}
               </h2>
-              <p
-                className="mt-0.5 max-w-[260px] truncate text-[12px] leading-snug text-muted"
-                title={folderName}
-              >
-                {folderName}
-              </p>
+              {subtitle && (
+                <p
+                  className="mt-0.5 text-[12px] leading-snug truncate max-w-[260px]"
+                  style={{ color: "rgba(var(--ink-rgb),0.4)" }}
+                  title={subtitle}
+                >
+                  {subtitle}
+                </p>
+              )}
             </div>
           </div>
 
           {/* Content counts */}
-          <div className="mb-4 space-y-1.5 rounded-lg border border-border bg-overlay-soft px-3 py-2.5">
-            {nestedFolderCount > 0 && (
-              <div className="flex items-center gap-2">
-                <FolderOpen size={12} className="text-muted" />
-                <span className="text-[12px] text-foreground/70">
-                  {copy.containsFolders(nestedFolderCount)}
-                </span>
-              </div>
-            )}
-            {snippetCount > 0 && (
-              <div className="flex items-center gap-2">
-                <FileCode2 size={12} className="text-muted" />
-                <span className="text-[12px] text-foreground/70">
-                  {copy.containsSnippets(snippetCount)}
-                </span>
-              </div>
-            )}
-            {noteCount > 0 && (
-              <div className="flex items-center gap-2">
-                <FileText size={12} className="text-muted" />
-                <span className="text-[12px] text-foreground/70">
-                  {copy.containsNotes(noteCount)}
-                </span>
-              </div>
-            )}
-          </div>
+          {((folderCount > 0 && folderCountLabel) ||
+            (snippetCount > 0 && snippetCountLabel) ||
+            (noteCount > 0 && noteCountLabel)) && (
+            <div
+              className="mb-4 rounded-lg px-3 py-2.5 space-y-1.5"
+              style={{ background: "rgba(var(--ink-rgb),0.03)", border: "1px solid rgba(var(--ink-rgb),0.06)" }}
+            >
+              {folderCount > 0 && folderCountLabel && (
+                <div className="flex items-center gap-2">
+                  <FolderOpen size={12} style={{ color: "rgba(var(--ink-rgb),0.35)" }} />
+                  <span className="text-[12px]" style={{ color: "rgba(var(--ink-rgb),0.55)" }}>
+                    {folderCountLabel(folderCount)}
+                  </span>
+                </div>
+              )}
+              {snippetCount > 0 && snippetCountLabel && (
+                <div className="flex items-center gap-2">
+                  <FileCode2 size={12} style={{ color: "rgba(var(--ink-rgb),0.35)" }} />
+                  <span className="text-[12px]" style={{ color: "rgba(var(--ink-rgb),0.55)" }}>
+                    {snippetCountLabel(snippetCount)}
+                  </span>
+                </div>
+              )}
+              {noteCount > 0 && noteCountLabel && (
+                <div className="flex items-center gap-2">
+                  <FileText size={12} style={{ color: "rgba(var(--ink-rgb),0.35)" }} />
+                  <span className="text-[12px]" style={{ color: "rgba(var(--ink-rgb),0.55)" }}>
+                    {noteCountLabel(noteCount)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Warning */}
-          <p className="mb-4 text-[12px] leading-relaxed text-muted">
-            {copy.permanentWarning}
+          <p className="mb-4 text-[12px] leading-relaxed" style={{ color: "rgba(var(--ink-rgb),0.38)" }}>
+            {warning}
           </p>
 
           {/* Actions */}
@@ -122,9 +150,22 @@ export function ConfirmDialog({
               ref={cancelRef}
               type="button"
               onClick={onCancel}
-              className="rounded-lg border border-border bg-transparent px-3 py-1.5 text-[13px] font-medium text-muted transition-colors duration-75 hover:bg-overlay hover:text-foreground"
+              className="rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75"
+              style={{
+                color: "rgba(var(--ink-rgb),0.55)",
+                background: "transparent",
+                border: "1px solid rgba(var(--ink-rgb),0.08)",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(var(--ink-rgb),0.05)";
+                (e.currentTarget as HTMLButtonElement).style.color = "rgba(var(--ink-rgb),0.8)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                (e.currentTarget as HTMLButtonElement).style.color = "rgba(var(--ink-rgb),0.55)";
+              }}
             >
-              {copy.cancel}
+              {cancelLabel}
             </button>
             <button
               type="button"
@@ -144,7 +185,7 @@ export function ConfirmDialog({
                 (e.currentTarget as HTMLButtonElement).style.color = "rgba(239,68,68,0.9)";
               }}
             >
-              {copy.confirm}
+              {confirmLabel}
             </button>
           </div>
         </div>

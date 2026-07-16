@@ -1,11 +1,26 @@
 "use client";
 
 import { useState, useEffect, type CSSProperties } from "react";
-import CodeMirror from "@uiw/react-codemirror";
+import CodeMirror, {
+  EditorView,
+  keymap,
+  type ReactCodeMirrorRef,
+} from "@uiw/react-codemirror";
+import { acceptCompletion } from "@codemirror/autocomplete";
 import { vscodeDark, vscodeLight } from "@uiw/codemirror-theme-vscode";
-import { foldGutter } from "@codemirror/language";
-import type { Extension } from "@codemirror/state";
-import { useTheme } from "@/lib/useTheme";
+import {
+  foldGutter,
+  LanguageSupport,
+  LanguageDescription,
+  type Language,
+} from "@codemirror/language";
+import { Prec, type Extension } from "@codemirror/state";
+import { useTheme } from "@/hooks/useTheme";
+import {
+  vscodeDarkMarkdown,
+  vscodeLightMarkdown,
+  markdownMarkTags,
+} from "./markdownTheme";
 
 // Custom fold gutter with VS Code-style SVG markers (our own classes so CSS can target them)
 const customFoldGutter = foldGutter({
@@ -16,8 +31,76 @@ const customFoldGutter = foldGutter({
   },
 });
 
+// Clicking the empty space below the last line gives a fresh line to type in:
+// append a newline at the end of the document (unless the last line is already
+// empty) and drop the caret there.
+const appendLineOnClickBelow = EditorView.domEventHandlers({
+  mousedown(event, view) {
+    if (event.button !== 0) return false;
+    const bottom = view.coordsAtPos(view.state.doc.length)?.bottom;
+    if (bottom == null || event.clientY <= bottom) return false; // clicked on text, not below it
+
+    const end = view.state.doc.length;
+    const lastLineEmpty = view.state.doc.lineAt(end).length === 0;
+    view.dispatch(
+      lastLineEmpty
+        ? { selection: { anchor: end }, scrollIntoView: true }
+        : {
+            changes: { from: end, insert: "\n" },
+            selection: { anchor: end + 1 },
+            scrollIntoView: true,
+          },
+    );
+    view.focus();
+    event.preventDefault();
+    return true;
+  },
+});
+
+// Accept the highlighted completion with Tab, like VS Code. Prec.highest is
+// required because @uiw/react-codemirror enables indentWithTab by default and
+// unshifts it to the front of the keymap stack; without boosting precedence,
+// that binding would swallow Tab (indenting) before this handler runs.
+// acceptCompletion returns false when no suggestion popup is open, so Tab falls
+// through to its normal indentation behaviour the rest of the time.
+const acceptCompletionOnTab = Prec.highest(
+  keymap.of([{ key: "Tab", run: acceptCompletion }]),
+);
+
 // Module-level cache so repeated language loads are instant
 const extensionCache = new Map<string, Extension[]>();
+
+// Languages whose grammar ships no completion source of its own (legacy
+// stream modes and bare lang-* grammars). They get VS Code-style word-based
+// suggestions from the document plus the curated keyword lists in
+// ./completions. Languages absent here either bring their own completions
+// (javascript, html, css, python, sql…) or shouldn't complete at all
+// (markdown prose).
+const FALLBACK_COMPLETION_LANGUAGES = new Set([
+  "java", "c", "cpp", "php", "json", "xml", "bash", "yaml", "go", "rust",
+  "csharp", "ruby", "swift", "kotlin", "dart", "scala", "groovy", "lua",
+  "haskell", "erlang", "r", "powershell", "toml", "scss", "dockerfile",
+]);
+
+// javascript()'s LanguageSupport already registers keyword/snippet completions
+// and scope-aware local completions; scopeCompletionSource(globalThis) adds
+// the runtime's ambient globals (console., document., JSON. …) on top, which
+// is the closest we get to VS Code's IntelliSense without a language server.
+async function loadJavaScript(config?: {
+  jsx?: boolean;
+  typescript?: boolean;
+}): Promise<Extension[]> {
+  const { javascript, scopeCompletionSource } = await import(
+    "@codemirror/lang-javascript"
+  );
+  const support = javascript(config);
+  return [
+    support,
+    support.language.data.of({
+      autocomplete: scopeCompletionSource(globalThis),
+    }),
+  ];
+}
 
 async function loadExtension(language: string): Promise<Extension[]> {
   const cached = extensionCache.get(language);
@@ -27,23 +110,37 @@ async function loadExtension(language: string): Promise<Extension[]> {
 
   switch (language) {
     case "javascript": {
-      const { javascript } = await import("@codemirror/lang-javascript");
-      extensions = [javascript()];
+      extensions = await loadJavaScript();
       break;
     }
     case "typescript": {
-      const { javascript } = await import("@codemirror/lang-javascript");
-      extensions = [javascript({ typescript: true })];
+      extensions = await loadJavaScript({ typescript: true });
       break;
     }
     case "tsx": {
-      const { javascript } = await import("@codemirror/lang-javascript");
-      extensions = [javascript({ jsx: true, typescript: true })];
+      extensions = await loadJavaScript({ jsx: true, typescript: true });
       break;
     }
     case "jsx": {
-      const { javascript } = await import("@codemirror/lang-javascript");
-      extensions = [javascript({ jsx: true })];
+      extensions = await loadJavaScript({ jsx: true });
+      break;
+    }
+    case "svelte": {
+      const { svelte } = await import("@replit/codemirror-lang-svelte");
+      extensions = [svelte()];
+      break;
+    }
+    case "vue": {
+      const { vue } = await import("@codemirror/lang-vue");
+      extensions = [vue()];
+      break;
+    }
+    case "astro": {
+      // No maintained CodeMirror 6 grammar for Astro; HTML covers the markup and
+      // embedded <script>/<style>. The TS frontmatter (between ---) isn't parsed
+      // as TypeScript, which is an accepted limitation.
+      const { html } = await import("@codemirror/lang-html");
+      extensions = [html()];
       break;
     }
     case "html": {
@@ -67,8 +164,18 @@ async function loadExtension(language: string): Promise<Extension[]> {
       break;
     }
     case "markdown": {
-      const { markdown } = await import("@codemirror/lang-markdown");
-      extensions = [markdown()];
+      const { markdown, markdownLanguage } = await import(
+        "@codemirror/lang-markdown"
+      );
+      // GFM base (strikethrough, tables, task lists), our per-mark re-tagging,
+      // and per-language highlighting inside fenced code blocks.
+      extensions = [
+        markdown({
+          base: markdownLanguage,
+          extensions: markdownMarkTags,
+          codeLanguages: markdownCodeLanguages,
+        }),
+      ];
       break;
     }
     case "sql": {
@@ -253,9 +360,89 @@ async function loadExtension(language: string): Promise<Extension[]> {
       extensions = [];
   }
 
+  if (FALLBACK_COMPLETION_LANGUAGES.has(language) && extensions.length > 0) {
+    const { wordAndKeywordCompletion, LANGUAGE_KEYWORDS } = await import(
+      "./completions"
+    );
+    const lang = extensions[0];
+    const base = lang instanceof LanguageSupport ? lang.language : (lang as Language);
+    extensions = [
+      ...extensions,
+      base.data.of({
+        autocomplete: wordAndKeywordCompletion(LANGUAGE_KEYWORDS[language]),
+      }),
+    ];
+  }
+
   extensionCache.set(language, extensions);
   return extensions;
 }
+
+// Languages offered for syntax highlighting inside Markdown fenced code blocks,
+// mapped to the loaders above. `name`/`alias` are matched against the fence info
+// string (```ts, ```py, ```sh …); only grammars we actually bundle are listed,
+// so nothing references an uninstalled package. Markdown itself is omitted to
+// avoid Markdown-in-Markdown recursion.
+const FENCE_LANGUAGES: ReadonlyArray<{
+  name: string;
+  alias: readonly string[];
+  key: string;
+}> = [
+  { name: "JavaScript", alias: ["js", "node", "cjs", "mjs"], key: "javascript" },
+  { name: "TypeScript", alias: ["ts"], key: "typescript" },
+  { name: "JSX", alias: [], key: "jsx" },
+  { name: "TSX", alias: [], key: "tsx" },
+  { name: "Svelte", alias: [], key: "svelte" },
+  { name: "Vue", alias: [], key: "vue" },
+  { name: "Astro", alias: [], key: "astro" },
+  { name: "HTML", alias: ["htm"], key: "html" },
+  { name: "CSS", alias: [], key: "css" },
+  { name: "SCSS", alias: ["sass"], key: "scss" },
+  { name: "Python", alias: ["py"], key: "python" },
+  { name: "JSON", alias: ["jsonc"], key: "json" },
+  { name: "SQL", alias: [], key: "sql" },
+  { name: "Java", alias: [], key: "java" },
+  { name: "C", alias: [], key: "c" },
+  { name: "C++", alias: ["cpp"], key: "cpp" },
+  { name: "C#", alias: ["csharp", "cs"], key: "csharp" },
+  { name: "PHP", alias: [], key: "php" },
+  { name: "XML", alias: [], key: "xml" },
+  { name: "Bash", alias: ["sh", "shell", "zsh"], key: "bash" },
+  { name: "YAML", alias: ["yml"], key: "yaml" },
+  { name: "Go", alias: ["golang"], key: "go" },
+  { name: "Rust", alias: ["rs"], key: "rust" },
+  { name: "Ruby", alias: ["rb"], key: "ruby" },
+  { name: "Swift", alias: [], key: "swift" },
+  { name: "Kotlin", alias: ["kt"], key: "kotlin" },
+  { name: "Dart", alias: [], key: "dart" },
+  { name: "Scala", alias: [], key: "scala" },
+  { name: "Groovy", alias: [], key: "groovy" },
+  { name: "Lua", alias: [], key: "lua" },
+  { name: "Haskell", alias: ["hs"], key: "haskell" },
+  { name: "Erlang", alias: [], key: "erlang" },
+  { name: "R", alias: [], key: "r" },
+  { name: "PowerShell", alias: ["ps1", "pwsh"], key: "powershell" },
+  { name: "TOML", alias: [], key: "toml" },
+  { name: "Dockerfile", alias: ["docker"], key: "dockerfile" },
+];
+
+// loadExtension returns the language as either a LanguageSupport (lang-* packages)
+// or a bare Language (StreamLanguage legacy modes); the nested code parser needs a
+// LanguageSupport, so wrap the latter.
+function toLanguageSupport(exts: Extension[]): LanguageSupport {
+  const lang = exts[0];
+  return lang instanceof LanguageSupport
+    ? lang
+    : new LanguageSupport(lang as Language);
+}
+
+const markdownCodeLanguages = FENCE_LANGUAGES.map(({ name, alias, key }) =>
+  LanguageDescription.of({
+    name,
+    alias: [...alias],
+    load: async () => toLanguageSupport(await loadExtension(key)),
+  }),
+);
 
 const EDIT_SETUP = {
   lineNumbers: true,
@@ -263,7 +450,7 @@ const EDIT_SETUP = {
   highlightActiveLine: true,
   bracketMatching: true,
   closeBrackets: true,
-  autocompletion: false,
+  autocompletion: true,
   foldGutter: false, // handled manually via customFoldGutter extension
   indentOnInput: true,
   tabSize: 2,
@@ -295,6 +482,13 @@ export interface EditorProps {
   placeholder?: string;
   fontSize?: number;
   gutterBackground?: string;
+  /** Soft-wrap long lines instead of scrolling horizontally. */
+  lineWrapping?: boolean;
+  /** Accessible name for the editable region. Screen readers announce the
+   *  contenteditable textbox with this; falls back to the placeholder. */
+  ariaLabel?: string;
+  /** Exposes the underlying CodeMirror instance (e.g. to imperatively focus it). */
+  editorRef?: React.Ref<ReactCodeMirrorRef>;
 }
 
 export function Editor({
@@ -306,16 +500,29 @@ export function Editor({
   placeholder,
   fontSize = 13,
   gutterBackground,
+  lineWrapping = false,
+  ariaLabel,
+  editorRef,
 }: EditorProps) {
   const [extensions, setExtensions] = useState<Extension[]>([]);
-  const theme = useTheme();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+  const cmTheme =
+    language === "markdown"
+      ? isLight
+        ? vscodeLightMarkdown
+        : vscodeDarkMarkdown
+      : isLight
+        ? vscodeLight
+        : vscodeDark;
+
+  const accessibleName = ariaLabel ?? placeholder;
 
   const editorStyle = {
     fontSize: `${fontSize}px`,
     ...(gutterBackground
       ? { "--klipcode-editor-gutter-background": gutterBackground }
       : {}),
-    ...(readOnly ? { pointerEvents: "none" } : {}),
   } as CSSProperties;
 
   useEffect(() => {
@@ -332,10 +539,26 @@ export function Editor({
 
   return (
     <CodeMirror
+      ref={editorRef}
       value={value}
       onChange={onChange}
-      theme={theme === "light" ? vscodeLight : vscodeDark}
-      extensions={readOnly ? extensions : [...extensions, customFoldGutter]}
+      theme={cmTheme}
+      extensions={[
+        ...(readOnly
+          ? extensions
+          : [
+              acceptCompletionOnTab,
+              ...extensions,
+              customFoldGutter,
+              appendLineOnClickBelow,
+            ]),
+        ...(lineWrapping ? [EditorView.lineWrapping] : []),
+        // Give the contenteditable textbox an accessible name so screen readers
+        // don't announce it as an unlabelled input (WCAG 4.1.2).
+        ...(accessibleName
+          ? [EditorView.contentAttributes.of({ "aria-label": accessibleName })]
+          : []),
+      ]}
       editable={!readOnly}
       readOnly={readOnly}
       placeholder={placeholder}

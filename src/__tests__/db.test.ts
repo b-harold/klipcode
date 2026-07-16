@@ -1,7 +1,7 @@
 // fake-indexeddb/auto must be loaded via vitest setupFiles (vitest.config.ts)
 // so that Dexie picks it up when the module is first imported.
 import { describe, it, expect, beforeEach } from "vitest";
-import { db, readWorkspace, getDirtyWorkspace } from "@/lib/db";
+import { db, readWorkspace, readTrash, getDirtyWorkspace } from "@/lib/db";
 import type { FolderRecord, NoteRecord, SnippetRecord } from "@/lib/types";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -23,6 +23,7 @@ function makeFolder(overrides: Partial<FolderRecord> = {}): FolderRecord {
     updatedAt: "2024-01-01T00:00:00.000Z",
     dirty: false,
     lastSyncedAt: null,
+    deletedAt: null,
     ...overrides,
   };
 }
@@ -42,6 +43,7 @@ function makeSnippet(overrides: Partial<SnippetRecord> = {}): SnippetRecord {
     updatedAt: "2024-01-01T00:00:00.000Z",
     dirty: false,
     lastSyncedAt: null,
+    deletedAt: null,
     ...overrides,
   };
 }
@@ -102,6 +104,21 @@ describe("readWorkspace()", () => {
     expect(ws.folders.map((f) => f.ownerId)).not.toContain("user-2");
   });
 
+  it("excludes trashed (soft-deleted) records", async () => {
+    await db.folders.bulkAdd([
+      makeFolder({ name: "Live" }),
+      makeFolder({ name: "Trashed", deletedAt: "2024-06-01T00:00:00.000Z" }),
+    ]);
+    await db.snippets.bulkAdd([
+      makeSnippet({ title: "Live" }),
+      makeSnippet({ title: "Trashed", deletedAt: "2024-06-01T00:00:00.000Z" }),
+    ]);
+
+    const ws = await readWorkspace(null);
+    expect(ws.folders.map((f) => f.name)).toEqual(["Live"]);
+    expect(ws.snippets.map((s) => s.title)).toEqual(["Live"]);
+  });
+
   it("places pinned folders before unpinned regardless of updatedAt", async () => {
     await db.folders.bulkAdd([
       makeFolder({ name: "Unpinned New", isPinnedAside: false, updatedAt: "2024-06-01T00:00:00.000Z" }),
@@ -149,6 +166,30 @@ describe("readWorkspace()", () => {
 });
 
 // ── getDirtyWorkspace() ───────────────────────────────────────────────────────
+
+describe("readTrash()", () => {
+  it("returns only trashed records, newest deletion first", async () => {
+    await db.folders.bulkAdd([
+      makeFolder({ name: "Live" }),
+      makeFolder({ name: "Older", deletedAt: "2024-01-01T00:00:00.000Z" }),
+      makeFolder({ name: "Newer", deletedAt: "2024-06-01T00:00:00.000Z" }),
+    ]);
+
+    const trash = await readTrash(null);
+    expect(trash.folders.map((f) => f.name)).toEqual(["Newer", "Older"]);
+  });
+
+  it("respects ownership like readWorkspace", async () => {
+    await db.snippets.bulkAdd([
+      makeSnippet({ ownerId: "user-1", deletedAt: "2024-01-01T00:00:00.000Z" }),
+      makeSnippet({ ownerId: "user-2", deletedAt: "2024-01-01T00:00:00.000Z" }),
+      makeSnippet({ ownerId: null, deletedAt: "2024-01-01T00:00:00.000Z" }),
+    ]);
+
+    const trash = await readTrash("user-1");
+    expect(trash.snippets.map((s) => s.ownerId).sort()).toEqual([null, "user-1"]);
+  });
+});
 
 describe("getDirtyWorkspace()", () => {
   const userId = "user-sync";
